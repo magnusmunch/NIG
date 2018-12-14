@@ -1,5 +1,4 @@
-# computes the ratio besselK(x, p/2 - 1/2)/besselK(x, p/2 + 1/2)
-# tested and works
+# computes ratio besselK(x, p/2 - 1/2)/besselK(x, p/2 + 1/2) (tested)
 ratio.besselK <- function(x, p) {
   out <- sapply(x, function(s) {
     if((p %% 2)==0) {
@@ -17,35 +16,7 @@ ratio.besselK <- function(x, p) {
   return(out)
 }
 
-# c++ version of ratio computation
-# tested and works
-cppFunction("
-            NumericVector ratio_besselK_cpp(NumericVector x, int p) {
-            int n = x.size();
-            NumericVector value(n);
-            bool even = (p % 2)==0;
-            int niter = floor(p/2) + 1 - even;
-            double num;
-            if(even) {
-            num = 0.5;
-            } else {
-            num = 1;
-            }
-            for(int i=0; i<n; i++) {
-            if(even) {
-            value[i] = 1;
-            } else {
-            value[i] = R::bessel_k(x[i], 1, exp(1))/R::bessel_k(x[i], 0, exp(1));
-            }
-            for(int j=0; j<niter; j++) {
-            value[i] = 1/(value[i] + 2*(j + 1 - num)/x[i]);
-            }
-            }
-            return value;
-            }")
-
-# updates the variational parameters
-# not tested
+# one variational Bayes update with sigma^2 fixed (not tested)
 vb.update.fixed.sigma <- function(aold, lambda, theta, sigma, x, xxt, y) {
   p <- ncol(x)
   D <- length(sigma)
@@ -67,10 +38,10 @@ vb.update.fixed.sigma <- function(aold, lambda, theta, sigma, x, xxt, y) {
   return(list(Sigma=Sigma, mu=mu, delta=delta, a=a))
 }
 
-# VB update with sigma stochastic
+# one VB update with sigma^2 stochastic (not tested)
 vb.update <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
   p <- ncol(x)
-  D <- length(sigma)
+  D <- length(length(zetaold))
   n <- nrow(y)
   
   # sort of efficient matrix inversion
@@ -103,10 +74,63 @@ vb.update <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
   return(out)
 }
 
-# VB update under independent prior beta and sigmas
+# one fast VB update with sigma^2 stochastic (tested)
+single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
+  
+  # auxiliary variables involving mu and Sigma
+  trSigma <- 2*zetaold*(sum(1/(sv^2 + aold)) + max(p - n, 0)/aold)/(n + p + 1)
+  mutmu <- sum(sv^2*uty^2/(sv^2 + aold)^2)
+  trXtXSigma <- 2*zetaold*sum(sv^2/(sv^2 + aold))/(n + p + 1)
+  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + aold)^2)
+  ytXmu <- sum(sv^2*uty^2/(sv^2 + aold))
+  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + aold)) - 
+    max(p - n, 0)*log(aold)
+  
+  # vb parameters and auxiliaries
+  delta <- 0.5*(n + p + 1)*(trSigma + mutmu)/zetaold + lambda
+  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
+  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
+  zeta <- 0.5*a*(yty + trSigma + mutmu + trXtXSigma + mutXtXmu - 2*ytXmu)
+  v <- sqrt(delta*theta^2/lambda)*ratio
+  
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*logdetSigma - 0.5*(n + p + 1)*log(zeta) - 
+    0.25*(n + p + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
+    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
+    0.5*(p + 1)*log(theta) + 
+    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
+    0.5*(delta - 0.5*(n + p + 1)*(mutmu + trSigma)/zeta)*a +
+    0.5*lambda*v/theta^2
+  
+  # total elbo calculation
+  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
+  
+  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+           elbo=unname(elbo), elbo.const=unname(elbo.const))
+  return(out)
+}
+
+# one EB update (tested)
+eb.update <- function(v, a, elbo.const, C, D) {
+  
+  # eb parameters
+  alpha <- rowSums(solve(t(C*v) %*% C) %*% t(C))
+  lambda <- D/(sum(a) - sum(t(C)*alpha))
+  theta <- 1/as.numeric(C %*% alpha)
+  
+  # elbo calculation involves constant part plus updated part
+  elbo <- elbo.const + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
+  
+  out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo)
+  return(out)
+}
+
+# one VB update with independent beta and sigma^2 prior (not tested)
 vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
   p <- ncol(x)
-  D <- length(sigma)
+  D <- length(zetaold)
   n <- nrow(y)
   val <- (2*zetaold)/(n + 1)
   
@@ -135,17 +159,7 @@ vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
   return(out)
 }
 
-# updates the hyper-parameters
-eb.update <- function(v, a, C) {
-  D <- length(v)
-  alpha <- rowSums(solve(t(C) %*% diag(v) %*% C) %*% t(C))
-  lambda <- D/(sum(a) - sum(t(alpha) %*% t(C)))
-  theta <- 1/as.numeric(C %*% alpha)
-  return(list(alpha=alpha, lambda=lambda, theta=theta))
-}
-
-# evaluate the evidence lower bound
-# doesn't work, numerical overflow for log of BesselK 
+# calculate ELBO (tested, numerical overflow for log BesselK)
 elbo.eval <- function(mu, Sigma, delta, lambda, theta, sigma, x, xtx, y) {
   D <- length(sigma)
   p <- nrow(mu)
@@ -170,12 +184,14 @@ elbo.eval <- function(mu, Sigma, delta, lambda, theta, sigma, x, xtx, y) {
   return(elbo)
 }
 
-# epsilon.vb=Inf means one vb iteration per eb iteration
+# fits model (not tested)
 est.igauss <- function(x, y, C,
                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
                                     maxit.eb=100, maxit.vb=100, trace=TRUE), 
-                       init=list(alpha, lambda, a, zeta),
+                       init=NULL,
                        test=list(ind.var=FALSE)) {
+  # init is either NULL or a list(alpha, lambda, a, zeta)
+  # epsilon.vb=Inf means one vb iteration per eb iteration
   
   # fixed parameters
   n <- nrow(x)
@@ -190,10 +206,17 @@ est.igauss <- function(x, y, C,
     svd.x <- svd(x)
     
     # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
-    init.mll.est <- t(sapply(c(1:D), function(d) {
-      constrOptim(c(1, 1), init.mll, NULL, ui=diag(2), ci=c(0, 0),
-                  sv=svd.x$d, uty=t(svd.x$u) %*% y[, d], n=n,
-                  control=list(fnscale=-1))$par}))
+    if(test$ind.var) {
+      init.mll.est <- t(sapply(c(1:D), function(d) {
+        constrOptim(c(1, 1), init.mll2, NULL, ui=diag(2), ci=c(0, 0),
+                    sv=svd.x$d, uty=t(svd.x$u) %*% y[, d], n=n,
+                    control=list(fnscale=-1))$par}))
+    } else {
+      init.mll.est <- t(sapply(c(1:D), function(d) {
+        constrOptim(c(1, 1), init.mll, NULL, ui=diag(2), ci=c(0, 0),
+                    sv=svd.x$d, uty=t(svd.x$u) %*% y[, d], n=n,
+                    control=list(fnscale=-1))$par}))
+    }
     
     # consider them samples from prior and estimate one inverse Gaussian prior
     init.theta <- mean(init.mll.est[, 2])
@@ -208,10 +231,15 @@ est.igauss <- function(x, y, C,
       (p + 1)/init.delta
     
     # consider sigma_d^2 fixed and estimate inverse Gamma prior
-    init.zeta <- 0.5*D*(n + p + 1)/sum(1/init.mll.est[, 1])
+    if(test$ind.var) {
+      init.zeta <- 0.5*D*(n + 1)/sum(1/init.mll.est[, 1])
+    } else {
+      init.zeta <- 0.5*D*(n + p + 1)/sum(1/init.mll.est[, 1])
+    }
+    
     
     init <- list(alpha=c(init.theta, rep(0, ncol(C) - 1)), lambda=init.lambda,
-                 a=init.a, zeta=init.zeta)
+                 a=rep(init.a, D), zeta=rep(init.zeta, D))
     
   }
   
@@ -249,7 +277,7 @@ est.igauss <- function(x, y, C,
     if(control$trace) {cat("\r", "iteration", iter.eb)}
     
     # update the EB parameters and store result in iteration track object
-    new.eb <- eb.update(old.vb$v, old.vb$a, C)
+    new.eb <- eb.update(old.vb$v, old.vb$a, -Inf, C, D)
     eb.seq <- sapply(c(1:length(eb.seq)), function(s) {
       rbind(eb.seq[[s]], new.eb[[s]])})
     
@@ -308,7 +336,7 @@ est.igauss <- function(x, y, C,
   return(out)
 }
 
-# Gwen's model
+# fits independent inverse Gamma prior (Gwen's) model (not tested)
 est.gwen <- function(x, y, eqid,
                      control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
                                   epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2, 
@@ -458,7 +486,7 @@ est.gwen <- function(x, y, eqid,
   
 }
 
-# starting values problem
+# MLL in regular ridge model (not tested)
 init.mll <- function(par, sv, uty, n) {
   sigma.sq <- par[1]
   gamma.sq <- par[2]
@@ -468,13 +496,14 @@ init.mll <- function(par, sv, uty, n) {
   return(mll)
 }
 
-# gives correct gamma^2*sigma^2, but unstable in terms of separatio of the two
-# marg.lik2 <- function(par, sv, uty, n) {
-#   lsigma.sq <- par[1]
-#   lgamma.sq <- par[2]
-#   mll <- -0.5*n*lsigma.sq - 0.5*n*lgamma.sq - 
-#     sum(log(sv^2 + exp(-lgamma.sq))) - 
-#     0.5*exp(-lsigma.sq - lgamma.sq)*
-#     sum(uty^2*exp(lgamma.sq)/(sv^2*exp(lgamma.sq) + 1))
-#   return(mll)
-# }
+# MLL in regular ridge model for independent beta and sigma^2 prior (not tested)
+init.mll2 <- function(par, sv, uty, n) {
+  sigma.sq <- par[1]
+  gamma.sq <- par[2]
+  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
+    sum(log(sv^2/sigma.sq + 1/gamma.sq)) - 
+    0.5*sum(uty^2/(sv^2*gamma.sq + sigma.sq))
+  return(mll)
+}
+
+
