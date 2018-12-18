@@ -1,6 +1,6 @@
 ### paths
-path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/code/src/"
-path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/code/R/"
+path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/src/"
+path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/R/"
 
 ### libraries
 library(Rcpp)
@@ -29,7 +29,6 @@ SNR <- 5
 beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
 x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
 y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
 
 # generate starting values
 lambdaold=0.001
@@ -277,12 +276,8 @@ plot(theta, rep(fit1.gwen$eb.seq$bprior[fit1.gwen$iter$eb + 1, ]/
 abline(a=0, b=1, lty=2)
 par(mfrow=c(1, 1), mar=omar)
 
-# check log besselK function
-x <- seq(0.1, 1000, 0.1)
-nu <- seq(1, 1000, 0.5)
-grid <- expand.grid(x, nu)
-library(gsl)
-bessel_lnKnu
+
+
 
 
 set.seed(123)
@@ -295,10 +290,12 @@ V <- svd.x$v
 U <- svd.x$u
 d <- svd.x$d
 ad <- 15.3
-uty <- as.numeric(t(U) %*% y)
+zetad <- 3.1
+Uty <- t(U) %*% y
 
-trace1 <- as.numeric(t(y) %*% x %*% solve(t(x) %*% x + ad*diag(p)) %*% t(x) %*% y)
-trace2 <- sum(d^2*uty^2/(d^2 + ad))
+
+trace1 <- as.numeric(determinant(solve(0.5*(n + 1)*t(x) %*% x/zetad + ad*diag(p)), log=TRUE)$modulus)
+trace2 <- p*log(2*zetad/(n + 1)) - sum(log(d^2 + 2*zetad*ad/(n + 1))) - max(p - n, 0)*log(2*zetad*ad/(n + 1))
 all.equal(trace1, trace2)
 
 

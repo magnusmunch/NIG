@@ -1,0 +1,20 @@
+citHeader("To cite the ?? package in publications please use:")
+
+year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
+vers <- paste("R package version", meta$Version)
+
+citEntry(entry="Article",
+    title = "title",
+    author = personList(as.person("M.M. Münch"),
+                        as.person("M.A. van de Wiel"),
+                        as.person("S. Richardson"),
+			as.person("G.G.R. Leday")),
+    journal = "",
+    volume = "",
+    number = "",
+    pages =  "",
+    year = ,
+    textVersion =
+      paste("M\"unch, Magnus M., van de Wiel, Mark A., Richardson, Sylvia, and, Leday, Gwena{\"e}l G.R. (year). ", "title. ",
+        	  "journal.", sep = "")
+)

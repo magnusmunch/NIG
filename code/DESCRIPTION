@@ -1,0 +1,18 @@
+Package: title
+Type: Package
+Title: title
+Version: 0.0.2
+Date: date
+Author: Magnus M. Münch
+Maintainer: Magnus M. Münch <m.munch@vumc.nl>
+Description: 
+License: GPL (>= 2)
+Imports: Rcpp (>= 0.12.14), gsl
+LinkingTo: Rcpp, RcppArmadillo
+NeedsCompilation: yes
+VignetteBuilder: knitr
+URL: https://github.com/magnusmunch/cambridge/
+Suggests: knitr, rmarkdown
+Encoding: UTF-8
+RoxygenNote: 6.0.1
+LazyData: true

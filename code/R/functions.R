@@ -16,42 +16,6 @@ ratio.besselK <- function(x, p) {
   return(out)
 }
 
-# one VB update with sigma^2 stochastic (not tested)
-vb.update <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
-  p <- ncol(x)
-  D <- length(length(zetaold))
-  n <- nrow(y)
-  
-  # sort of efficient matrix inversion
-  mat <- lapply(c(1:D), function(d) {
-    mat <- xxt
-    diag(mat) <- diag(mat) + aold[d]
-    mat <- -(t(x) %*% solve(mat) %*% x)/aold[d]
-    diag(mat) <- diag(mat) + 1/aold[d]
-    return(mat)})
-  
-  # vb parameters
-  Sigma <- lapply(c(1:D), function(d) {2*zetaold[d]*mat[[d]]/(n + p + 1)})
-  mu <- sapply(c(1:D), function(d) {mat[[d]] %*% t(x) %*% y[, d]})
-  delta <- sapply(c(1:D), function(d) {
-    0.5*(n + p + 1)*(sum(diag(Sigma[[d]])) + sum(mu[, d]^2))/
-      zetaold[d] + lambda})
-  zeta <- sapply(c(1:D), function(d) {
-    0.5*aold[d]*(sum(y[, d]^2) - 2*t(y[, d]) %*% x %*% mu[, d] + 
-                   sum((xtx + diag(p))*Sigma[[d]]) + 
-                   t(mu[, d]) %*% (xtx + diag(p)) %*% mu[, d])})
-  
-  # calculate the ratio of two BesselK functions
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
-  
-  # additional VB and EB parameters used in next iteration
-  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  v <- sqrt(delta*theta^2/lambda)*ratio
-  
-  out <- list(Sigma=Sigma, mu=mu, delta=delta, zeta=zeta, a=a, v=v)
-  return(out)
-}
-
 # one fast VB update with sigma^2 stochastic (tested)
 single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   
@@ -89,26 +53,6 @@ single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   return(out)
 }
 
-# naive updates to check the results
-single.naive.update <- function(zetaold, aold, lambda, theta, n, p, x, y) {
-  
-  # these updates are computationally expensive
-  Sigma <- 2*zetaold*solve(t(x) %*% x + aold*diag(p))/(n + p + 1)
-  mu <- solve(t(x) %*% x + aold*diag(p)) %*% t(x) %*% y
-  delta <- 0.5*(n + p + 1)*(sum(diag(Sigma)) + sum(mu^2))/zetaold + lambda
-  a <- sqrt(lambda/(theta^2*delta))*
-    ratio_besselK_cpp(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
-  zeta <- 0.5*a*(sum(y^2) - 2*as.numeric(t(y) %*% x %*% mu) + 
-                   sum(diag((t(x) %*% x + diag(p)) %*% Sigma)) + 
-                   as.numeric(t(mu) %*% (t(x) %*% x + diag(p)) %*% mu))
-  v <- sqrt(delta*theta^2/lambda)*
-    ratio_besselK_cpp(sqrt(lambda*delta)/theta, p)
-  
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
-           elbo=NA, elbo.const=NA)
-  return(out)
-}
-
 # one EB update (tested)
 eb.update <- function(v, a, elbo.const, C, D) {
   
@@ -124,6 +68,39 @@ eb.update <- function(v, a, elbo.const, C, D) {
   out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo)
   return(out)
 }
+
+# one fast VB update with independent beta and sigma^2 prior (not tested)
+single.vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
+  p <- ncol(x)
+  D <- length(zetaold)
+  n <- nrow(y)
+  val <- (2*zetaold)/(n + 1)
+  
+  # vb parameters
+  Sigma <- lapply(c(1:D), function(d) {
+    mat <- xxt
+    diag(mat) <- diag(mat) + val[d]*aold[d]
+    mat <- -(t(x) %*% solve(mat) %*% x)/aold[d]
+    diag(mat) <- diag(mat) + 1/aold[d]
+    return(mat)})
+  mu <- sapply(c(1:D), function(d) {Sigma[[d]] %*% t(x) %*% y[, d]/val[d]})
+  delta <- sapply(c(1:D), function(d) {
+    sum(diag(Sigma[[d]])) + sum(mu[, d]^2) + lambda})
+  zeta <- sapply(c(1:D), function(d) {
+    0.5*(sum(y[, d]^2) - 2*t(y[, d]) %*% x %*% mu[, d] + 
+           sum(xtx*Sigma[[d]]) + t(mu[, d]) %*% xtx %*% mu[, d])})
+  
+  # calculate the ratio of two BesselK functions
+  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
+  
+  # additional VB and EB parameters used in next iteration
+  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
+  v <- sqrt(delta*theta^2/lambda)*ratio
+  
+  out <- list(Sigma=Sigma, mu=mu, delta=delta, zeta=zeta, a=a, v=v)
+  return(out)
+}
+
 
 # one VB update with independent beta and sigma^2 prior (not tested)
 vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
