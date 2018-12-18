@@ -215,6 +215,8 @@ est.igauss <- function(x, y, C,
     } else {
       init <- init.param(sv, uty, D, n, p)
     }
+  } else {
+    init$theta <- 1/as.numeric(C %*% init$alpha)
   }
 
   # set initial values for VB, EB, and ELBO estimates
