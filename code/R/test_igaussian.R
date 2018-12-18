@@ -52,66 +52,12 @@ svd.x <- svd(x)
 sv <- svd.x$d
 uty <- t(svd.x$u) %*% y # size n x D
 yty <- colSums(y*y)
-test1 <- single.vb.update(new.vb[2, d], new.vb[3, d], new.eb$lambda, 
-                          new.eb$theta[d], sv, n, p, uty[, d], yty[d])
+test1 <- single.vb.update.ind(new.vb[2, d], new.vb[3, d], new.eb$lambda, 
+                              new.eb$theta[d], sv, n, p, uty[, d], yty[d])
 
 # naive update
-test2 <- single.naive.update(new.vb[2, d], new.vb[3, d], new.eb$lambda, 
-                             new.eb$theta[d], n, p, x, y[, d])
-
-# naive update
-all.equal(test1[-c(5, 6)], test2[-c(5, 6)])
-test2 <- c(delta=delta, zeta=zeta, a=a, v=v, elbo=NA, elbo.const=NA)
-cbind(test1, test2)
-
-elbo.seq <- numeric(0)
-alpha.seq <- numeric(0)
-lambda.seq <- numeric(0)
-theta.seq <- numeric(0)
-ebiter <- 20
-vbiter <- 2
-for(i in c(1:ebiter)) {
-  
-  for(j in c(1:vbiter)) {
-    new.vb <- sapply(c(1:D), function(d) {
-      single.vb.update(new.vb[2, d], new.vb[3, d], new.eb$lambda, 
-                       new.eb$theta[d], sv, n, p, uty[, d], yty[d])})
-  }
-  
-  new.eb <- eb.update(new.vb[4, ], new.vb[3, ], new.vb[6, ], C, D)
-  elbo.seq <- rbind(elbo.seq, new.eb$elbo)
-  alpha.seq <- rbind(alpha.seq, new.eb$alpha)
-  lambda.seq <- rbind(lambda.seq, new.eb$lambda)
-  theta.seq <- rbind(theta.seq, new.eb$theta)
-  
-}
-
-fit1.igauss1 <- est.igauss(x, y, C, 
-                           control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                        maxit.eb=20, maxit.vb=2, trace=TRUE), 
-                           init=list(alpha=c(1, rep(0, nclass - 1)), 
-                                     lambda=0.001, a=rep(0.001, D), 
-                                     zeta=rep(1000, D)),
-                           test=list(ind.var=FALSE))
-
-plot(rowSums(elbo.seq), type="l")
-plot(lambda.seq, type="l")
-plot(alpha.seq[, 1], type="l", ylim=range(alpha.seq))
-lines(alpha.seq[, 2], type="l", col=2)
-lines(alpha.seq[, 3], type="l", col=3)
-lines(alpha.seq[, 4], type="l", col=4)
-lines(alpha.seq[, 5], type="l", col=5)
-
-plot(theta.seq[, 1], type="l", ylim=range(theta.seq))
-lines(theta.seq[, 1*D/nclass + 1], type="l", col=2)
-lines(theta.seq[, 2*D/nclass + 1], type="l", col=3)
-lines(theta.seq[, 3*D/nclass + 1], type="l", col=4)
-lines(theta.seq[, 4*D/nclass + 1], type="l", col=5)
-
-plot(theta.seq[ebiter, ], fit1.igauss1$eb.seq$theta[ebiter, ])
-plot(alpha.seq[ebiter, ], fit1.igauss1$eb.seq$alpha[ebiter, ])
-
-
+test2 <- single.naive.update.ind(new.vb[2, d], new.vb[3, d], new.eb$lambda, 
+                             new.eb$theta[d], t(x) %*% x, t(x) %*% y)
 
 ### simulations
 set.seed(123)

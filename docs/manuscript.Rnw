@@ -662,6 +662,17 @@
 		\delta_d^{(h+1)} & = \trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} + \lambda, \\ \zeta_d^{(h+1)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\],
 		\end{align*}
 		with $a_d^{(h)}$ and the empirical Bayes updates $\bm{\alpha}^{(l+1)}$ and $\lambda^{(l+1)}$ the same as before.
+		
+		\begin{align*}
+		\trace (\bm{\Sigma}^{(h+1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1} + \max (p - n, 0)\cdot (a^{(h)}_d)^{-1}, \\
+		\trace (\X \tr \X \bm{\Sigma}^{(h + 1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n v_i^2 \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1}, \\
+		(\bm{\mu}_d^{(h + 1)}) \tr \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2 v_i^2 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\)^{-2}, \\
+		(\bm{\mu}_d^{(h + 1)}) \tr \X \tr \X \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2v_i^4 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\)^{-2}, \\
+		\log|\bm{\Sigma}^{(h + 1)}| & \propto p \log \zeta_d^{(h)} - \sum_{i=1} \log \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\) - \max(p - n, 0) \cdot (\log a_d^{(h)} + \log \zeta_d^{(h)}), \\
+		\mathbf{y}_d \tr \X \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2 v_i^2 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\).
+		\end{align*}
+		where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
+		
 		\section{Ratios of modified Bessel functions}
 		Ratios of modified Bessel functions of the second kind $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be large, this causes numerical issues in the calculation of various quantities. We alleviate the numerical issues through the following.
 		

@@ -69,68 +69,72 @@ eb.update <- function(v, a, elbo.const, C, D) {
   return(out)
 }
 
-# one fast VB update with independent beta and sigma^2 prior (not tested)
-single.vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
-  p <- ncol(x)
-  D <- length(zetaold)
-  n <- nrow(y)
-  val <- (2*zetaold)/(n + 1)
+# one fast VB update with independent beta and sigma^2 prior (tested)
+single.vb.update.ind <- function(zetaold, aold, lambda, theta, sv, n, p, uty, 
+                                 yty) {
   
-  # vb parameters
-  Sigma <- lapply(c(1:D), function(d) {
-    mat <- xxt
-    diag(mat) <- diag(mat) + val[d]*aold[d]
-    mat <- -(t(x) %*% solve(mat) %*% x)/aold[d]
-    diag(mat) <- diag(mat) + 1/aold[d]
-    return(mat)})
-  mu <- sapply(c(1:D), function(d) {Sigma[[d]] %*% t(x) %*% y[, d]/val[d]})
-  delta <- sapply(c(1:D), function(d) {
-    sum(diag(Sigma[[d]])) + sum(mu[, d]^2) + lambda})
-  zeta <- sapply(c(1:D), function(d) {
-    0.5*(sum(y[, d]^2) - 2*t(y[, d]) %*% x %*% mu[, d] + 
-           sum(xtx*Sigma[[d]]) + t(mu[, d]) %*% xtx %*% mu[, d])})
+  # auxiliary variables involving mu and Sigma
+  val <- 2*zetaold/(n + 1)
+  trSigma <- val*sum(1/(sv^2 + val*aold)) + max(p - n, 0)/aold
+  mutmu <- sum(sv^2*uty^2/(sv^2 + val*aold)^2)
+  trXtXSigma <- val*sum(sv^2/(sv^2 + val*aold))
+  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + val*aold)^2)
+  ytXmu <- sum(sv^2*uty^2/(sv^2 + val*aold))
+  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + val*aold)) - 
+    max(p - n, 0)*(log(aold) + log(val))
   
-  # calculate the ratio of two BesselK functions
+  # vb parameters and auxiliaries
+  delta <- trSigma + mutmu + lambda
   ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
-  
-  # additional VB and EB parameters used in next iteration
   a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
+  zeta <- 0.5*(yty + trXtXSigma + mutXtXmu - 2*ytXmu)
   v <- sqrt(delta*theta^2/lambda)*ratio
   
-  out <- list(Sigma=Sigma, mu=mu, delta=delta, zeta=zeta, a=a, v=v)
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*logdetSigma - 0.5*(n + 1)*log(zeta) - 
+    0.25*(n + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
+    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
+    0.5*(p + 1)*log(theta) + 
+    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
+    0.5*(delta - mutmu - trSigma)*a + 0.5*lambda*v/theta^2
+  
+  # total elbo calculation
+  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
+  
+  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+           elbo=unname(elbo), elbo.const=unname(elbo.const))
   return(out)
+  
 }
 
-
-# one VB update with independent beta and sigma^2 prior (not tested)
-vb.update2 <- function(zetaold, aold, lambda, theta, x, xxt, xtx, y) {
+# one VB update with independent beta and sigma^2 prior (tested)
+single.naive.update.ind <- function(zetaold, aold, lambda, theta, xtx, xty) {
   p <- ncol(x)
   D <- length(zetaold)
   n <- nrow(y)
-  val <- (2*zetaold)/(n + 1)
+  
   
   # vb parameters
   Sigma <- lapply(c(1:D), function(d) {
-    mat <- xxt
-    diag(mat) <- diag(mat) + val[d]*aold[d]
-    mat <- -(t(x) %*% solve(mat) %*% x)/aold[d]
-    diag(mat) <- diag(mat) + 1/aold[d]
-    return(mat)})
-  mu <- sapply(c(1:D), function(d) {Sigma[[d]] %*% t(x) %*% y[, d]/val[d]})
+    solve(0.5*(n + 1)/zetaold*xtx + aold[d]*diag(p))})
+  mu <- sapply(c(1:D), function(d) {
+    0.5*(n + 1)*Sigma[[d]] %*% xty[, d]/zetaold[d]})
   delta <- sapply(c(1:D), function(d) {
     sum(diag(Sigma[[d]])) + sum(mu[, d]^2) + lambda})
   zeta <- sapply(c(1:D), function(d) {
-    0.5*(sum(y[, d]^2) - 2*t(y[, d]) %*% x %*% mu[, d] + 
-           sum(xtx*Sigma[[d]]) + t(mu[, d]) %*% xtx %*% mu[, d])})
+    0.5*(sum(y[, d]^2) - 2*t(xty[, d]) %*% mu[, d] + 
+           sum(diag(xtx %*% Sigma[[d]])) + t(mu[, d]) %*% xtx %*% mu[, d])})
   
   # calculate the ratio of two BesselK functions
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
+  ratio <- ratio_besselK_cpp(sqrt(lambda*delta)/theta, p)
   
   # additional VB and EB parameters used in next iteration
   a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
   v <- sqrt(delta*theta^2/lambda)*ratio
   
-  out <- list(Sigma=Sigma, mu=mu, delta=delta, zeta=zeta, a=a, v=v)
+  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+           elbo=NA, elbo.const=NA)
   return(out)
 }
 
