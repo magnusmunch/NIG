@@ -16,6 +16,13 @@ ratio.besselK <- function(x, p) {
   return(out)
 }
 
+d <- 1
+zetaold <- init$zeta[d]
+aold <- init$a[d]
+lambda <- init$lambda
+theta <- init$theta[d]
+uty <- uty[, d]
+yty <- yty[d]
 # one fast VB update with sigma^2 stochastic (tested)
 single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   
@@ -50,22 +57,6 @@ single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   
   out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
            elbo=unname(elbo), elbo.const=unname(elbo.const))
-  return(out)
-}
-
-# one EB update (tested)
-eb.update <- function(v, a, elbo.const, C, D) {
-  
-  # eb parameters
-  alpha <- rowSums(solve(t(C*v) %*% C) %*% t(C))
-  lambda <- D/(sum(a) - sum(t(C)*alpha))
-  theta <- 1/as.numeric(C %*% alpha)
-  
-  # elbo calculation involves constant part plus updated part
-  elbo <- elbo.const + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
-  
-  out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo)
   return(out)
 }
 
@@ -108,110 +99,141 @@ single.vb.update.ind <- function(zetaold, aold, lambda, theta, sv, n, p, uty,
   
 }
 
-# one VB update with independent beta and sigma^2 prior (tested)
-single.naive.update.ind <- function(zetaold, aold, lambda, theta, xtx, xty) {
-  p <- ncol(x)
-  D <- length(zetaold)
-  n <- nrow(y)
+# one EB update (tested)
+eb.update <- function(v, a, elbo.const, C, D) {
   
+  # eb parameters
+  alpha <- rowSums(solve(t(C*v) %*% C) %*% t(C))
+  lambda <- D/(sum(a) - sum(t(C)*alpha))
+  theta <- 1/as.numeric(C %*% alpha)
   
-  # vb parameters
-  Sigma <- lapply(c(1:D), function(d) {
-    solve(0.5*(n + 1)/zetaold*xtx + aold[d]*diag(p))})
-  mu <- sapply(c(1:D), function(d) {
-    0.5*(n + 1)*Sigma[[d]] %*% xty[, d]/zetaold[d]})
-  delta <- sapply(c(1:D), function(d) {
-    sum(diag(Sigma[[d]])) + sum(mu[, d]^2) + lambda})
-  zeta <- sapply(c(1:D), function(d) {
-    0.5*(sum(y[, d]^2) - 2*t(xty[, d]) %*% mu[, d] + 
-           sum(diag(xtx %*% Sigma[[d]])) + t(mu[, d]) %*% xtx %*% mu[, d])})
+  # elbo calculation involves constant part plus updated part
+  elbo <- elbo.const + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
   
-  # calculate the ratio of two BesselK functions
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta)/theta, p)
-  
-  # additional VB and EB parameters used in next iteration
-  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  v <- sqrt(delta*theta^2/lambda)*ratio
-  
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
-           elbo=NA, elbo.const=NA)
+  out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo)
   return(out)
 }
 
-# fits model (not tested)
+# ridge marginal log likelihood of ridge model (not tested)
+ridge.mll <- function(par, sv, uty, n) {
+  sigma.sq <- par[1]
+  gamma.sq <- par[2]
+  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
+    sum(log(sv^2 + 1/gamma.sq)) - 0.5*sum(uty^2/(sv^2 + 1/gamma.sq))/
+    (sigma.sq*gamma.sq)
+  return(mll)
+}
+
+# ridge marginal log lik for independent beta and sigma^2 prior (not tested)
+ridge.mll.ind <- function(par, sv, uty, n) {
+  sigma.sq <- par[1]
+  gamma.sq <- par[2]
+  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
+    sum(log(sv^2/sigma.sq + 1/gamma.sq)) - 
+    0.5*sum(uty^2/(sv^2*gamma.sq + sigma.sq))
+  return(mll)
+}
+
+# initial values (not tested)
+init.param <- function(sv, uty, D, n, p) {
+  # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
+  init.mll.est <- t(sapply(c(1:D), function(d) {
+      constrOptim(c(1, 1), ridge.mll, NULL, ui=diag(2), ci=c(0, 0),
+                  sv=sv, uty=uty[, d], n=n, control=list(fnscale=-1))$par}))
+    
+  # consider them samples from prior and estimate one inverse Gaussian prior
+  theta <- mean(init.mll.est[, 2])
+  lambda <- D/sum(1/init.mll.est[, 2] - 1/theta)
+  
+  # use empirical mode of gamma_d^2 to derive one delta
+  d <- density(init.mll.est[, 2])
+  mode <- d$x[which.max(d$y)]
+  delta <- as.numeric(mode^2*lambda/theta^2 + (p + 3)*mode)
+  a <- sqrt(lambda/(theta^2*delta))*
+    ratio_besselK_cpp(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
+  
+  # consider sigma_d^2 fixed and estimate inverse Gamma prior
+  zeta <- 0.5*D*(n + p + 1)/sum(1/init.mll.est[, 1])
+  
+  out <- list(theta=rep(theta, D), alpha=c(theta, rep(0, ncol(C) - 1)), 
+              lambda=lambda, zeta=rep(zeta, D), a=rep(a, D))
+  return(out)
+  
+}
+
+# initial values with independent beta and sigma^2 prior (not tested)
+init.param.ind <- function(sv, uty, D, n, p) {
+  # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
+  init.mll.est <- t(sapply(c(1:D), function(d) {
+        constrOptim(c(1, 1), ridge.mll.ind, NULL, ui=diag(2), ci=c(0, 0),
+                    sv=sv, uty=uty[, d], n=n, control=list(fnscale=-1))$par}))
+  
+  # consider them samples from prior and estimate one inverse Gaussian prior
+  theta <- mean(init.mll.est[, 2])
+  lambda <- D/sum(1/init.mll.est[, 2] - 1/theta)
+  
+  # use empirical mode of gamma_d^2 to derive one delta
+  d <- density(init.mll.est[, 2])
+  mode <- d$x[which.max(d$y)]
+  delta <- as.numeric(mode^2*lambda/theta^2 + (p + 3)*mode)
+  a <- sqrt(lambda/(theta^2*delta))*
+    ratio_besselK_cpp(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
+  
+  # consider sigma_d^2 fixed and estimate inverse Gamma prior
+  zeta <- 0.5*D*(n + 1)/sum(1/init.mll.est[, 1])
+  
+  out <- list(theta=rep(theta, D), alpha=c(theta, rep(0, ncol(C) - 1)), 
+              lambda=lambda, zeta=rep(zeta, D), a=rep(a, D))
+  return(out)
+}
+
+# fit model without tissue effect and molecular feature groups (not tested)
 est.igauss <- function(x, y, C,
                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                    maxit.eb=100, maxit.vb=100, trace=TRUE), 
+                                    maxit.eb=20, maxit.vb=2, trace=TRUE), 
                        init=NULL,
-                       test=list(ind.var=FALSE)) {
-  # init is either NULL or a list(alpha, lambda, a, zeta)
-  # epsilon.vb=Inf means one vb iteration per eb iteration
+                       test=list(ind=FALSE)) {
+  # init is either NULL or list(alpha, lambda, a, zeta)
+  # control$epsilon.vb=Inf is equivalent to control$maxit.vb=1
+  # test$ind=TRUE estimates the model with independent beta and sigma^2
   
   # fixed parameters
   n <- nrow(x)
   p <- ncol(x)
-  D <- length(sigma)
+  D <- ncol(y)
   dcov <- ncol(C)
-  xxt <- x %*% t(x)
-  xtx <- t(x) %*% x
+  svd.x <- svd(x)
+  sv <- svd.x$d
+  uty <- t(svd.x$u) %*% y
+  yty <- colSums(y^2)
   
   # create initial values if none given
   if(is.null(init)) {
-    svd.x <- svd(x)
-    
-    # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
-    if(test$ind.var) {
-      init.mll.est <- t(sapply(c(1:D), function(d) {
-        constrOptim(c(1, 1), init.mll2, NULL, ui=diag(2), ci=c(0, 0),
-                    sv=svd.x$d, uty=t(svd.x$u) %*% y[, d], n=n,
-                    control=list(fnscale=-1))$par}))
+    if(test$ind) {
+      init <- init.param.ind(sv, uty, D, n, p)
     } else {
-      init.mll.est <- t(sapply(c(1:D), function(d) {
-        constrOptim(c(1, 1), init.mll, NULL, ui=diag(2), ci=c(0, 0),
-                    sv=svd.x$d, uty=t(svd.x$u) %*% y[, d], n=n,
-                    control=list(fnscale=-1))$par}))
+      init <- init.param(sv, uty, D, n, p)
     }
-    
-    # consider them samples from prior and estimate one inverse Gaussian prior
-    init.theta <- mean(init.mll.est[, 2])
-    init.lambda <- D/sum(1/init.mll.est[, 2] - 1/init.theta)
-    
-    # use empirical mode of gamma_d^2 to derive one delta
-    d <- density(init.mll.est[, 2])
-    mode <- d$x[which.max(d$y)]
-    init.delta <- as.numeric(mode^2*init.lambda/init.theta^2 + (p + 3)*mode)
-    init.a <- sqrt(init.lambda/(init.theta^2*init.delta))*
-      ratio_besselK_cpp(sqrt(init.lambda*init.delta)/init.theta, p) +
-      (p + 1)/init.delta
-    
-    # consider sigma_d^2 fixed and estimate inverse Gamma prior
-    if(test$ind.var) {
-      init.zeta <- 0.5*D*(n + 1)/sum(1/init.mll.est[, 1])
-    } else {
-      init.zeta <- 0.5*D*(n + p + 1)/sum(1/init.mll.est[, 1])
-    }
-    
-    
-    init <- list(alpha=c(init.theta, rep(0, ncol(C) - 1)), lambda=init.lambda,
-                 a=rep(init.a, D), zeta=rep(init.zeta, D))
-    
   }
-  
+
   # set initial values for VB, EB, and ELBO estimates
-  old.eb <- list(alpha=init$alpha, lambda=init$lambda, 
-                 theta=as.numeric(C %*% init$alpha))
-  if(test$ind.var) {
-    old.vb <- vb.update2(init$zeta, init$a, old.eb$lambda, old.eb$theta, x, xxt, 
-                         xtx, y)
+  old.eb <- list(theta=init$theta, alpha=init$alpha, lambda=init$lambda, 
+                 elbo=NA)
+  if(test$ind) {
+    old.vb <- sapply(c(1:D), function(d) {
+      single.vb.update.ind(init$zeta[d], init$a[d], init$lambda, init$theta[d], 
+                           sv, n, p, uty[, d], yty[d])})
   } else {
-    old.vb <- vb.update(init$zeta, init$a, old.eb$lambda, old.eb$theta, x, xxt, 
-                        xtx, y)
+    old.vb <- sapply(c(1:D), function(d) {
+      single.vb.update(init$zeta[d], init$a[d], init$lambda, init$theta[d], 
+                       sv, n, p, uty[, d], yty[d])})
   }
-  old.elbo <- -Inf
+  old.elbo <- old.vb[5, ]
   
   # prepare objects to store EB and ELBO iterations
-  eb.seq <- list(alpha=NULL, lambda=NULL, theta=NULL)
-  elbo.seq <- numeric(0)
+  seq.eb <- list(theta=numeric(0), alpha=numeric(0), lambda=numeric(0))
+  seq.elbo <- numeric(0)
   
   # set all convergence check parameters
   conv.eb <- FALSE
@@ -231,15 +253,18 @@ est.igauss <- function(x, y, C,
     if(control$trace) {cat("\r", "iteration", iter.eb)}
     
     # update the EB parameters and store result in iteration track object
-    new.eb <- eb.update(old.vb$v, old.vb$a, -Inf, C, D)
-    eb.seq <- sapply(c(1:length(eb.seq)), function(s) {
-      rbind(eb.seq[[s]], new.eb[[s]])})
+    new.eb <- eb.update(old.vb[4, ], old.vb[3, ], old.vb[6, ], C, D)
+    new.elbo <- new.eb$elbo
+    seq.eb <- sapply(c(1:length(seq.eb)), function(s) {
+      rbind(seq.eb[[s]], new.eb[[s]])})
+    seq.elbo <- rbind(seq.elbo, new.elbo)
     
     # check convergence of EB estimates
     conv.eb <- all((abs(c(new.eb$lambda - old.eb$lambda, 
                           new.eb$theta - old.eb$theta)) <= control$epsilon.eb))
     check.eb <- conv.eb | (iter.eb >= control$maxit.eb)
     old.eb <- new.eb
+    
     
     # set convergence check parameters for VB
     conv.vb <- c(conv.vb, FALSE)
@@ -252,39 +277,43 @@ est.igauss <- function(x, y, C,
       # increase iteration number by one
       iter.vb[iter.eb] <- iter.vb[iter.eb] + 1
       
-      # update the VB parameters
-      if(test$ind.var) {
-        new.vb <- vb.update2(old.vb$zeta, old.vb$a, old.eb$lambda, old.eb$theta, 
-                             x, xxt, xtx, y)
+      # update the VB parameters and elbo
+      if(test$ind) {
+        new.vb <- sapply(c(1:D), function(d) {
+          single.vb.update.ind(old.vb[2, d], old.vb[3, d], old.eb$lambda, 
+                               old.eb$theta[d], sv, n, p, uty[, d], yty[d])})
       } else {
-        new.vb <- vb.update(old.vb$zeta, old.vb$a, old.eb$lambda, old.eb$theta, 
-                            x, xxt, xtx, y)
+        new.vb <- sapply(c(1:D), function(d) {
+          single.vb.update(old.vb[2, d], old.vb[3, d], old.eb$lambda, 
+                           old.eb$theta[d], sv, n, p, uty[, d], yty[d])})
       }
-      
-      # ELBO calculation is still problematic
-      # new.elbo <- elbo.eval(new.vb$mu, new.vb$Sigma, new.vb$delta,
-      #                       new.eb$lambda, new.eb$theta, x, xtx, y)
-      new.elbo <- rep(-Inf, D)
-      elbo.seq <- rbind(elbo.seq, new.elbo)
-      # 
-      # conv.vb[iter.eb] <- ((new.elbo - old.elbo) <= control$epsilon.vb) |
-      #   (iter.vb[iter.eb] > maxit.vb)
-      # old.elbo <- new.elbo
-      
+      new.elbo <- new.vb[5, ]
+      seq.elbo <- rbind(seq.elbo, new.elbo)
+
       # check convergence of the VB iterations
-      conv.vb[iter.eb] <- all(abs(unlist(new.vb) - unlist(old.vb)) < 
-                                control$epsilon.vb)
+      conv.vb[iter.eb] <- all(abs(new.elbo - old.elbo) <= control$epsilon.vb)
       check.vb <- conv.vb[iter.eb] | (iter.vb[iter.eb] >= control$maxit.vb)
+      old.elbo <- new.elbo
       old.vb <- new.vb
     }
   }
-  names(eb.seq) <- names(old.eb)[-4]
+  names(seq.eb) <- names(old.eb)[-4]
+  
+  # creating Sigma and mu 
+  mu <- sapply(c(1:D), function(d) {
+    svd.x$v %*% (t(svd.x$u)*sv/(sv^2 + new.vb[3, d])) %*% y[, d]})
+  if(p > n) {
+    svd.x <- svd(x, nu=nrow(x), nv=ncol(x))
+  }
+  dSigma <- sapply(c(1:D), function(d) {
+    2*new.vb[2, d]*colSums(t(svd.x$v)*(t(svd.x$v)/(c(sv^2, rep(
+      0, max(p - n, 0))) + new.vb[3, d])))/(n + p + 1)})
   
   # preparing the output
-  out <- list(vb.post=list(mu=old.vb$mu, Sigma=old.vb$Sigma, 
-                           delta=old.vb$delta, zeta=old.vb$zeta), 
-              eb.seq=eb.seq,
-              elbo.seq=elbo.seq,
+  out <- list(vb.post=list(mu=mu, dSigma=dSigma, 
+                           delta=new.vb[1, ], zeta=new.vb[2, ]), 
+              seq.eb=seq.eb,
+              seq.elbo=seq.elbo,
               conv=list(eb=conv.eb, vb=conv.vb),
               iter=list(eb=iter.eb, vb=iter.vb))
   return(out)
@@ -440,24 +469,6 @@ est.gwen <- function(x, y, eqid,
   
 }
 
-# MLL in regular ridge model (not tested)
-init.mll <- function(par, sv, uty, n) {
-  sigma.sq <- par[1]
-  gamma.sq <- par[2]
-  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
-    sum(log(sv^2 + 1/gamma.sq)) - 0.5*sum(uty^2/(sv^2 + 1/gamma.sq))/
-    (sigma.sq*gamma.sq)
-  return(mll)
-}
 
-# MLL in regular ridge model for independent beta and sigma^2 prior (not tested)
-init.mll2 <- function(par, sv, uty, n) {
-  sigma.sq <- par[1]
-  gamma.sq <- par[2]
-  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
-    sum(log(sv^2/sigma.sq + 1/gamma.sq)) - 
-    0.5*sum(uty^2/(sv^2*gamma.sq + sigma.sq))
-  return(mll)
-}
 
 

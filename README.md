@@ -1,6 +1,6 @@
 # Cambridge project
 ## Manuscript
-* compile manuscript.rnw for manuscript
+* compile manuscript.rnw for manuscript (e.g., in R studio using knitr)
 * citation style is in author_short3.bst file
 * bib style references are refs.bib
 

@@ -225,23 +225,3 @@ par(mfrow=c(1, 1), mar=omar)
 
 
 
-
-set.seed(123)
-n <- 200
-p <- 100
-x <- matrix(rnorm(n*p), ncol=p, nrow=n)
-y <- matrix(rnorm(n), nrow=n, ncol=1)
-svd.x <- svd(x)
-V <- svd.x$v
-U <- svd.x$u
-d <- svd.x$d
-ad <- 15.3
-zetad <- 3.1
-Uty <- t(U) %*% y
-
-
-trace1 <- as.numeric(determinant(solve(0.5*(n + 1)*t(x) %*% x/zetad + ad*diag(p)), log=TRUE)$modulus)
-trace2 <- p*log(2*zetad/(n + 1)) - sum(log(d^2 + 2*zetad*ad/(n + 1))) - max(p - n, 0)*log(2*zetad*ad/(n + 1))
-all.equal(trace1, trace2)
-
-
