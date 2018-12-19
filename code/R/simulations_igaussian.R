@@ -1,27 +1,17 @@
-### paths
-path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/src/"
-path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/R/"
-
 ### installation of package
-library(devtools)
-install_github("magnusmunch/cambridge/code", local=FALSE,
-               auth_token="da10f2b37c513e3383c5b2e0aa1300288329c636")
+# library(devtools)
+# install_github("magnusmunch/cambridge/code", local=FALSE,
+#                auth_token="da10f2b37c513e3383c5b2e0aa1300288329c636")
+
+### paths
+path.res <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/results/"
 
 ### libraries
-library(Rcpp)
-library(statmod)
-library(gsl)
 library(cambridge)
 
-### Compile and source functions
-sourceCpp(paste(path.cppcode, "myfunctions.cpp", sep=""))
-sourceCpp(paste(path.cppcode, "functions.cpp", sep=""))
-source(paste(path.rcode, "functions.R", sep=""))
-
-use_travis()
-
-### testing estimation functions
-set.seed(567)
+### simulations
+# settings
+nreps <- 100
 n <- 100
 p <- 200
 D <- 100
@@ -34,51 +24,39 @@ gamma <- sqrt(theta)
 sigma <- rep(1, D)
 SNR <- 5
 
-beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
-x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
-y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
-### simulations
+# simulation (SNR not correct)
 set.seed(123)
-n <- 100
-p <- 200
-D <- 100
-nclass <- 5
+for(rep in 1:nreps) {
+  beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
+  x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
+  y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
 
-alpha <- c(1:nclass)
-C <- model.matrix(~ 1 + factor(rep(c(1:nclass), each=D/nclass)))
-theta <- as.numeric(1/(C %*% alpha))
-gamma <- sqrt(theta)
-sigma <- rep(1, D)
-SNR <- 20
+  mSNR <- mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
 
-beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
-x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
-y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
-fit1.igauss1 <- est.igauss(x, y, C, 
-                           control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                        maxit.eb=300, maxit.vb=2, trace=TRUE), 
-                           init=list(alpha=c(1, rep(0, nclass - 1)), 
-                                     lambda=0.001, a=rep(0.001, D), 
-                                     zeta=rep(1000, D)),
-                           test=list(ind=FALSE))
+  fit1.igauss1 <- est.igauss(x, y, C, 
+                             control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                                          maxit.eb=300, maxit.vb=2, trace=TRUE), 
+                             init=list(alpha=c(1, rep(0, nclass - 1)), 
+                                       lambda=0.001, a=rep(0.001, D), 
+                                       zeta=rep(1000, D)),
+                             test=list(ind=FALSE))
 
 
-fit1.igauss2 <- est.igauss(x, y, C, 
-                           control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                        maxit.eb=20, maxit.vb=2, trace=TRUE), 
-                           init=list(alpha=c(1, rep(0, nclass - 1)), 
-                                     lambda=0.001, a=rep(0.001, D), 
-                                     zeta=rep(1000, D)),
-                           test=list(ind=TRUE))
-
-fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
-                      control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                   epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2, 
-                                   maxit.opt=20, conv.vb="elbo", 
-                                   trace=TRUE), 
-                      init=list(aprior=0.001, bprior=0.001))
+  fit1.igauss2 <- est.igauss(x, y, C, 
+                             control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                                          maxit.eb=20, maxit.vb=2, trace=TRUE), 
+                             init=list(alpha=c(1, rep(0, nclass - 1)), 
+                                       lambda=0.001, a=rep(0.001, D), 
+                                       zeta=rep(1000, D)),
+                             test=list(ind=TRUE))
+  
+  fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
+                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                                     epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2, 
+                                     maxit.opt=20, conv.vb="elbo", 
+                                     trace=TRUE), 
+                        init=list(aprior=0.001, bprior=0.001))
+}
 
 ### convergence
 # elbo convergence
