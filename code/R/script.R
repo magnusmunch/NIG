@@ -13,7 +13,7 @@
 
 
 # Work directory
-setwd("somwhere in my computer")
+setwd("/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/code")
 
 # Clean environment
 rm(list=ls());gc()
@@ -33,21 +33,25 @@ library(RcppArmadillo)
 n <- 100
 
 # sizes of design matrices
-p <- sample(100:200, 100, replace=TRUE)
+p <- 200
 
-# Generate outcomes
-listy <- sapply(p, function(xx, nn){rnorm(nn)}, nn=n, simplify=FALSE)
+# number of outcomes
+D <- 100
+
+# number of groups of outcomes
+nclass <- 5
 
 # Generate design matrices
-generateX <- function(myp, myn){
-	theX <- matrix(rnorm(myn*myp), nrow = myn, ncol = myp)
-	colnames(theX) <- paste("X", 1:ncol(theX), sep="")
-	theX
-}
-listX <- sapply(p, generateX, myn = n)
+matX <- matrix(rnorm(n*p), nrow=n, ncol=p)
+colnames(matX) <- paste("X", 1:ncol(matX), sep="")
+listX <- rep(list(matX), D)
 
 # Generate matrix P (3 global shrinkage priors)
-listP <- sapply(p, function(xx){sample(1:3, xx, replace=TRUE)})
+listP <- rep(lapply(c(1:nclass), function(k) {rep(k, p)}), each=D/nclass)
+
+# Generate outcomes
+listy <- replicate(D, rnorm(n), simplify=FALSE)
+
 
 
 
@@ -60,7 +64,7 @@ sourceCpp("myfunctions.cpp")
 
 # Input arguments
 niter <- 20 # number of iterations
-EBid <- 1:3 # indexes of gamma priors for which EB is desired. If no EB then non-informative. 
+EBid <- 1:nclass # indexes of gamma priors for which EB is desired. If no EB then non-informative. 
 
 # Intialization
 priors <- sort(unique(unlist(listP)))
@@ -98,7 +102,13 @@ for(j in 1:niter){
 		if(ii%in%EBid){
 			# Get posterior shape and rate parameters
 			allaRandStar <- sapply(1:length(idxPriorList), function(x){res$postRandList[[x]][idxPriorList[[x]]==ii,1]}, simplify=TRUE)
+			if(is.list(allaRandStar)){
+				allaRandStar <- unlist(allaRandStar)
+			}
 			allbRandStar <- sapply(1:length(idxPriorList), function(x){res$postRandList[[x]][idxPriorList[[x]]==ii,2]}, simplify=TRUE)
+			if(is.list(allbRandStar)){
+				allbRandStar <- unlist(allbRandStar)
+			}
 
 			# Variational Empirical Bayes using fixed-point iteration as in Valpola and Honkela (2006)
 			ab <- c(aprior[j, ii], bprior[j, ii])

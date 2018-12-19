@@ -3,13 +3,12 @@
 #include <R.h>
 #include <Rcpp.h>
 
-// To use functions in Armadillo library without the need of specifying "arma::"
-using namespace arma;
+// To use functions in Rcpp library without the need of specifying "Rcpp::"
 using namespace Rcpp;
 
 // computes ratio besselK(x, (p - 1)/2)/besselK(x, (p + 1)/2) (tested)
 // [[Rcpp::export]]
-NumericVector ratio_besselK_cpp(vec x, int p) {
+NumericVector ratio_besselK_cpp(arma::vec x, int p) {
   
   // initialize variables
   int n = x.size();
@@ -45,16 +44,16 @@ NumericVector ratio_besselK_cpp(vec x, int p) {
 
 // one VB update with sigma^2 stochastic (not tested)
 // [[Rcpp::export]]
-List vb_update_cpp(vec zetaold, vec aold, double lambda, vec theta, mat x, 
-                   mat xxt, mat xtx, mat y) {
+List vb_update_cpp(arma::vec zetaold, arma::vec aold, double lambda, arma::vec theta, arma::mat x, 
+                   arma::mat xxt, arma::mat xtx, arma::mat y) {
   
   // Initialize all constants and variables
-  int p = x.n_cols;
-  int D = zetaold.n_rows;
-  int n = x.n_rows;
+  // int p = x.n_cols;
+  // int D = zetaold.n_rows;
+  // int n = x.n_rows;
   
   List Sigma;
-  mat mu;
+  arma::mat mu;
   NumericVector delta;
   NumericVector zeta;
   NumericVector a;

@@ -1,28 +1,3 @@
-# computes ratio besselK(x, p/2 - 1/2)/besselK(x, p/2 + 1/2) (tested)
-ratio.besselK <- function(x, p) {
-  out <- sapply(x, function(s) {
-    if((p %% 2)==0) {
-      value <- 1
-      for(i in 1:(p/2)) {
-        value <- 1/(value + 2*(i - 0.5)/s)
-      }
-    } else {
-      value <- besselK(s, 1, expon.scaled=TRUE)/besselK(s, 0, expon.scaled=TRUE)
-      for(i in 1:(p/2 + 0.5)) {
-        value <- 1/(value + 2*(i - 1)/s)
-      }
-    }
-    return(value)})
-  return(out)
-}
-
-d <- 1
-zetaold <- init$zeta[d]
-aold <- init$a[d]
-lambda <- init$lambda
-theta <- init$theta[d]
-uty <- uty[, d]
-yty <- yty[d]
 # one fast VB update with sigma^2 stochastic (tested)
 single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   
@@ -470,7 +445,3 @@ est.gwen <- function(x, y, eqid,
   return(out)
   
 }
-
-
-
-

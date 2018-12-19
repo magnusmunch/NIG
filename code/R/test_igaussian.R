@@ -1,16 +1,20 @@
+setwd("/Users/magnusmunch/Documents/OneDrive/PhD/cambridge")
+
 ### paths
 path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/src/"
 path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/R/"
 
 ### libraries
-library(Rcpp)
-library(statmod)
+# library(Rcpp)
+# library(statmod)
 library(gsl)
 
 ### Compile and source functions
-sourceCpp(paste(path.cppcode, "myfunctions.cpp", sep=""))
+sourceCpp(paste(path.cppcode, "myfunctions_MM.cpp", sep=""))
 sourceCpp(paste(path.cppcode, "functions.cpp", sep=""))
 source(paste(path.rcode, "functions.R", sep=""))
+
+use_build_ignore("script.R")
 
 ### testing estimation functions
 set.seed(567)
@@ -50,7 +54,7 @@ y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
 
 fit1.igauss1 <- est.igauss(x, y, C, 
                            control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                        maxit.eb=20, maxit.vb=2, trace=TRUE), 
+                                        maxit.eb=300, maxit.vb=2, trace=TRUE), 
                            init=list(alpha=c(1, rep(0, nclass - 1)), 
                                      lambda=0.001, a=rep(0.001, D), 
                                      zeta=rep(1000, D)),
@@ -74,6 +78,21 @@ fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
 
 
 ### convergence
+# elbo convergence
+omar <- par()$mar
+par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
+plot(fit1.igauss1$seq.elbo[, 1], type="l", xlab="iteration", 
+     ylab="ELBO", main="a)", ylim=range(fit1.igauss1$seq.elbo))
+for(d in 1:ncol(fit1.igauss1$seq.elbo)) {
+  lines(fit1.igauss1$seq.elbo[, d], col=d)
+}
+plot(fit1.igauss2$seq.elbo[, 1], type="l", xlab="iteration", 
+     ylab="ELBO", main="b)", ylim=range(fit1.igauss2$seq.elbo))
+for(d in 1:ncol(fit1.igauss2$seq.elbo)) {
+  lines(fit1.igauss2$seq.elbo[, d], col=d)
+}
+par(mfrow=c(1, 1), mar=omar)
+
 # igauss alpha convergences
 omar <- par()$mar
 par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
@@ -226,6 +245,4 @@ legend("bottomright", paste("MSE=", round(mean((
               each=D/nclass))^2), 2), sep=""), bty="n")
 abline(a=0, b=1, lty=2)
 par(mfrow=c(1, 1), mar=omar)
-
-
 

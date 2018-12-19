@@ -3,10 +3,8 @@
 #include <R.h>
 #include <Rcpp.h>
 
-// To use functions in Armadillo library without the need of specifying "arma::"
-using namespace arma;
-
-
+// To use functions in Rcpp library without the need of specifying "Rcpp::"
+using namespace Rcpp;
 
 //----------------------------------------------------------------------------------------
 // C++ script
@@ -38,20 +36,20 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
   int thep = myX.n_cols;
 
   // Get p_1, p_2, ..., p_K (nb parameters per random effect) 
-  colvec prvals = sort(unique(myP));
+  arma::colvec prvals = sort(unique(myP));
   int K = prvals.n_elem;
-  colvec ss = zeros(K);
+  arma::colvec ss = arma::zeros(K);
   for(int k=0; k<K; k++){
     ss(k) = sum(myP==prvals(k));
   }
 
   // Update posterior shape parameters
-  colvec aRandStar = aRand + 0.5*ss;
+  arma::colvec aRandStar = aRand + 0.5*ss;
   double cSigmaStar = cSigma + 0.5*then + 0.5*thep;
 
   // Initialization variational parameters associated with random effects
-  colvec u = zeros(thep);
-  colvec mybRandStarInit = zeros(thep);
+  arma::colvec u = arma::zeros(thep);
+  arma::colvec mybRandStarInit = arma::zeros(thep);
 
   for(int k=0; k<K; k++){
     u.elem(find(myP==prvals(k))) += aRandStar(k);
@@ -64,7 +62,7 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
 
   // Expectations
   double expSig;
-  mat D;
+  arma::mat D;
   if(all(bRandStarInit==0)){
     D = diagmat(u/mybRandStarInit);
     expSig = cSigmaStar/dSigma;
@@ -74,28 +72,28 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
   }//end if
 
   //Cross-product
-  mat XTX = myX.t() * myX;
+  arma::mat XTX = myX.t() * myX;
 
   //Update sigma
-  mat postSigma;
+  arma::mat postSigma;
   if(then>=thep){
     postSigma = inv(expSig*(XTX + D));
   }else{
-    mat Dinv = diagmat(1/D.diag());
-    postSigma = (1/expSig)*(Dinv - Dinv*myX.t()*inv(eye(then,then)+myX*Dinv*myX.t())*myX*Dinv);
+    arma::mat Dinv = diagmat(1/D.diag());
+    postSigma = (1/expSig)*(Dinv - Dinv*myX.t()*inv(arma::eye(then,then)+myX*Dinv*myX.t())*myX*Dinv);
   }//end if
-  colvec v = postSigma.diag();
+  arma::colvec v = postSigma.diag();
 
   // Calculate posterior mean of beta
-  colvec postMean = expSig*postSigma*trans(myX)*myy;
+  arma::colvec postMean = expSig*postSigma*trans(myX)*myy;
 
   // Update posterior rate for sigma^2
-  colvec myresid = myy-myX*postMean;
-  colvec tempval = v+square(postMean);
+  arma::colvec myresid = myy-myX*postMean;
+  arma::colvec tempval = v+square(postMean);
   double dSigmaStar = dSigma + 0.5*(as_scalar(trans(myresid)*(myresid))+trace(XTX*postSigma)) + 0.5*sum(D.diag()%tempval);
 
   // Update posterior rates for tau^2
-  colvec bRandStar = zeros(K);
+  arma::colvec bRandStar = arma::zeros(K);
   for(int i=0; i<K; i++){
     bRandStar(i) = bRand(i) + 0.5*expSig*sum(tempval.elem(find(myP==prvals(i))));
   }//end for
@@ -111,28 +109,28 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
   log_det(valLogDet, sign, postSigma);
   double L;
   try{
-    L = 0.5*thep - 0.5*then*log(2*datum::pi) + 0.5*valLogDet + Lrand + Lsig + theplus;
+    L = 0.5*thep - 0.5*then*log(2*arma::datum::pi) + 0.5*valLogDet + Lrand + Lsig + theplus;
   }
   catch(...){
-    L = datum::nan;
+    L = arma::datum::nan;
   }
 
   // ---  OUTPUT ---
   // priorRand matrix
-  mat priorRand(K,2);
+  arma::mat priorRand(K,2);
   priorRand.zeros();
   priorRand.col(0) += aRand;
   priorRand.col(1) += bRand;
   // priorSig vector
-  colvec priorSig(2);
+  arma::colvec priorSig(2);
   priorSig.zeros();
   priorSig(0) = cSigma;
   priorSig(1) = dSigma;
   // postRand matrix
-  mat postRand(K,2);
+  arma::mat postRand(K,2);
   postRand.zeros();
-  colvec col0 = postRand.col(0);
-  colvec col1 = postRand.col(1);
+  arma::colvec col0 = postRand.col(0);
+  arma::colvec col1 = postRand.col(1);
   for(int k=0; k<K; k++){
     col0.elem(find(prvals==prvals(k))) += aRandStar(k);
     col1.elem(find(prvals==prvals(k))) += bRandStar(k);
@@ -140,19 +138,19 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
   postRand.col(0) += col0;
   postRand.col(1) += col1;
   // postSig vector
-  colvec postSig(2);
+  arma::colvec postSig(2);
   postSig.zeros();
   postSig(0) = cSigmaStar;
   postSig(1) = dSigmaStar;
   // postBeta matrix
-  mat postBeta(thep,3);
+  arma::mat postBeta(thep,3);
   postBeta.zeros();
   postBeta.col(0) += postMean;
   postBeta.col(1) += sqrt(v);
   postBeta.col(2) += abs(postMean)/sqrt(v);
   // lincomb
-  colvec postMeanLincomb;
-  mat postVarLincomb;
+  arma::colvec postMeanLincomb;
+  arma::mat postVarLincomb;
   if(lincomb.n_rows>1){
     postMeanLincomb = lincomb*postMean;
     postVarLincomb = lincomb*postSigma*trans(lincomb);
@@ -174,8 +172,8 @@ Rcpp::List VarOneIter(arma::colvec myy, arma::mat myX, arma::colvec myP, arma::c
 //----------------------------------------------------------------------------------------
 // Digamma function for vector
 //----------------------------------------------------------------------------------------
-arma::colvec mydigamma(colvec vec){
-  colvec out(vec.n_elem);
+arma::colvec mydigamma(arma::colvec vec){
+  arma::colvec out(vec.n_elem);
   for(int k = 0; k<vec.n_elem; k++){
     out(k) = R::digamma(vec(k));
   }
@@ -192,10 +190,10 @@ Rcpp::NumericVector arma2vec(arma::colvec x) {
 
 // [[Rcpp::export]]
 Rcpp::NumericVector fixedPointIterEB(arma::colvec initab, arma::colvec myallaRandStar, arma::colvec myallbRandStar, int mymaxiter, double myeps){
-  colvec myallaRandStar2 = nonzeros(myallaRandStar);
-  colvec myallbRandStar2 = nonzeros(myallbRandStar);
-  colvec a(mymaxiter+1);
-  colvec b(mymaxiter+1);
+  arma::colvec myallaRandStar2 = nonzeros(myallaRandStar);
+  arma::colvec myallbRandStar2 = nonzeros(myallbRandStar);
+  arma::colvec a(mymaxiter+1);
+  arma::colvec b(mymaxiter+1);
   a.zeros();
   b.zeros();
   a(0) = initab(0);
@@ -217,7 +215,7 @@ Rcpp::NumericVector fixedPointIterEB(arma::colvec initab, arma::colvec myallaRan
       }//end if
     }//end if
   }//end while
-  colvec ab(2);
+  arma::colvec ab(2);
   ab(0) = a(cpt);
   ab(1) = b(cpt);
   
@@ -235,9 +233,9 @@ Rcpp::NumericVector fixedPointIterEB(arma::colvec initab, arma::colvec myallaRan
 Rcpp::List BSEMVarOneIter(Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Plist, Rcpp::List alist, Rcpp::List blist, Rcpp::List bstarlist, double cSigma, double dSigma, arma::colvec dstarvec, Rcpp::List lincomblist){
   
 	// Initialize vector of variational lower bounds
-	colvec allmargs(Xlist.size());
+	arma::colvec allmargs(Xlist.size());
 	// Get number of global shrinkage priors (SAME NUMBER OF SHRINKAGE PRIORS PER REGRESSION)
-	colvec prvals = sort(unique(Rcpp::as<colvec>(Plist[1])));
+	arma::colvec prvals = sort(unique(Rcpp::as<arma::colvec>(Plist[1])));
 	int K = prvals.n_elem;
 	// Initialize temporary list
 	Rcpp::List tplist;
@@ -247,7 +245,7 @@ Rcpp::List BSEMVarOneIter(Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Plist, 
 	Rcpp::List postBetaList(Xlist.size());
 	Rcpp::List postMeanLincombList(Xlist.size());
 	Rcpp::List postVarLincombList(Xlist.size());
-	mat emptyMat(1,1);
+	arma::mat emptyMat(1,1);
 
 	// Fit all regression models
 	for(int j=0; j<Xlist.size(); j++){
@@ -255,23 +253,23 @@ Rcpp::List BSEMVarOneIter(Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Plist, 
 		if(lincomblist.size()>1){
 
 			// update variational parameters once
-			tplist = VarOneIter(Rcpp::as<colvec>(ylist[j]), Rcpp::as<mat>(Xlist[j]), Rcpp::as<colvec>(Plist[j]), Rcpp::as<colvec>(alist[j]), Rcpp::as<colvec>(blist[j]), Rcpp::as<colvec>(bstarlist[j]), dstarvec(j), cSigma, dSigma, Rcpp::as<mat>(lincomblist[j]));
+			tplist = VarOneIter(Rcpp::as<arma::colvec>(ylist[j]), Rcpp::as<arma::mat>(Xlist[j]), Rcpp::as<arma::colvec>(Plist[j]), Rcpp::as<arma::colvec>(alist[j]), Rcpp::as<arma::colvec>(blist[j]), Rcpp::as<arma::colvec>(bstarlist[j]), dstarvec(j), cSigma, dSigma, Rcpp::as<arma::mat>(lincomblist[j]));
 
 		}else{
 
 			// update variational parameters once
-			tplist = VarOneIter(Rcpp::as<colvec>(ylist[j]), Rcpp::as<mat>(Xlist[j]), Rcpp::as<colvec>(Plist[j]), Rcpp::as<colvec>(alist[j]), Rcpp::as<colvec>(blist[j]), Rcpp::as<colvec>(bstarlist[j]), dstarvec(j), cSigma, dSigma, emptyMat);
+			tplist = VarOneIter(Rcpp::as<arma::colvec>(ylist[j]), Rcpp::as<arma::mat>(Xlist[j]), Rcpp::as<arma::colvec>(Plist[j]), Rcpp::as<arma::colvec>(alist[j]), Rcpp::as<arma::colvec>(blist[j]), Rcpp::as<arma::colvec>(bstarlist[j]), dstarvec(j), cSigma, dSigma, emptyMat);
 
 		}
 		// get variational lower bound
 		allmargs(j) = Rcpp::as<double>(tplist["L"]);
 
 		// get postRand, postSig and postBeta
-		postRandList[j] = Rcpp::as<mat>(tplist["postRand"]);
-		postSigList[j] = Rcpp::as<colvec>(tplist["postSig"]);
-		postBetaList[j] = Rcpp::as<mat>(tplist["postBeta"]);
-		postMeanLincombList[j] = Rcpp::as<colvec>(tplist["postMeanLincomb"]);
-		postVarLincombList[j] = Rcpp::as<mat>(tplist["postVarLincomb"]);
+		postRandList[j] = Rcpp::as<arma::mat>(tplist["postRand"]);
+		postSigList[j] = Rcpp::as<arma::colvec>(tplist["postSig"]);
+		postBetaList[j] = Rcpp::as<arma::mat>(tplist["postBeta"]);
+		postMeanLincombList[j] = Rcpp::as<arma::colvec>(tplist["postMeanLincomb"]);
+		postVarLincombList[j] = Rcpp::as<arma::mat>(tplist["postVarLincomb"]);
 
 	}//end for
   

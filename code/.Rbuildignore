@@ -1,0 +1,14 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^cran-comments\.md$
+^NEWS\.md$
+^\.travis\.yml$
+^test_ccle\.R$
+^test_gdsc\.R$
+^test_igaussian\.R$
+^script\.R$
+test_ccle.R
+test_gdsc.R
+test_igaussian.R
+script.R
+.DS_Store

@@ -1,18 +1,18 @@
-Package: title
+Package: cambridge
 Type: Package
-Title: title
-Version: 0.0.2
-Date: date
+Title: Joint estimation of univariate regressions
+Version: 0.0.0.9000
+Date: 2018-12-19
 Author: Magnus M. Münch
 Maintainer: Magnus M. Münch <m.munch@vumc.nl>
-Description: 
+Description: Jointly estimates a set of related univariate regression problems
+Depends: R (>= 3.5.1)
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.14), gsl
 LinkingTo: Rcpp, RcppArmadillo
-NeedsCompilation: yes
+Suggests: knitr, testthat
 VignetteBuilder: knitr
 URL: https://github.com/magnusmunch/cambridge/
-Suggests: knitr, rmarkdown
+NeedsCompilation: yes
 Encoding: UTF-8
-RoxygenNote: 6.0.1
 LazyData: true
