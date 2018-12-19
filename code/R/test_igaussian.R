@@ -4,6 +4,9 @@ setwd("/Users/magnusmunch/Documents/OneDrive/PhD/cambridge")
 path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/src/"
 path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/R/"
 
+install_github("magnusmunch/cambridge/code", local=FALSE,
+               auth_token="da10f2b37c513e3383c5b2e0aa1300288329c636")
+
 ### libraries
 # library(Rcpp)
 # library(statmod)
