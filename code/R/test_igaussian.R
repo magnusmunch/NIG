@@ -1,23 +1,24 @@
-setwd("/Users/magnusmunch/Documents/OneDrive/PhD/cambridge")
-
 ### paths
 path.cppcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/src/"
 path.rcode <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code/R/"
 
+### installation of package
+library(devtools)
 install_github("magnusmunch/cambridge/code", local=FALSE,
                auth_token="da10f2b37c513e3383c5b2e0aa1300288329c636")
 
 ### libraries
-# library(Rcpp)
-# library(statmod)
+library(Rcpp)
+library(statmod)
 library(gsl)
+library(cambridge)
 
 ### Compile and source functions
-sourceCpp(paste(path.cppcode, "myfunctions_MM.cpp", sep=""))
+sourceCpp(paste(path.cppcode, "myfunctions.cpp", sep=""))
 sourceCpp(paste(path.cppcode, "functions.cpp", sep=""))
 source(paste(path.rcode, "functions.R", sep=""))
 
-use_build_ignore("script.R")
+use_travis("cambridge")
 
 ### testing estimation functions
 set.seed(567)
@@ -78,7 +79,6 @@ fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
                                    maxit.opt=20, conv.vb="elbo", 
                                    trace=TRUE), 
                       init=list(aprior=0.001, bprior=0.001))
-
 
 ### convergence
 # elbo convergence

@@ -236,7 +236,7 @@ Rcpp::List BSEMVarOneIter(Rcpp::List ylist, Rcpp::List Xlist, Rcpp::List Plist, 
 	arma::colvec allmargs(Xlist.size());
 	// Get number of global shrinkage priors (SAME NUMBER OF SHRINKAGE PRIORS PER REGRESSION)
 	arma::colvec prvals = sort(unique(Rcpp::as<arma::colvec>(Plist[1])));
-	int K = prvals.n_elem;
+	// int K = prvals.n_elem; (unused variable 'K' warning)
 	// Initialize temporary list
 	Rcpp::List tplist;
 	// Initialize output list

@@ -4,17 +4,17 @@ year <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date, perl = TRUE)
 vers <- paste("R package version", meta$Version)
 
 citEntry(entry="Article",
-    title = "title",
+    title = "Joint estimation of univariate regressions",
     author = personList(as.person("M.M. Münch"),
                         as.person("M.A. van de Wiel"),
                         as.person("S. Richardson"),
 			as.person("G.G.R. Leday")),
-    journal = "",
+    journal = "Unpublished manuscript",
     volume = "",
     number = "",
     pages =  "",
-    year = ,
+    year = "In preparation",
     textVersion =
-      paste("M\"unch, Magnus M., van de Wiel, Mark A., Richardson, Sylvia, and, Leday, Gwena{\"e}l G.R. (year). ", "title. ",
-        	  "journal.", sep = "")
+      paste("Münch, M.M., van de Wiel, M.A., Richardson, S., and, Leday, G.G.R. (in preparation). ", "Joint estimation of univariate regressions. ",
+        	  "Unpublished manuscript.", sep = "")
 )

@@ -111,7 +111,7 @@ ridge.mll.ind <- function(par, sv, uty, n) {
 }
 
 # initial values (not tested)
-init.param <- function(sv, uty, D, n, p) {
+init.param <- function(C, sv, uty, D, n, p) {
   # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
   init.mll.est <- t(sapply(c(1:D), function(d) {
       constrOptim(c(1, 1), ridge.mll, NULL, ui=diag(2), ci=c(0, 0),
@@ -138,7 +138,7 @@ init.param <- function(sv, uty, D, n, p) {
 }
 
 # initial values with independent beta and sigma^2 prior (not tested)
-init.param.ind <- function(sv, uty, D, n, p) {
+init.param.ind <- function(C, sv, uty, D, n, p) {
   # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
   init.mll.est <- t(sapply(c(1:D), function(d) {
         constrOptim(c(1, 1), ridge.mll.ind, NULL, ui=diag(2), ci=c(0, 0),
@@ -186,9 +186,9 @@ est.igauss <- function(x, y, C,
   # create initial values if none given
   if(is.null(init)) {
     if(test$ind) {
-      init <- init.param.ind(sv, uty, D, n, p)
+      init <- init.param.ind(C, sv, uty, D, n, p)
     } else {
-      init <- init.param(sv, uty, D, n, p)
+      init <- init.param(C, sv, uty, D, n, p)
     }
   } else {
     init$theta <- 1/as.numeric(C %*% init$alpha)
@@ -296,7 +296,7 @@ est.igauss <- function(x, y, C,
   return(out)
 }
 
-# fits independent inverse Gamma prior (Gwen's) model (not tested)
+# fits Gwen's independent inverse Gamma priors model (tested)
 est.gwen <- function(x, y, eqid,
                      control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
                                   epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2, 
@@ -432,14 +432,14 @@ est.gwen <- function(x, y, eqid,
   }
   
   # create an output list
-  out <- list(vb.post=list(mu=t(sapply(new.vb$beta, function(s) {s[, 1]})),
-                           dSigma=t(sapply(new.vb$beta, function(s) {s[, 2]})),
+  out <- list(vb.post=list(mu=sapply(new.vb$beta, function(s) {s[, 1]}),
+                           dSigma=sapply(new.vb$beta, function(s) {s[, 2]}),
                            apost=sapply(new.vb$tau, function(s) {s[, 1]}),
                            bpost=sapply(new.vb$tau, function(s) {s[, 2]}),
                            cpost=sapply(new.vb$sigma, function(s) {s[1, ]}),
                            dpost=sapply(new.vb$sigma, function(s) {s[2, ]})),
-              eb.seq=list(aprior=aprior, bprior=bprior),
-              elbo.seq=allMLs,
+              seq.eb=list(aprior=aprior[-1, ], bprior=bprior[-1, ]),
+              seq.elbo=allMLs,
               conv=list(eb=conv.eb, vb=conv.vb),
               iter=list(eb=iter.eb, vb=iter.vb))
   return(out)

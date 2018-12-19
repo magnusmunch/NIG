@@ -13,7 +13,7 @@
 
 
 # Work directory
-setwd("/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/code")
+setwd("/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/code")
 
 # Clean environment
 rm(list=ls());gc()
@@ -60,7 +60,7 @@ listy <- replicate(D, rnorm(n), simplify=FALSE)
 #---------------------------#
 
 # Compile cpp functions
-sourceCpp("myfunctions.cpp")
+sourceCpp("src/myfunctions.cpp")
 
 # Input arguments
 niter <- 20 # number of iterations

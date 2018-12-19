@@ -1,3 +1,5 @@
+[![Travis-CI Build Status](https://travis-ci.org/magnusmunch/cambridge.svg?branch=master)](https://travis-ci.org/magnusmunch/cambridge)
+
 # Cambridge project
 ## Manuscript
 * compile manuscript.rnw for manuscript (e.g., in R studio using knitr)
@@ -14,4 +16,4 @@
 * R CMD check cambridge_0.0.0.9000.tar.gz to check compiled package
 * installation: 
   1. install.packages("path/cambridge_0.0.0.9000.tar.gz", repos=NULL) 
-  2. library(devtools); install_github("magnusmunch/cambridge/code", local=FALSE, auth_token="yourtoken)
+  2. library(devtools); install_github("magnusmunch/cambridge/code", local=FALSE, auth_token="yourtoken")
