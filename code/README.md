@@ -1,3 +1,3 @@
-[![Travis-CI Build Status](https://travis-ci.org/magnusmunch/cambridge.svg?branch=master)](https://travis-ci.org/magnusmunch/cambridge)
+[![Travis-CI Build Status](https://travis-ci.com/magnusmunch/cambridge.svg?branch=master)](https://travis-ci.com/magnusmunch/cambridge)
 
 # Cambridge package
