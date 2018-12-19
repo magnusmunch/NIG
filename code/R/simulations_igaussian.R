@@ -18,7 +18,7 @@ sourceCpp(paste(path.cppcode, "myfunctions.cpp", sep=""))
 sourceCpp(paste(path.cppcode, "functions.cpp", sep=""))
 source(paste(path.rcode, "functions.R", sep=""))
 
-use_travis("cambridge")
+use_travis()
 
 ### testing estimation functions
 set.seed(567)
