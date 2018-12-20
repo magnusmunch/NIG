@@ -1,10 +1,16 @@
-### installation of package
-# library(devtools)
-# install_github("magnusmunch/cambridge/code", local=FALSE,
-#                auth_token="da10f2b37c513e3383c5b2e0aa1300288329c636")
-
-### paths
+### change these to user-specific values
 path.res <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/results/"
+auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
+
+### installation of package
+if(!("cambridge" %in% installed.packages())) {
+  if(!("devtools" %in% installed.packages())) {
+    install.packages("devtools")
+  }
+  library(devtools)
+  install_github("magnusmunch/cambridge/code", local=FALSE, 
+                 auth_token=auth_token)
+}
 
 ### libraries
 library(cambridge)
@@ -25,6 +31,7 @@ gamma <- sqrt(theta)
 sigma <- rep(1, D)
 SNR <- 10
 
+# store settings in an object
 set1 <- list(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
              theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
 
@@ -35,16 +42,22 @@ seq.alpha <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
 seq.lambda <- replicate(3, rep(NA, nreps), simplify=FALSE)
 seq.delta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
 seq.zeta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.aprior
-seq.bprior
+seq.aprior <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
+seq.bprior <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
+seq.apost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.bpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.cpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.dpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
 mse.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
 cor.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
 names(seq.theta) <- names(seq.alpha) <- names(seq.lambda) <- names(seq.delta) <-
-  names(seq.zeta) <- names(mse.mu) <- names(cor.mu) <- 
+  names(seq.zeta) <- names(mse.mu) <- names(cor.mu) <- names(seq.aprior)  <- 
+  names(seq.bprior) <- names(seq.apost) <- names(seq.bpost) <- 
+  names(seq.cpost) <- names(seq.dpost) <- 
   c("inv Gauss", "ind inv Gauss", "inv Gamma")
 
 # simulation (SNR not correct)
-set.seed(123)
+set.seed(2018)
 for(r in 1:nreps) {
   
   cat("\r", "replication", r)
@@ -70,13 +83,13 @@ for(r in 1:nreps) {
   fit1.igauss2 <- est.igauss(x, y, C, control=control, init=init,
                              test=list(ind=TRUE))
   
-  fit independent inverse Gamma priors model
+  # fit independent inverse Gamma priors model (vague, but one-point prior)
   fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
                         control=list(epsilon.eb=1e-3, epsilon.vb=1e-3,
                                      epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2,
                                      maxit.opt=20, conv.vb="elbo",
-                                     trace=TRUE),
-                        init=list(aprior=0.001, bprior=0.001))
+                                     trace=FALSE),
+                        init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
   
   # store results
   seq.theta[[1]][r, ] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
@@ -91,20 +104,42 @@ for(r in 1:nreps) {
   seq.zeta[[2]][r, ] <- fit1.igauss2$vb.post$zeta
   mse.mu[[1]][r] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
   mse.mu[[2]][r] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
+  mse.mu[[3]][r] <- mean((beta - fit1.gwen$vb.post$mu)^2)
   cor.mu[[1]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
   cor.mu[[2]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
+  cor.mu[[3]][r] <- cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
+  seq.aprior[[3]][r, ] <- fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
+  seq.bprior[[3]][r, ] <- fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
+  seq.apost[[3]][r, ] <- fit1.gwen$vb.post$apost
+  seq.bpost[[3]][r, ] <- fit1.gwen$vb.post$bpost
+  seq.cpost[[3]][r, ] <- fit1.gwen$vb.post$cpost
+  seq.dpost[[3]][r, ] <- fit1.gwen$vb.post$dpost
   
+  # save the settings, results, and last model fits for convergence examples
   res1 <- list(theta=seq.theta, alpha=seq.alpha, lambda=seq.lambda, 
-               delta=seq.delta, zeta=seq.zeta, mse.mu=mse.mu, cor.mu=cor.mu,
+               delta=seq.delta, zeta=seq.zeta, aprior=seq.aprior, 
+               bprior=seq.bprior, apost=seq.apost, bpost=seq.bpost, 
+               cpost=seq.cpost, dpost=seq.dpost, mse.mu=mse.mu, cor.mu=cor.mu,
                seq.mSNR)
-  save(set1, res1, file=paste(path.res, "simulations_igaussian_res1.RData", sep=""))
+  fit1 <- list(fit1.igauss1=fit1.igauss1, fit1.igauss2=fit1.igauss2,
+               fit1.gwen=fit1.gwen)
+  save(set1, res1, fit1, 
+       file=paste(path.res, "simulations_igaussian_res1.RData", sep=""))
   
 }
 
 
+write.table(res1, file=paste(path.res, "test.csv", sep=""))
+test <- read.table(paste(path.res, "test.csv", sep=""))
+
+colnames(test)
+str(test[, c(1:100)])
+
+cbind(res1$theta$`inv Gauss`[1, ],
+      as.numeric(test[1, c(1:100)]))
 
 
-
+load(paste(path.res, "simulations_igaussian_res1.RData", sep=""))
 ### convergence
 # elbo convergence
 omar <- par()$mar
