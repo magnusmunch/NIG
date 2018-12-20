@@ -1,0 +1,430 @@
+\documentclass[a4paper,hidelinks]{article}
+\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,bbm,algorithm,algpseudocode,pgfplotstable,threeparttable, booktabs,mathtools,dsfont,parskip}
+
+% vectors and matrices
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bepsilon}{\bm{\epsilon}}
+\newcommand{\bomega}{\bm{\omega}}
+\newcommand{\bOmega}{\bm{\Omega}}
+\newcommand{\bSigma}{\bm{\Sigma}}
+\newcommand{\bkappa}{\bm{\kappa}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bmu}{\bm{\mu}}
+\newcommand{\bpsi}{\bm{\psi}}
+\newcommand{\blambda}{\bm{\lambda}}
+\newcommand{\bLambda}{\bm{\Lambda}}
+\newcommand{\bPsi}{\bm{\Psi}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\bgamma}{\bm{\gamma}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\Z}{\mathbf{Z}}
+\newcommand{\W}{\mathbf{W}}
+\renewcommand{\O}{\mathbf{O}}
+\newcommand{\B}{\mathbf{B}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\U}{\mathbf{U}}
+\newcommand{\Em}{\mathbf{E}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\Vm}{\mathbf{V}}
+\newcommand{\rv}{\mathbf{r}}
+\newcommand{\A}{\mathbf{A}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\Sm}{\mathbf{S}}
+\newcommand{\0}{\bm{0}}
+\newcommand{\tx}{\tilde{\mathbf{x}}}
+\newcommand{\hy}{\hat{y}}
+\newcommand{\tm}{\tilde{m}}
+\newcommand{\tkappa}{\tilde{\kappa}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\C}{\mathbf{C}}
+\renewcommand{\v}{\mathbf{v}}
+\newcommand{\g}{\mathbf{g}}
+\newcommand{\s}{\mathbf{s}}
+\renewcommand{\c}{\mathbf{c}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\rvec}{\mathbf{r}}
+\newcommand{\Lm}{\mathbf{L}}
+
+% functions and operators
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\G}{\mathcal{G}}
+\renewcommand{\P}{\mathcal{P}}
+\newcommand{\argmax}{\text{argmax} \,}
+\newcommand{\expit}{\text{expit}}
+\newcommand{\erfc}{\text{erfc}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\Cov}{\mathbb{C}\text{ov}}
+\newcommand{\tr}{^{\text{T}}}
+\newcommand{\diag}{\text{diag}}
+\newcommand{\KL}{D_{\text{KL}}}
+\newcommand{\trace}{\text{tr}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% distributions
+\newcommand{\N}{\text{N}}
+\newcommand{\TG}{\text{TG}}
+\newcommand{\Bi}{\text{Binom}}
+\newcommand{\PG}{\text{PG}}
+\newcommand{\Mu}{\text{Multi}}
+\newcommand{\GIG}{\text{GIG}}
+\newcommand{\IGauss}{\text{IGauss}}
+\newcommand{\Un}{\text{U}}
+
+% syntax and readability
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+\renewcommand{\[}{\left[}
+\renewcommand{\]}{\right]}
+
+% R packages
+<<echo=FALSE>>=
+library(cambridge)
+@
+
+% settings
+\graphicspath{{/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/graphs/}}
+\setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
+\setlength{\textwidth}{15cm}
+\title{Supplementary material to: Drug efficacy prediction in cell lines}
+\date{\today}
+\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
+
+\begin{document}
+	\maketitle
+	
+	\noindent
+	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health research institute, VU University Medical Center, PO Box 7057, 1007 MB
+	Amsterdam, The Netherlands\\
+	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
+	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, United Kingdom \\
+	
+	\section{Introduction}
+	This document contains the Supplementary Material (SM) to the document `Drug efficacy prediction in cell lines'. In the following, this document is referred to as Main Document (MD).
+	
+	\section{Variational Bayes derivations}\label{sec:vbderivations}
+	In the following all expectations are with respect to the variational posterior $Q$.
+	\begin{align*}
+	\log q_{\B} (\B) & \propto \E_{\mathbf{U}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\bgamma^2, \bsigma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
+	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\mathbf{u}_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E_{\gamma^2_d, \sigma^2_d} \( \frac{\beta_{jd}^2}{\gamma_d^2 \sigma_d^2} \), \\
+	q_{\B} (\B) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_p (\bmu_d, \bSigma_d), \\
+	& \text{ with } \bSigma_d = \E(\sigma_d^{-2})^{-1} [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1}, \\
+	& \text{ and } \bmu_d = [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1} \X \tr [\y_d - \Z \cdot \E(\mathbf{u}_d)].
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\U}(\U) & \propto \E_{\mathbf{B}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2} [\log \pi (\U | \mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2)] \\
+	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\bbeta_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \E_{\bm{\Xi}_d, \sigma_d^2}\( \frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \), \\
+	q_{\U}(\U) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_T (\mathbf{m}_d, \Sm_d), \\
+	& \text{ with } \Sm_d = \E(\sigma_d^{-2})^{-1} [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1}, \\
+	& \text{ and } \mathbf{m}_d = [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1} \Z \tr [\y_d - \X \cdot \E(\bbeta_d)].
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bgamma^{2}}(\bgamma^{2}) & \propto \E_{\B, \bsigma^2} [\log \pi (\B | \bgamma^{2}, \sigma^2)] + \log \pi (\bgamma^{2}) \\
+	& \propto -\frac{p}{2} \sum_{d=1}^D \log \gamma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E \( \frac{\beta_{jd}^2}{\sigma^{2}_d}\) \gamma_d^{-2} - \frac{3}{2} \sum_{d=1}^D \log \gamma_d^{2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{\lambda}{2 \theta^2} \sum_{d=1}^D (\gamma_d^2 - \theta)^2 \gamma_d^{-2} \\
+	& \propto \sum_{d=1}^D \left\{ \( -\frac{p + 1}{2} - 1\) \log \gamma_d^{2} - \frac{\lambda}{2\theta^2} \gamma_d^2 - \frac{1}{2}\[ \lambda + \E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^{2}}\] \gamma_d^{-2} \right\}, \\
+	q_{\bgamma^{2}}(\bgamma^{2}) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG} \(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_{d} \), \\
+	& \text{with } \delta_{d} =\E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} + \lambda.
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bsigma^{2}}(\bsigma^{2}) & \propto \E_{\B,\mathbf{U}} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\B, \bgamma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
+	& \,\,\,\,\,\,\,\,\,\, + \E_{\mathbf{U}, \bm{\Xi}_1, \dots, \bm{\Xi}_D} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bsigma^{2}) \\
+	& \propto -\frac{n}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \sigma_d^{2} - \frac{p}{2} \sum_{d=1}^D \log \sigma_d^{-2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \E( \gamma_d^{-2}) \frac{\E ( \beta_{jd}^2)}{\phi_{g(j)}^{2}} \sigma_d^{-2} - \frac{T}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \E(\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}) \sigma_d^{-2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{3}{2} \sum_{d=1}^D \log \sigma^2_d \\
+	& = -\sum_{d=1}^{D} \(\frac{n + p + T + 3}{2} \) \log \sigma_d^{2} - \sum_{d=1}^{D} \frac{1}{2}\Bigg\{ \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \\
+	& \,\,\,\,\,\,\,\,\,\, + \E(\gamma_d^{-2})\sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^2} + \E(\mathbf{u}_{d} \tr \bm{\Xi}_d^{-1} \mathbf{u}_d) \Bigg\} \sigma_d^{-2}, \\
+	q_{\bsigma^{2}}(\bsigma^{2}) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + T + 1}{2}, \zeta_{d} \), \\
+	& \text{ with } \zeta_{d} = \frac{\y_d \tr \y_d}{2} - \y_d \tr [\X \E(\bbeta_d) + \Z \E(\mathbf{u}_d)] + \E(\bbeta_d \tr) \X \tr \Z \E (\mathbf{u}_d) \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\trace [\X \tr \X \V(\bbeta_d)]}{2} + \frac{\E(\bbeta_d \tr) \X \tr \X \E(\bbeta_d)}{2} + \frac{\trace [\Z \tr \Z \V(\mathbf{u}_d)]}{2} \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\E(\mathbf{u}_d \tr) \Z \tr \Z \E(\mathbf{u}_d)}{2} + \frac{\E(\gamma_d^{-2})}{2} \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,+ \frac{\E(\mathbf{u}_d \tr) \E(\bm{\Xi}_d^{-1}) \E(\mathbf{u}_d)}{2} + \frac{\trace [\E(\bm{\Xi}_d^{-1}) \V(\mathbf{u}_d)]}{2},
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \propto \E_{\mathbf{U}, \bm{\sigma}^2} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bm{\Xi}_1, \dots, \bm{\Xi}_D) \\
+	& \propto -\frac{1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \E \(\frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \) \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{k + T + 1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace (\bm{\Omega} \bm{\Xi}_d^{-1}) \\
+	& = -\frac{\tau + T + 2}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace \left\{ \[\E(\sigma_d^{-2}) \E( \mathbf{u}_d \mathbf{u}_d \tr) + \bm{\Omega}\] \bm{\Xi}_d^{-1} \right\}, \\
+	q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \overset{D}{\propto} \prod_{d=1}^D \mathcal{W}_T^{-1} (\bm{\Psi}_d, \nu + 1),  \\ 
+	& \text{ with } \bm{\Psi}_d =\E(\sigma^{-2}_d) \[\V(\mathbf{u}_d) + \E(\mathbf{u}_d) \E( \mathbf{u}_d \tr) \] + \bm{\Omega}.
+	\end{align*}
+	
+  \section{Model without tissue effects}
+  \subsection{Introduction}
+  In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$.
+  
+  \subsection{Model and estimation}
+  The model is given by:
+  \begin{align*}
+  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
+  \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \\
+  \gamma_d^2 & \sim \mathcal{IG}(\theta_d, \lambda), \\
+  \sigma_d^2 & \sim 1/\sigma_d^3.
+  \end{align*}
+  The corresponding variational Bayes posterior is given by:
+  \begin{align*}
+  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_d\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\).
+  \end{align*}
+  We update the variational parameters until convergence:
+  \begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = \frac{2 \zeta_d^{(h)}}{n+p+1} (\X \tr \X + a_d^{(h)} \I)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = (\X \tr \X + a_d^{(h)} \I)^{-1} \X \tr \y_d, \\
+  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}] + \lambda, \\ \zeta_d^{(h+1)} & = \frac{a_d^{(h+1)}}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace [ (\X \tr \X + \I_p) \bm{\Sigma}_d^{(h+1)}] + (\bm{\mu}_d^{(h+1)}) \tr (\X \tr \X + \I_p)\bm{\mu}_d^{(h+1)}\],
+  \end{align*}
+  with $a_d^{(h)}$ as in the full model in the MD. Equivalently, the empirical Bayes updates for $\bm{\alpha}$ and $\lambda$ are the same as in the full model in the MD.
+  
+  \subsection{Evidence lower bound}
+  We monitor convergence through the evidence lower bound (ELBO):
+  \begin{align*}
+  \text{ELBO} & (Q^{(l)}) \propto \frac{1}{2} \sum_{d=1}^D \log |\bm{\Sigma}_d^{(l)}| - \frac{n + p + 1}{2} \sum_{d=1}^D \log \zeta_d^{(l)} + \sum_{d=1}^D \log K_{\frac{p+1}{2}}\(\sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}\) \\
+  & - \frac{n+p+1}{4} \sum_{d=1}^D (\zeta_d^{(l)})^{-1} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
+  & + \frac{D(p+3)}{4} \log \lambda^{(l)} + \lambda^{(l)} \sum_{d=1}^D (\theta_d^{(l)})^{-1} - \frac{p+1}{2} \sum_{d=1}^D \log \theta_d^{(l)} - \frac{p+1}{4} \sum_{d=1}^D \log \delta_d^{(l)} \\
+  & + \frac{1}{2} \sum_{d=1}^D \[ \delta_d^{(l)} - \lambda^{(l)} - \frac{n+p+1}{2\zeta_d^{(l)}} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - \frac{n+p+1}{2\zeta_d^{(l)}} \trace (\bm{\Sigma}_d^{(l)}) \] a_d^{(l)}. 
+  \end{align*}
+  
+  - Different options for convergence. We may monitor parameters, ELBO, or a combination. We may also iterate a fixed number of times, especially for the VB (currently doing this, using 2 VB iterations and 20 EB iterations).
+  
+  \subsection{Efficient computation}
+  The empirical Bayes updates require the following quantities: $\zeta_d$, $a_d$, $\delta_d$, $\trace (\bm{\Sigma}_d)$, $\trace (\X \tr \X \bm{\Sigma}_d)$, $\bm{\mu}_d \tr \bm{\mu}_d$, and $\bm{\mu}_d \tr \X \tr \X \bm{\mu}_d$. In addition, we need $\log|\bm{\Sigma}|$ and $\mathbf{y}_d \tr \X \bm{\mu}_d$ to monitor the ELBO. The first three quantities are obtained by scalar operations of $\mathcal{O}(n)$. The rest is easily calculated using the SVD $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$:
+  \begin{align*}
+  \trace (\bm{\Sigma}_d^{(h+1)}) & = \frac{2\zeta_d^{(h)}}{n + p + 1} \[\sum_{i=1}^n (v_i^2 + a_d^{(h)})^{-1} + \max (p - n, 0)\cdot (a_d^{(h)})^{-1}\], \\
+  \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) & = \frac{2\zeta_d^{(h)}}{n + p + 1} \sum_{i=1}^n v_i^2(v_i^2 + a_d^{(h)})^{-1}, \\
+  (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + a_d^{(h)})^2, \\
+  (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^4 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + a_d^{(h)})^2, \\
+  \log|\bm{\Sigma}^{(h+1)}| & \propto p \log \zeta_d^{(h)} - \sum_{i=1} \log (v_i^2 + a_d^{(h)}) - \max(p - n, 0) \cdot \log a_d^{(h)}, \\
+  \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + a_d^{(h)}).
+  \end{align*}
+  where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
+  
+  \subsection{Independent error variance model parameters}
+  \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ and $\sigma_d^2$ should be independent \textit{a priori}. However, in our case that is debatable. The $D$ regressions need not be on the same scale, so some form of calibration of the $\bm{\beta}_d$ posteriors to this scale is required. A simple way of doing this is to include the scales $\sigma_d^2$ in the priors for the $\bm{\beta}_d$. For a sense of completeness we still compare to the independent prior model in our simulations. The independent prior model is given by:
+  \begin{align*}
+  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
+  \beta_{jd} | \gamma_d^2 & \sim \mathcal{N} (0, \gamma_d^2), \\
+  \gamma_d^2 & \sim \mathcal{IG}((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda), \\
+  \sigma_d^2 & \sim 1/\sigma_d^3.
+  \end{align*}
+  Its variational posterior is given by:
+  \begin{align*}
+  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+1}{2}, \lambda (\mathbf{c}_d \tr \bm{\alpha})^2, \delta_d\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + 1}{2}, \zeta_d\),
+  \end{align*}
+  with variational parameter updates:
+  \begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = \(\frac{n+1}{2 \zeta_d^{(h)}}\X \tr \X + a_d^{(h)} \I_p\)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = \frac{n+1}{2 \zeta_d^{(h)}} \bm{\Sigma}_d^{(h+1)} \X \tr \y_d, \\
+  \delta_d^{(h+1)} & = \trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} + \lambda, \\ \zeta_d^{(h+1)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\],
+  \end{align*}
+  with $a_d^{(h)}$ and the empirical Bayes updates $\bm{\alpha}^{(l+1)}$ and $\lambda^{(l+1)}$ as in the full model in the MD. A singular value decomposition $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$ leads to the following efficient computations:
+  \begin{align*}
+  \trace (\bm{\Sigma}^{(h+1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1} + \max (p - n, 0)\cdot (a^{(h)}_d)^{-1}, \\
+  \trace (\X \tr \X \bm{\Sigma}^{(h + 1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n v_i^2 \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1}, \\
+  (\bm{\mu}_d^{(h + 1)}) \tr \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2 v_i^2 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\)^{-2}, \\
+  (\bm{\mu}_d^{(h + 1)}) \tr \X \tr \X \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2v_i^4 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\)^{-2}, \\
+  \log|\bm{\Sigma}^{(h + 1)}| & \propto p \log \zeta_d^{(h)} - \sum_{i=1} \log \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\) \\
+  & \,\,\,\,\,\,\,\,\,\,\, - \max(p - n, 0) \cdot (\log a_d^{(h)} + \log \zeta_d^{(h)}), \\
+  \mathbf{y}_d \tr \X \bm{\mu}_d^{(h + 1)} & = \sum_{i=1}^n [(\mathbf{U} \tr \mathbf{y}_d)_i]^2 v_i^2 \(v_i^2 + \frac{2 \zeta_d^{(h)} a_d^{(h)}}{n + 1}\),
+  \end{align*}
+  where $v_i$ are the singular values of $\X$. As before, this renders $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ calculations once at the start of the algorithm and iterative updates of $\mathcal{O}(n)$.
+  
+  \subsection{Simulations}
+  We simulate from a correctly specified model. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
+  
+  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times.
+  
+  We compare the results to a model where the $\gamma_d^2$ are drawn from a class-specific inverse Gamma distribution; a generalisation of the models in \cite{kpogbezan_empirical_2017} and \cite{leday_gene_2017}:
+  \begin{align*}
+  y_{id} | \bm{\beta}_d ,\sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
+  \beta_{jd} | \gamma_d^2 ,\sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \\
+  \gamma_d^2 & \sim \Gamma^{-1} (a_{\text{class}(d)}, b_{\text{class}(d)}), \\
+  \sigma_d^2 & \sim \Gamma^{-1} (0.001, 0.001),
+  \end{align*}
+  where $\text{class}(c)$ denotes the class of drug $d$. This allows for more flexible empirical Bayes estimation of the $a_d$ and $b_d$, and thus prior means of the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs. We present the results in Figures \ref{fig:boxplot_igaussian_res1_sigma2}-\ref{fig:boxplot_igaussian_res1_alpha}.
+  
+<<"boxplot_igaussian_res1_sigma2", fig.cap="MSEs for posterior means of $\\sigma_d^2$", out.width="50%", fig.align="center", echo=FALSE>>=
+load("../results/simulations_igaussian_res1.RData")
+temp <- sapply(res1$zeta, function(z) {
+  colMeans((2*t(z)/(set1$n + (z==1)*set1$p - 1) - set1$sigma^2)^2)})
+par(cex=1.3)
+boxplot(temp, outline=FALSE, names=names(res1$mse.mu), ylab="MSE")
+legend("topright", title=expression(bold("median MSE")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp, 2, median), 2), sep="="))
+par(cex=1)
+@
+
+<<"boxplot_igaussian_res1_gamma2", fig.cap="a) MSE and b) correlation for posterior means of $\\gamma_d^2$", fig.align="center", echo=FALSE>>=
+load("../results/simulations_igaussian_res1.RData")
+temp1 <- sapply(1:3, function(m) {
+  colMeans((t(sqrt(res1$delta[[m]]*res1$theta[[m]]^2/res1$lambda[[m]])*
+                ratio_besselK_cpp(sqrt(res1$delta[[m]]*res1$lambda[[m]])/
+                                    res1$theta[[m]], set1$p)) - set1$gamma^2)^2)})
+temp2 <- sapply(1:3, function(m) {
+  apply(sqrt(res1$delta[[m]]*res1$theta[[m]]^2/res1$lambda[[m]])*
+          ratio_besselK_cpp(sqrt(res1$delta[[m]]*res1$lambda[[m]])/
+                              res1$theta[[m]], set1$p), 1, function(r) {
+                                cor(r, set1$gamma^2)})})
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
+boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
+legend("topright", title=expression(bold("median correlation")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+par(cex=1)
+@
+
+<<"boxplot_igaussian_res1_mu", fig.cap="a) MSE and b) correlation for posterior means of $\\beta_d$", fig.align="center", echo=FALSE>>=
+load("../results/simulations_igaussian_res1.RData")
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(res1$mse.mu, names=names(res1$mse.mu), ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n", 
+       paste(names(res1$mse.mu), round(sapply(res1$mse.mu, median), 2), 
+             sep="="))
+boxplot(res1$cor.mu, names=names(res1$mse.mu), ylab="Correlation", main="b)")
+legend("topright", title=expression(bold("median correlation")), bty="n", 
+       paste(names(res1$mse.mu), round(sapply(res1$cor.mu, median), 2), 
+             sep="="))
+par(cex=1)
+@
+
+<<"boxplot_igaussian_res1_theta", fig.cap="a) MSE and b) correlation for prior means of $\\gamma_d^2$ ($\\theta_d$)", fig.align="center", echo=FALSE>>=
+load("../results/simulations_igaussian_res1.RData")
+temp1 <- sapply(res1$theta, function(th) {colMeans((t(th) - set1$theta)^2)})
+temp2 <- sapply(res1$theta, function(th) {apply(th, 1, function(r) {
+  cor(r, set1$theta)})})
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
+boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
+legend("topright", title=expression(bold("median correlation")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+par(cex=1)
+@
+  
+<<"boxplot_igaussian_res1_alpha", fig.cap="a) MSE and b) correlation for $\\alpha$", fig.align="center", echo=FALSE>>=
+load("../results/simulations_igaussian_res1.RData")
+temp1 <- sapply(res1$alpha, function(a) {colMeans((t(a) - set1$alpha)^2)})
+temp2 <- sapply(res1$alpha, function(a) {apply(a, 1, function(r) {
+  cor(r, set1$alpha)})})
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
+boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
+legend("topright", title=expression(bold("median correlation")), bty="n", 
+       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+par(cex=1)
+@
+
+  \section{Starting values}
+  \subsection{Method 1}
+  Starting value for $\sigma_d^2$ as in \cite{chipman_bart:_2010}. They consider a scaled-Chi squared distribution for the error variance with degrees of freedom 3 and scale chosen such that the $q*100$th percentile matches the error variance in the data $s^2(\mathbf{y}_d)$. As starting value for $\sigma_d^2$ we take the mode of this distribution: $\hat{\sigma}_d^2 = 3a/5$, with $a$ the solution to:
+  $$
+  \Gamma\(\frac{3}{3}\) \[1 - q - F(3a/(2s^2(\mathbf{y}_d)); 3/2, 1) \] = 0,
+  $$
+  where $F(x; 3/2, 1)$ is the CDF of a gamma function with shape $3/2$ and scale $1$.  In \cite{moran_variance_2018}, REFERENCE to Ročková and George (2018), and \cite{chipman_bart:_2010}, $q=0.9$ is suggested. We find that $q \in ( 0.9, 0.95 )$ gives good results.
+  
+  \subsection{Method 2}
+  We generate starting values as follows. Consider the $\sigma_d^2$ and $\gamma_d^2$ as fixed and estimate them by MML of the regular ridge model:
+  $$
+  \hat{\sigma}_d^2, \hat{\gamma}_d^2= \underset{\sigma_d^2,\gamma_d^2}{\argmax} \int_{\bm{\beta}} p(\mathbf{y}_d | \bm{\beta}, \sigma_d^2) p(\bm{\beta} | \gamma_d^2, \sigma_d^2) d\bm{\beta}.
+  $$
+  The regular ridge model is conjugate, so MML is relatively simple. Next we estimate a common inverse Gaussian prior for the $\gamma_d^2$ by considering the estimates to be samples from the prior:
+  \begin{align*}
+  \hat{\theta} & = n^{-1} \sum_{d=1}^D \hat{\gamma}_d^2 / n, \\
+  \hat{\lambda} & = n \left\{\sum_{d=1}^D \[ (\hat{\gamma}_d^2)^{-1} - \hat{\theta}^{-1}\]\right\}^{-1}.
+  \end{align*}
+  We estimate the mode of the $\hat{m}=\hat{\gamma}_d^2$ by kernel density estimation and equate it to the theoretical mode of the generalized inverse Gaussian distribution with the estimated $\hat{\theta}$ and $\hat{\lambda}$. We solve to find a common $\delta$:
+  $$
+  \hat{\delta} = \frac{\hat{m}^2 \hat{\lambda}}{\hat{\theta}^2} + (p + 3) \hat{m}.
+  $$
+  Lastly, we consider the $\hat{\sigma}^2_d$ fixed samples from the inverse Gamma distribution to estimate a common scale:
+  $$
+  \hat{\zeta} = \frac{D(n + p + 1)}{2 \sum_{d=1}^D[(\hat{\sigma}_d^2)^{-1}]}.
+  $$
+  
+  \section{Ratios of modified Bessel functions}
+  Ratios of modified Bessel functions of the second kind $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be large, this causes numerical issues in the calculation of various quantities. We alleviate the numerical issues through the following.
+  
+  We let $n_1=p/2$ and $n_2=(p-1)/2$ and use the well-known recursive relation:
+  $$
+  K_{\alpha}(x) = K_{\alpha - 2}(x) + \frac{2(\alpha - 1)}{2} K_{\alpha- 1}(x),
+  $$
+  to rewrite the ratio:
+  \begin{align*}
+  \frac{K_{\frac{p - 1}{2}}(x)}{K_{\frac{p + 1}{2}}(x)} = 
+  \begin{cases}
+  \Big( \dots \Big( \( 1 + \frac{2 \cdot 1 - 1}{x} \)^{-1} + \frac{2 \cdot 2-1}{x}\Big)^{-1} + \dots + \frac{2 \cdot n_1 - 1}{x}\Big)^{-1}, & \text{for } p \text{ even}, \\
+  \Big( \dots \Big( \( \frac{K_0(x)}{K_1(x)} + \frac{2}{x} \cdot 1 \)^{-1} + \frac{2}{x} \cdot 2 \Big)^{-1} + \dots + \frac{2}{x} \cdot n_2 \Big)^{-1}, & \text{for } p \text{ odd}.
+  \end{cases}
+  \end{align*} 
+  The ratio $K_0(x)/K_1(x)$ is well-behaved, such that the ratio may be computed without numerical issues.
+  
+  \section{General model}
+  We have drug covariates $\mathbf{c}_d$ and omics feature covariates $\mathbf{z}_j$. The model is now:
+  \begin{align*}
+  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
+  \beta_{jd} | \tau_j^2, \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2 \tau_j^2), \\
+  \gamma_d^2 & \sim \mathcal{IG}\((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda\), \\
+  \tau_j^2 & \sim \mathcal{IG}\((\mathbf{z}_j \tr \bm{\theta})^{-1}, \nu\), \\
+  \sigma_d^2 & \sim 1/\sigma_d^3.
+  \end{align*}
+  Variational posterior:
+  \begin{align*}
+  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+1}{2}, \lambda (\mathbf{c}_d \tr \bm{\alpha})^2, \delta_d\), \\
+  q(\bm{\tau}^2) & \overset{D}{=} \prod_{j=1}^p \mathcal{GIG}\(-\frac{D+1}{2}, \nu (\mathbf{z}_j \tr \bm{\theta})^2, \eta_j\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\).
+  \end{align*}
+  Variational parameters:
+  \begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = \frac{2 \zeta_d^{(h)}}{n+p+1} \[\X \tr \X + a_d^{(h)} \cdot \diag(b_j^{(h)})\]^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + a_d^{(h)} \cdot \diag(b_j^{(h)})\]^{-1} \X \tr \y_d, \\
+  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} \left\{\trace \[\diag(b_j^{(h)}) \bm{\Sigma}_d^{(h+1)} \] + (\bm{\mu}_d^{(h+1)}) \tr \diag(b_j^{(h)}) \bm{\mu}_d^{(h+1)}\right\} + \lambda, \\ 
+  \eta_j^{(h+1)} & = \sum_{d=1}^D \frac{a_d^{(h)}(n+p+1)}{2 \zeta_d^{(h)}} \[ (\bmu_{jd}^{(h + 1)})^2 + (\bSigma_d^{(h + 1)})_{jj} \] + \nu, \\ 
+  \zeta_d^{(h+1)} & = \frac{1}{2} \Big( \mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + a_d^{(h+1)} \trace \left\{ \[\X \tr \X + \diag(b_j^{(h + 1)})\] \bm{\Sigma}_d^{(h+1)}\right\} \\
+  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + a_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \[\X \tr \X + \diag(b_j^{(h + 1)})\]\bm{\mu}_d^{(h+1)}\Big),
+  \end{align*}
+  with
+  \begin{align*}
+  a_d^{(h)} & = \sqrt{\frac{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2}{\delta_d^{(h)}}} \frac{K_{\frac{p-1}{2}} \( \sqrt{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2 \delta_d^{(h)}} \)}{K_{\frac{p+1}{2}} \( \sqrt{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2 \delta_d^{(h)}} \)} + \frac{p+1}{\delta_d^{(h)}} \text{ and} \\
+  b_j^{(h)} & = \sqrt{\frac{\nu (\mathbf{z}_j \tr \bm{\theta})^2}{\eta_j^{(h)}}} \frac{K_{\frac{D-1}{2}} \( \sqrt{\nu (\mathbf{z}_j \tr \bm{\theta})^2 \eta_j^{(h)}} \)}{K_{\frac{D+1}{2}} \( \sqrt{\nu (\mathbf{z}_j \tr \bm{\theta})^2 \eta_j^{(h)}} \)} + \frac{D+1}{\eta_j^{(h)}}.
+  \end{align*}
+  Hyper-parameter updates:
+  \begin{align*}
+  \bm{\alpha}^{(l+1)} & = \left[ \mathbf{C} \tr \diag ( e_d^{(l)} ) \mathbf{C} \right]^{-1} \mathbf{C} \tr \mathbf{1}, \\
+  \lambda^{(l+1)} & = \[ \sum_{d=1}^D a_d^{(l)} - (\bm{\alpha}^{(l+1)}) \tr \mathbf{C} \tr \mathbf{1} \]^{-1} D, \\
+  \bm{\theta}^{(l+1)} & = \left[ \mathbf{Z} \tr \diag ( f_j^{(l)} ) \mathbf{Z} \right]^{-1} \mathbf{Z} \tr \mathbf{1}, \\
+  \nu^{(l+1)} & = \[ \sum_{j=1}^p b_j^{(l)} - (\bm{\theta}^{(l+1)}) \tr \mathbf{Z} \tr \mathbf{1} \]^{-1} p,
+  \end{align*}
+  where 
+  \begin{align*}
+  e_d^{(l)} & = \sqrt{\frac{\delta_d^{(l)}}{\lambda^{(l)}(\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda^{(l)} (\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2 \delta_d^{(l)}} \)}{K_{\frac{p + 1}{2}} \( \sqrt{\lambda^{(l)} (\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2 \delta_d^{(l)}} \)} \text{ and} \\
+  f_j^{(l)} & = \sqrt{\frac{\eta_j^{(l)}}{\nu^{(l)}(\mathbf{z}_j \tr \bm{\theta}^{(l)})^2}} \frac{K_{\frac{D - 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}{K_{\frac{D + 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}.
+  \end{align*}
+	
+  \bibliographystyle{author_short3} 
+	\bibliography{refs}
+
+\end{document}

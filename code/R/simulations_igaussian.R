@@ -17,46 +17,93 @@ p <- 200
 D <- 100
 nclass <- 5
 
+# create fixed parameters
 alpha <- c(1:nclass)
 C <- model.matrix(~ 1 + factor(rep(c(1:nclass), each=D/nclass)))
 theta <- as.numeric(1/(C %*% alpha))
 gamma <- sqrt(theta)
 sigma <- rep(1, D)
-SNR <- 5
+SNR <- 10
+
+set1 <- list(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
+             theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
+
+# objects to store simulation results
+seq.mSNR <- numeric(nreps)
+seq.theta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.alpha <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
+seq.lambda <- replicate(3, rep(NA, nreps), simplify=FALSE)
+seq.delta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.zeta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
+seq.aprior
+seq.bprior
+mse.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
+cor.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
+names(seq.theta) <- names(seq.alpha) <- names(seq.lambda) <- names(seq.delta) <-
+  names(seq.zeta) <- names(mse.mu) <- names(cor.mu) <- 
+  c("inv Gauss", "ind inv Gauss", "inv Gamma")
 
 # simulation (SNR not correct)
 set.seed(123)
-for(rep in 1:nreps) {
+for(r in 1:nreps) {
+  
+  cat("\r", "replication", r)
+  
+  # create data
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
   x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
 
-  mSNR <- mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
+  # store actual mean SNR
+  seq.mSNR[r] <- mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
 
-  fit1.igauss1 <- est.igauss(x, y, C, 
-                             control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                          maxit.eb=300, maxit.vb=2, trace=TRUE), 
-                             init=list(alpha=c(1, rep(0, nclass - 1)), 
-                                       lambda=0.001, a=rep(0.001, D), 
-                                       zeta=rep(1000, D)),
+  # set initial values and control parameters
+  control <- list(epsilon.eb=1e-3, epsilon.vb=1e-3, maxit.eb=20, maxit.vb=2, 
+                  trace=FALSE)
+  init <- list(alpha=c(mean(gamma^2), rep(0, nclass - 1)), 
+               lambda=mean(gamma^2)^2, a=rep(mean(1/gamma^2), D), 
+               zeta=rep(0.5*mean(sigma^2)*(n + p - 1), D))
+  
+  # fit inverse Gaussian models
+  fit1.igauss1 <- est.igauss(x, y, C, control=control, init=init,
                              test=list(ind=FALSE))
-
-
-  fit1.igauss2 <- est.igauss(x, y, C, 
-                             control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                          maxit.eb=20, maxit.vb=2, trace=TRUE), 
-                             init=list(alpha=c(1, rep(0, nclass - 1)), 
-                                       lambda=0.001, a=rep(0.001, D), 
-                                       zeta=rep(1000, D)),
+  fit1.igauss2 <- est.igauss(x, y, C, control=control, init=init,
                              test=list(ind=TRUE))
   
+  fit independent inverse Gamma priors model
   fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
-                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                     epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2, 
-                                     maxit.opt=20, conv.vb="elbo", 
-                                     trace=TRUE), 
+                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3,
+                                     epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2,
+                                     maxit.opt=20, conv.vb="elbo",
+                                     trace=TRUE),
                         init=list(aprior=0.001, bprior=0.001))
+  
+  # store results
+  seq.theta[[1]][r, ] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
+  seq.theta[[2]][r, ] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
+  seq.alpha[[1]][r, ] <- fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
+  seq.alpha[[2]][r, ] <- fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
+  seq.lambda[[1]][r] <- fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
+  seq.lambda[[2]][r] <- fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
+  seq.delta[[1]][r, ] <- fit1.igauss1$vb.post$delta
+  seq.delta[[2]][r, ] <- fit1.igauss2$vb.post$delta
+  seq.zeta[[1]][r, ] <- fit1.igauss1$vb.post$zeta
+  seq.zeta[[2]][r, ] <- fit1.igauss2$vb.post$zeta
+  mse.mu[[1]][r] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
+  mse.mu[[2]][r] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
+  cor.mu[[1]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
+  cor.mu[[2]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
+  
+  res1 <- list(theta=seq.theta, alpha=seq.alpha, lambda=seq.lambda, 
+               delta=seq.delta, zeta=seq.zeta, mse.mu=mse.mu, cor.mu=cor.mu,
+               seq.mSNR)
+  save(set1, res1, file=paste(path.res, "simulations_igaussian_res1.RData", sep=""))
+  
 }
+
+
+
+
 
 ### convergence
 # elbo convergence
@@ -151,13 +198,13 @@ est1 <- sqrt(fit1.igauss1$vb.post$delta*
                fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]^2/
                fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb, ])*
   ratio_besselK_cpp(sqrt(fit1.igauss1$vb.post$delta*fit1.igauss1$seq.eb$lambda[
-    fit1.igauss1$iter$eb, ]/fit1.igauss1$vb.post$delta*
+    fit1.igauss1$iter$eb, ]/
       fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]^2), p)
 est2 <- sqrt(fit1.igauss2$vb.post$delta*
                fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]^2/
                fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb, ])*
   ratio_besselK_cpp(sqrt(fit1.igauss2$vb.post$delta*fit1.igauss2$seq.eb$lambda[
-    fit1.igauss2$iter$eb, ]/fit1.igauss2$vb.post$delta*
+    fit1.igauss2$iter$eb, ]/
       fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]^2), p)
 omar <- par()$mar
 par(mfrow=c(1, 3), mar=omar + c(0, 1, 0, 0))
@@ -193,10 +240,10 @@ plot(beta, fit1.igauss2$vb.post$mu, xlab=expression(beta),
 legend("bottomright", paste("MSE=", round(mean((
   beta - fit1.igauss2$vb.post$mu)^2), 2), sep=""), bty="n") 
 abline(a=0, b=1, lty=2)
-plot(beta, t(fit1.gwen$vb.post$mu), xlab=expression(beta),
+plot(beta, fit1.gwen$vb.post$mu, xlab=expression(beta),
      ylab=expression(hat(E(beta ~ "|" ~ y))), main="c)")
 legend("bottomright", paste("MSE=", round(mean((
-  beta - t(fit1.gwen$vb.post$mu))^2), 2), sep=""), bty="n") 
+  beta - fit1.gwen$vb.post$mu)^2), 2), sep=""), bty="n") 
 abline(a=0, b=1, lty=2)
 par(mfrow=c(1, 1), mar=omar)
 
@@ -216,13 +263,13 @@ legend("bottomright", paste("MSE=", round(mean((
   theta - 1/(C %*% fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]))^2), 2), 
   sep=""), bty="n")
 abline(a=0, b=1, lty=2)
-plot(theta, rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb + 1, ]/
-                  (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb + 1, ] - 1), 
+plot(theta, rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]/
+                  (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ] - 1), 
                 each=D/nclass),
      xlab=expression(E(gamma^2)), ylab=expression(hat(E(gamma^2))), main="c)")
 legend("bottomright", paste("MSE=", round(mean((
-  theta - rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb + 1, ]/
-                (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb + 1, ] - 1), 
+  theta - rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]/
+                (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ] - 1), 
               each=D/nclass))^2), 2), sep=""), bty="n")
 abline(a=0, b=1, lty=2)
 par(mfrow=c(1, 1), mar=omar)
