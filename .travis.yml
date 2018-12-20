@@ -4,6 +4,7 @@ addons:
   apt:
     packages:
     - libcurl4-openssl-dev
+    - libgsl0-dev
 before_install:
   - cd code
 language: R
