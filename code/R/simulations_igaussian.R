@@ -1,5 +1,6 @@
 ### change these to user-specific values
-path.res <- "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/results/"
+path.res <- ifelse(as.character(Sys.info()[1])!="Darwin", "~/cambridge/results/",
+                   "/Users/magnusmunch/Documents/OneDrive/PhD/cambridge/results/")
 auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
 
 ### installation of package
@@ -32,29 +33,40 @@ sigma <- rep(1, D)
 SNR <- 10
 
 # store settings in an object
-set1 <- list(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
-             theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
+set1 <- data.frame(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
+                   theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
 
 # objects to store simulation results
-seq.mSNR <- numeric(nreps)
-seq.theta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.alpha <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
-seq.lambda <- replicate(3, rep(NA, nreps), simplify=FALSE)
-seq.delta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.zeta <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.aprior <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
-seq.bprior <- replicate(3, matrix(NA, ncol=nclass, nrow=nreps), simplify=FALSE)
-seq.apost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.bpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.cpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-seq.dpost <- replicate(3, matrix(NA, ncol=D, nrow=nreps), simplify=FALSE)
-mse.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
-cor.mu <- replicate(3, rep(NA, nreps), simplify=FALSE)
-names(seq.theta) <- names(seq.alpha) <- names(seq.lambda) <- names(seq.delta) <-
-  names(seq.zeta) <- names(mse.mu) <- names(cor.mu) <- names(seq.aprior)  <- 
-  names(seq.bprior) <- names(seq.apost) <- names(seq.bpost) <- 
-  names(seq.cpost) <- names(seq.dpost) <- 
-  c("inv Gauss", "ind inv Gauss", "inv Gamma")
+list1 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
+  matrix(NA, ncol=D, nrow=nreps, 
+         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
+list2 <- sapply(c("inv Gamma"), function(m) {
+  matrix(NA, ncol=D, nrow=nreps, 
+         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
+list3 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
+  matrix(NA, ncol=nclass, nrow=nreps, 
+         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))}, 
+  simplify=FALSE)
+list4 <- sapply(c("inv Gamma"), function(m) {
+  matrix(NA, ncol=nclass, nrow=nreps, 
+         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))}, 
+  simplify=FALSE)
+list5 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
+  rep(NA, nreps)}, simplify=FALSE)
+list6 <- sapply(c("inv Gauss", "ind inv Gauss", "inv Gamma"), function(m) {
+  rep(NA, nreps)}, simplify=FALSE)
+res1 <- data.frame(theta=list1, delta=list1, zeta=list1, apost=list2, 
+                   bpost=list2, cpost=list2, dpost=list2, alpha=list3, 
+                   aprior=list4, bprior=list4, lambda=list5, mse.mu=list6, 
+                   cor.mu=list6, mSNR=numeric(nreps), 
+                   row.names=paste("rep", c(1:nreps), sep=""))
+
+# set initial values and control parameters
+control <- list(epsilon.eb=1e-3, epsilon.vb=1e-3, maxit.eb=20, maxit.vb=2, 
+                trace=FALSE)
+init <- list(alpha=c(mean(gamma^2), rep(0, nclass - 1)), 
+             lambda=mean(gamma^2)^2, a=rep(mean(1/gamma^2), D), 
+             zeta=rep(0.5*mean(sigma^2)*(n + p - 1), D))
 
 # simulation (SNR not correct)
 set.seed(2018)
@@ -66,16 +78,6 @@ for(r in 1:nreps) {
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
   x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
-  # store actual mean SNR
-  seq.mSNR[r] <- mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
-
-  # set initial values and control parameters
-  control <- list(epsilon.eb=1e-3, epsilon.vb=1e-3, maxit.eb=20, maxit.vb=2, 
-                  trace=FALSE)
-  init <- list(alpha=c(mean(gamma^2), rep(0, nclass - 1)), 
-               lambda=mean(gamma^2)^2, a=rep(mean(1/gamma^2), D), 
-               zeta=rep(0.5*mean(sigma^2)*(n + p - 1), D))
   
   # fit inverse Gaussian models
   fit1.igauss1 <- est.igauss(x, y, C, control=control, init=init,
@@ -91,52 +93,63 @@ for(r in 1:nreps) {
                                      trace=FALSE),
                         init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
   
-  # store results
-  seq.theta[[1]][r, ] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
-  seq.theta[[2]][r, ] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
-  seq.alpha[[1]][r, ] <- fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
-  seq.alpha[[2]][r, ] <- fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
-  seq.lambda[[1]][r] <- fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
-  seq.lambda[[2]][r] <- fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
-  seq.delta[[1]][r, ] <- fit1.igauss1$vb.post$delta
-  seq.delta[[2]][r, ] <- fit1.igauss2$vb.post$delta
-  seq.zeta[[1]][r, ] <- fit1.igauss1$vb.post$zeta
-  seq.zeta[[2]][r, ] <- fit1.igauss2$vb.post$zeta
-  mse.mu[[1]][r] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
-  mse.mu[[2]][r] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
-  mse.mu[[3]][r] <- mean((beta - fit1.gwen$vb.post$mu)^2)
-  cor.mu[[1]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
-  cor.mu[[2]][r] <- cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
-  cor.mu[[3]][r] <- cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
-  seq.aprior[[3]][r, ] <- fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
-  seq.bprior[[3]][r, ] <- fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
-  seq.apost[[3]][r, ] <- fit1.gwen$vb.post$apost
-  seq.bpost[[3]][r, ] <- fit1.gwen$vb.post$bpost
-  seq.cpost[[3]][r, ] <- fit1.gwen$vb.post$cpost
-  seq.dpost[[3]][r, ] <- fit1.gwen$vb.post$dpost
+  # store results (not correct)
+  res1[r, c(1:D)] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
+  res1[r, c(101:(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
+  res1[r, c(201:(3*D))]  <- fit1.igauss1$vb.post$delta
+  res1[r, c(301:(4*D))]  <- fit1.igauss2$vb.post$delta
+  res1[r, c(401:(5*D))] <- fit1.igauss1$vb.post$zeta
+  res1[r, c(501:(6*D))] <- fit1.igauss2$vb.post$zeta
+  res1[r, c(601:(7*D))] <- fit1.gwen$vb.post$apost
+  res1[r, c(701:(8*D))] <- fit1.gwen$vb.post$bpost
+  res1[r, c(801:(9*D))] <- fit1.gwen$vb.post$cpost
+  res1[r, c(901:(10*D))] <- fit1.gwen$vb.post$dpost
+  res1[r, c(1001:(10*D + 1*nclass))] <- 
+    fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
+  res1[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <- 
+    fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
+  res1[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <- 
+    fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
+  res1[r, c((10*D + 3*nclass + 1):(10*D + 3*nclass))] <- 
+    fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
+  res1[r, 10*D + 4*nclass + 1] <- 
+    fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
+  res1[r, 10*D + 4*nclass + 2] <- 
+    fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
+  res1[r, 10*D + 4*nclass + 3] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
+  res1[r, 10*D + 4*nclass + 4] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
+  res1[r, 10*D + 4*nclass + 5] <- mean((beta - fit1.gwen$vb.post$mu)^2)
+  res1[r, 10*D + 4*nclass + 6] <- 
+    cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
+  res1[r, 10*D + 4*nclass + 7] <- 
+    cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
+  res1[r, 10*D + 4*nclass + 8] <- 
+    cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
+  
+  # store actual mean SNR
+  res1[r, 10*D + 4*nclass + 9] <- 
+    mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
   
   # save the settings, results, and last model fits for convergence examples
-  res1 <- list(theta=seq.theta, alpha=seq.alpha, lambda=seq.lambda, 
-               delta=seq.delta, zeta=seq.zeta, aprior=seq.aprior, 
-               bprior=seq.bprior, apost=seq.apost, bpost=seq.bpost, 
-               cpost=seq.cpost, dpost=seq.dpost, mse.mu=mse.mu, cor.mu=cor.mu,
-               seq.mSNR)
-  fit1 <- list(fit1.igauss1=fit1.igauss1, fit1.igauss2=fit1.igauss2,
-               fit1.gwen=fit1.gwen)
-  save(set1, res1, fit1, 
-       file=paste(path.res, "simulations_igaussian_res1.RData", sep=""))
+  temp1 <- data.frame(inv.Gauss=fit1.igauss1$seq.eb)
+  temp1 <- temp1[rep(seq_len(nrow(temp1)), times=fit1.igauss1$iter$vb + 1), ]
+  temp2 <- data.frame(ind.inv.Gauss=fit1.igauss2$seq.eb)
+  temp2 <- temp2[rep(seq_len(nrow(temp2)), times=fit1.igauss2$iter$vb + 1), ]
+  fit1 <- data.frame(inv.Gauss.elbo=fit1.igauss1$seq.elbo, 
+                     inv.Gauss=temp1, ind.inv.Gauss.elbo=fit1.igauss2$seq.elbo,
+                     ind.inv.Gauss=temp2, inv.Gamma.elbo=fit1.gwen$seq.elbo,
+                     inv.Gamma=fit1.gwen$seq.eb)
+  
+  write.table(set1, 
+              file=paste(path.res, "simulations_igaussian_set1.csv", sep=""))
+  write.table(res1, 
+              file=paste(path.res, "simulations_igaussian_res1.csv", sep=""))
+  write.table(fit1, 
+              file=paste(path.res, "simulations_igaussian_fit1.csv", sep=""))
+  
   
 }
 
-
-write.table(res1, file=paste(path.res, "test.csv", sep=""))
-test <- read.table(paste(path.res, "test.csv", sep=""))
-
-colnames(test)
-str(test[, c(1:100)])
-
-cbind(res1$theta$`inv Gauss`[1, ],
-      as.numeric(test[1, c(1:100)]))
 
 
 load(paste(path.res, "simulations_igaussian_res1.RData", sep=""))
@@ -204,6 +217,9 @@ plot(fit1.igauss1$seq.eb$lambda, type="l", xlab="iteration",
 plot(fit1.igauss2$seq.eb$lambda, type="l", xlab="iteration", 
      ylab=expression(lambda), main="b)")
 par(mfrow=c(1, 1), mar=omar)
+
+
+
 
 ### posterior mean estimates against true values
 # sigma^2

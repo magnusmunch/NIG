@@ -420,8 +420,12 @@ est.gwen <- function(x, y, eqid,
                                myeps=control$maxit.opt)
         aprior[iter.eb + 1, ii] <- ab[1]
         bprior[iter.eb + 1, ii] <- ab[2]
+        
       }
     }
+    
+    # to make sure the iteration numbers match with other models
+    allMLs <- rbind(allMLs, new.elbo)
     
     # check convergence of EB iteration
     conv.eb <- all(c(abs(aprior[iter.eb + 1, ] - aprior[iter.eb, ]),
