@@ -1,17 +1,22 @@
 #!/usr/bin/env Rscript
 
+getwd()
+
 ### change these to user-specific values
 auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
 
 ### installation of package
-if(!("cambridge" %in% installed.packages())) {
-  if(!("devtools" %in% installed.packages())) {
-    install.packages("devtools")
-  }
-  library(devtools)
-  install_github("magnusmunch/cambridge/code", local=FALSE, 
-                 auth_token=auth_token)
-}
+# if(!("cambridge" %in% installed.packages())) {
+#   if(!("devtools" %in% installed.packages())) {
+#     install.packages("devtools")
+#   }
+#   library(devtools)
+#   install_github("magnusmunch/cambridge/code", local=FALSE, 
+#                  auth_token=auth_token)
+# }getwd
+library(devtools)
+install_github("magnusmunch/cambridge/code", local=FALSE, 
+               auth_token=auth_token)
 
 ### libraries
 library(cambridge)
@@ -140,11 +145,13 @@ for(r in 1:nreps) {
                      ind.inv.Gauss=temp2, inv.Gamma.elbo=fit1.gwen$seq.elbo,
                      inv.Gamma=fit1.gwen$seq.eb)
   
-  write.table(set1, file="../results/simulations_igaussian_set1.csv")
-  write.table(res1, file="../results/simulations_igaussian_res1.csv")
-  write.table(fit1, file="../results/simulations_igaussian_fit1.csv")
+  write.table(set1, file="../../results/simulations_igaussian_set1.csv")
+  write.table(res1, file="../../results/simulations_igaussian_res1.csv")
+  write.table(fit1, file="../../results/simulations_igaussian_fit1.csv")
   
 }
+
+warnings()
 
 # test <- read.table(paste(path.res, "simulations_igaussian_res1.csv", sep=""))
 # 
