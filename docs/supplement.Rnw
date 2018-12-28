@@ -258,41 +258,63 @@ library(cambridge)
   where $\text{class}(c)$ denotes the class of drug $d$. This allows for more flexible empirical Bayes estimation of the $a_d$ and $b_d$, and thus prior means of the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs. We present the results in Figures \ref{fig:boxplot_igaussian_res1_sigma2}-\ref{fig:boxplot_igaussian_res1_alpha}.
   
 <<"boxplot_igaussian_res1_sigma2", fig.cap="MSEs for posterior means of $\\sigma_d^2$", out.width="50%", fig.align="center", echo=FALSE>>=
-load("../results/simulations_igaussian_res1.RData")
-temp <- sapply(res1$zeta, function(z) {
-  colMeans((2*t(z)/(set1$n + (z==1)*set1$p - 1) - set1$sigma^2)^2)})
+res1 <- read.table("../results/simulations_igaussian_res1.csv")
+set1 <- read.table("../results/simulations_igaussian_set1.csv")
+names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
+temp1 <- list(res1[, substr(colnames(res1), 1, 14)=="zeta.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 18)=="zeta.ind.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 5)=="cpost"],
+              res1[, substr(colnames(res1), 1, 5)=="dpost"])
+temp2 <- cbind(colMeans((2*temp1[[1]]/(set1[rownames(set1)=="n", ] + set1[
+  rownames(set1)=="p", ] - 1) - set1[substr(rownames(set1), 1, 5)=="sigma", ]^2)^2),
+  colMeans((2*temp1[[2]]/(set1[rownames(set1)=="n", ] - 1) - 
+              set1[substr(rownames(set1), 1, 5)=="sigma", ]^2)^2),
+               colMeans((temp1[[4]]/(temp1[[3]] - 1) - 
+                           set1[substr(rownames(set1), 1, 5)=="sigma", ]^2)^2))
 par(cex=1.3)
-boxplot(temp, outline=FALSE, names=names(res1$mse.mu), ylab="MSE")
+boxplot(temp2, outline=FALSE, names=names1, ylab="MSE")
 legend("topright", title=expression(bold("median MSE")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp, 2, median), 2), sep="="))
+       paste(names1, round(apply(temp2, 2, median), 2), sep="="))
 par(cex=1)
 @
 
 <<"boxplot_igaussian_res1_gamma2", fig.cap="a) MSE and b) correlation for posterior means of $\\gamma_d^2$", fig.align="center", echo=FALSE>>=
-load("../results/simulations_igaussian_res1.RData")
-temp1 <- sapply(1:3, function(m) {
-  colMeans((t(sqrt(res1$delta[[m]]*res1$theta[[m]]^2/res1$lambda[[m]])*
-                ratio_besselK_cpp(sqrt(res1$delta[[m]]*res1$lambda[[m]])/
-                                    res1$theta[[m]], set1$p)) - set1$gamma^2)^2)})
-temp2 <- sapply(1:3, function(m) {
-  apply(sqrt(res1$delta[[m]]*res1$theta[[m]]^2/res1$lambda[[m]])*
-          ratio_besselK_cpp(sqrt(res1$delta[[m]]*res1$lambda[[m]])/
-                              res1$theta[[m]], set1$p), 1, function(r) {
-                                cor(r, set1$gamma^2)})})
+res1 <- read.table("../results/simulations_igaussian_res1.csv")
+set1 <- read.table("../results/simulations_igaussian_set1.csv")
+names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
+temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="delta.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 15)=="theta.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 16)=="lambda.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 19)=="delta.ind.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 19)=="theta.ind.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 20)=="lambda.ind.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 15)=="apost.inv.Gamma"],
+              res1[, substr(colnames(res1), 1, 15)=="bpost.inv.Gamma"])
+temp2 <- list(as.matrix(sqrt(temp1[[1]]*temp1[[2]]^2/temp1[[3]]))*
+                ratio_besselK_cpp(as.matrix(sqrt(
+                  temp1[[1]]*temp1[[3]])/temp1[[2]]), set1[rownames(set1)=="p", ]),
+              as.matrix(sqrt(temp1[[4]]*temp1[[5]]^2/temp1[[6]]))*
+                ratio_besselK_cpp(as.matrix(sqrt(
+                  temp1[[4]]*temp1[[6]])/temp1[[5]]), set1[rownames(set1)=="p", ]),
+              as.matrix(temp1[[8]]/(temp1[[7]] - 1)))
+temp3 <- sapply(temp2, function(m) {
+  colMeans((t(m) - set1[substr(rownames(set1), 1, 5)=="gamma", ]^2)^2)})
+temp4 <- sapply(temp2, function(m) {apply(t(m), 2, function(r) {
+  cor(r, set1[substr(rownames(set1), 1, 5)=="gamma", ]^2)})})
 par(cex=1.3)
 layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
-legend("topright", title=expression(bold("median MSE")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
-boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
-legend("topright", title=expression(bold("median correlation")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+boxplot(temp3, names=names1, ylab="MSE", main="a)")
+legend("right", title=expression(bold("median MSE")), bty="n", 
+       paste(names1, round(apply(temp3, 2, median), 2), sep="="))
+boxplot(temp4, names=names1, ylab="Correlation", main="b)")
+legend("bottomleft", title=expression(bold("median correlation")), bty="n", 
+       paste(names1, round(apply(temp4, 2, median), 2), sep="="))
 par(cex=1)
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 @
 
 <<"boxplot_igaussian_res1_mu", fig.cap="a) MSE and b) correlation for posterior means of $\\beta_d$", fig.align="center", echo=FALSE>>=
 res1 <- read.table("../results/simulations_igaussian_res1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
 names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
 temp1 <- cbind(res1$mse.mu.inv.Gauss, res1$mse.mu.ind.inv.Gauss, 
                res1$mse.mu.inv.Gamma)
@@ -312,35 +334,58 @@ layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 @
 
 <<"boxplot_igaussian_res1_theta", fig.cap="a) MSE and b) correlation for prior means of $\\gamma_d^2$ ($\\theta_d$)", fig.align="center", echo=FALSE>>=
-load("../results/simulations_igaussian_res1.RData")
-temp1 <- sapply(res1$theta, function(th) {colMeans((t(th) - set1$theta)^2)})
-temp2 <- sapply(res1$theta, function(th) {apply(th, 1, function(r) {
-  cor(r, set1$theta)})})
+res1 <- read.table("../results/simulations_igaussian_res1.csv")
+set1 <- read.table("../results/simulations_igaussian_set1.csv")
+names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
+temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="theta.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 19)=="theta.ind.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 16)=="aprior.inv.Gamma"],
+              res1[, substr(colnames(res1), 1, 16)=="bprior.inv.Gamma"])
+temp2 <- list(colMeans((t(temp1[[1]]) - 
+                          set1[substr(rownames(set1), 1, 5)=="theta", ])^2),
+              colMeans((t(temp1[[2]]) - 
+                          set1[substr(rownames(set1), 1, 5)=="theta", ])^2),
+              colMeans((t(temp1[[4]]/(temp1[[3]] - 1)) - 
+                          unique(set1[substr(rownames(set1), 1, 5)=="theta", ]))^2))
+temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {
+  cor(r, set1[substr(rownames(set1), 1, 5)=="theta", ])}),
+              apply(t(temp1[[2]]), 2, function(r) {
+                cor(r, set1[substr(rownames(set1), 1, 5)=="theta", ])}),
+              apply(t(temp1[[4]]/(temp1[[3]] - 1)), 2, function(r) {
+                cor(r, unique(set1[substr(rownames(set1), 1, 5)=="theta", ]))}))
 par(cex=1.3)
 layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
-legend("topright", title=expression(bold("median MSE")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
-boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
-legend("topright", title=expression(bold("median correlation")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+boxplot(temp2, names=names1, ylab="MSE", main="a)")
+legend("bottomright", title=expression(bold("median MSE")), bty="n",
+       paste(names1, round(sapply(temp2, median), 2), sep="="))
+boxplot(temp3, names=names1, ylab="Correlation", main="b)")
+legend("bottomleft", title=expression(bold("median correlation")), bty="n",
+       paste(names1, round(sapply(temp3, median), 2), sep="="))
 par(cex=1)
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 @
   
 <<"boxplot_igaussian_res1_alpha", fig.cap="a) MSE and b) correlation for $\\alpha$", fig.align="center", echo=FALSE>>=
-load("../results/simulations_igaussian_res1.RData")
-temp1 <- sapply(res1$alpha, function(a) {colMeans((t(a) - set1$alpha)^2)})
-temp2 <- sapply(res1$alpha, function(a) {apply(a, 1, function(r) {
-  cor(r, set1$alpha)})})
+res1 <- read.table("../results/simulations_igaussian_res1.csv")
+set1 <- read.table("../results/simulations_igaussian_set1.csv")
+set1[substr(rownames(set1), 1, 5)=="alpha", ]
+names1 <- c("inv Gauss", "ind inv Gauss")
+temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="alpha.inv.Gauss"],
+              res1[, substr(colnames(res1), 1, 19)=="alpha.ind.inv.Gauss"])
+temp2 <- list(colMeans((t(temp1[[1]]) - set1[substr(rownames(set1), 1, 5)=="alpha", ])^2),
+              colMeans((t(temp1[[2]]) - set1[substr(rownames(set1), 1, 5)=="alpha", ])^2))
+temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {cor(r, set1[substr(rownames(set1), 1, 5)=="alpha", ])}),
+              apply(t(temp1[[2]]), 2, function(r) {cor(r, set1[substr(rownames(set1), 1, 5)=="alpha", ])}))
 par(cex=1.3)
 layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp1, names=names(res1$mse.mu), ylab="MSE", main="a)")
-legend("topright", title=expression(bold("median MSE")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp1, 2, median), 2), sep="="))
-boxplot(temp2, names=names(res1$mse.mu), ylab="Correlation", main="b)")
-legend("topright", title=expression(bold("median correlation")), bty="n", 
-       paste(names(res1$mse.mu), round(apply(temp2, 2, median), 2), sep="="))
+boxplot(temp2, names=names1, ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n",
+       paste(names1, round(sapply(temp2, median), 2), sep="="))
+boxplot(temp3, names=names1, ylab="Correlation", main="b)")
+legend("bottomright", title=expression(bold("median correlation")), bty="n",
+       paste(names1, round(sapply(temp3, median), 2), sep="="))
 par(cex=1)
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 @
 
   \section{Starting values}

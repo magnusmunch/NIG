@@ -1,8 +1,5 @@
 #!/usr/bin/env Rscript
 
-### change these to user-specific values
-auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
-
 ### installation of package
 # if(!("cambridge" %in% installed.packages())) {
 #   if(!("devtools" %in% installed.packages())) {
@@ -10,11 +7,11 @@ auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
 #   }
 #   library(devtools)
 #   install_github("magnusmunch/cambridge/code", local=FALSE, 
-#                  auth_token=auth_token)
+#                  auth_token=Sys.getenv("GITHUB_PAT"))
 # }getwd
 library(devtools)
 install_github("magnusmunch/cambridge/code", local=FALSE, 
-               auth_token=auth_token)
+               auth_token=Sys.getenv("GITHUB_PAT"))
 
 ### libraries
 library(cambridge)
@@ -36,6 +33,8 @@ sigma <- rep(1, D)
 SNR <- 10
 
 # store settings in an object
+set1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
+          theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
 set1 <- data.frame(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
                    theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
 
@@ -113,7 +112,7 @@ for(r in 1:nreps) {
     fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
   res1[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <- 
     fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
-  res1[r, c((10*D + 3*nclass + 1):(10*D + 3*nclass))] <- 
+  res1[r, c((10*D + 3*nclass + 1):(10*D + 4*nclass))] <- 
     fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
   res1[r, 10*D + 4*nclass + 1] <- 
     fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
@@ -153,6 +152,14 @@ warnings()
 
 
 
+
+fit1 <- read.table("../../results/simulations_igaussian_fit1.csv")
+plot(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, 1], type="l",
+     ylim=range(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"]),
+     main="a)", xlab="Iteration", ylab="ELBO")
+for(i in 2:100) {
+  lines(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, i], col=i)
+}
 
 # load(paste(path.res, "simulations_igaussian_res1.RData", sep=""))
 # ### convergence
