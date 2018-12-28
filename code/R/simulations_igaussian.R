@@ -1,7 +1,5 @@
 #!/usr/bin/env Rscript
 
-getwd()
-
 ### change these to user-specific values
 auth_token <- "da10f2b37c513e3383c5b2e0aa1300288329c636"
 
@@ -153,13 +151,9 @@ for(r in 1:nreps) {
 
 warnings()
 
-# test <- read.table(paste(path.res, "simulations_igaussian_res1.csv", sep=""))
-# 
-# 
-# colnames(test)
-# 
-# 
-# 
+
+
+
 # load(paste(path.res, "simulations_igaussian_res1.RData", sep=""))
 # ### convergence
 # # elbo convergence
