@@ -9,7 +9,7 @@
 * R functions are in code/R/functions.R file
 * cpp functions are in code/src/functions.cpp file
 * Gwen's functions and simple estimation loop are in code/src/myfunction.cpp and code/R/script.R, respectively
-* simple model simulations (without tissue effects and omics feature groups) are in code/R/simulations_igaussian.R
+* simple model simulations (without tissue effects and omics feature groups) are in code/R/simulations_igaussian.R. Re-run them with `Rscript --no-save --no-restore --verbose simulations_igaussian.R > simulations_igaussian.Rout 2>&1`
 
 ## R package
 * `R CMD build code` for R package compilation

@@ -8,7 +8,7 @@
 #   library(devtools)
 #   install_github("magnusmunch/cambridge/code", local=FALSE, 
 #                  auth_token=Sys.getenv("GITHUB_PAT"))
-# }getwd
+# }
 library(devtools)
 install_github("magnusmunch/cambridge/code", local=FALSE, 
                auth_token=Sys.getenv("GITHUB_PAT"))
@@ -33,10 +33,9 @@ sigma <- rep(1, D)
 SNR <- 10
 
 # store settings in an object
-set1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
+temp <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
           theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
-set1 <- data.frame(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
-                   theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
+set1 <- t(matrix(temp)); colnames(set1) <- names(temp)
 
 # objects to store simulation results
 list1 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
@@ -137,11 +136,11 @@ for(r in 1:nreps) {
   temp1 <- temp1[rep(seq_len(nrow(temp1)), times=fit1.igauss1$iter$vb + 1), ]
   temp2 <- data.frame(ind.inv.Gauss=fit1.igauss2$seq.eb)
   temp2 <- temp2[rep(seq_len(nrow(temp2)), times=fit1.igauss2$iter$vb + 1), ]
-  fit1 <- data.frame(inv.Gauss.elbo=fit1.igauss1$seq.elbo, 
-                     inv.Gauss=temp1, ind.inv.Gauss.elbo=fit1.igauss2$seq.elbo,
-                     ind.inv.Gauss=temp2, inv.Gamma.elbo=fit1.gwen$seq.elbo,
+  fit1 <- data.frame(inv.Gauss.elbo=fit1.igauss1$seq.elbo, temp1, 
+                     ind.inv.Gauss.elbo=fit1.igauss2$seq.elbo, temp2, 
+                     inv.Gamma.elbo=fit1.gwen$seq.elbo,
                      inv.Gamma=fit1.gwen$seq.eb)
-  
+ 
   write.table(set1, file="../../results/simulations_igaussian_set1.csv")
   write.table(res1, file="../../results/simulations_igaussian_res1.csv")
   write.table(fit1, file="../../results/simulations_igaussian_fit1.csv")
@@ -149,188 +148,4 @@ for(r in 1:nreps) {
 }
 
 warnings()
-
-
-
-
-fit1 <- read.table("../../results/simulations_igaussian_fit1.csv")
-plot(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, 1], type="l",
-     ylim=range(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"]),
-     main="a)", xlab="Iteration", ylab="ELBO")
-for(i in 2:100) {
-  lines(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, i], col=i)
-}
-
-# load(paste(path.res, "simulations_igaussian_res1.RData", sep=""))
-# ### convergence
-# # elbo convergence
-# omar <- par()$mar
-# par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
-# plot(fit1.igauss1$seq.elbo[, 1], type="l", xlab="iteration", 
-#      ylab="ELBO", main="a)", ylim=range(fit1.igauss1$seq.elbo))
-# for(d in 1:ncol(fit1.igauss1$seq.elbo)) {
-#   lines(fit1.igauss1$seq.elbo[, d], col=d)
-# }
-# plot(fit1.igauss2$seq.elbo[, 1], type="l", xlab="iteration", 
-#      ylab="ELBO", main="b)", ylim=range(fit1.igauss2$seq.elbo))
-# for(d in 1:ncol(fit1.igauss2$seq.elbo)) {
-#   lines(fit1.igauss2$seq.elbo[, d], col=d)
-# }
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# # igauss alpha convergences
-# omar <- par()$mar
-# par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
-# plot(fit1.igauss1$seq.eb$alpha[, 1], type="l", xlab="iteration", 
-#      ylab=expression(alpha), main="a)", ylim=range(fit1.igauss1$seq.eb$alpha))
-# lines(fit1.igauss1$seq.eb$alpha[, 2], col=2)
-# lines(fit1.igauss1$seq.eb$alpha[, 3], col=3)
-# lines(fit1.igauss1$seq.eb$alpha[, 4], col=4)
-# lines(fit1.igauss1$seq.eb$alpha[, 5], col=5)
-# plot(fit1.igauss2$seq.eb$alpha[, 1], type="l", xlab="iteration", 
-#      ylab=expression(alpha), main="b)", ylim=range(fit1.igauss2$seq.eb$alpha))
-# lines(fit1.igauss2$seq.eb$alpha[, 2], col=2)
-# lines(fit1.igauss2$seq.eb$alpha[, 3], col=3)
-# lines(fit1.igauss2$seq.eb$alpha[, 4], col=4)
-# lines(fit1.igauss2$seq.eb$alpha[, 5], col=5)
-# legend("topleft", legend=bquote(.(parse(text=paste(
-#   "alpha", "[", c(1:nclass), "]", sep="")))),
-#   lty=1, col=c(1:nclass))
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# # theta convergence
-# omar <- par()$mar
-# par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
-# plot(fit1.igauss1$seq.eb$theta[, 1], type="l", xlab="iteration", 
-#      ylab=expression(theta), main="a)", ylim=range(fit1.igauss1$seq.eb$theta))
-# lines(fit1.igauss1$seq.eb$theta[, D/nclass + 1], col=2)
-# lines(fit1.igauss1$seq.eb$theta[, 2*D/nclass + 1], col=3)
-# lines(fit1.igauss1$seq.eb$theta[, 3*D/nclass + 1], col=4)
-# lines(fit1.igauss1$seq.eb$theta[, 4*D/nclass + 1], col=5)
-# plot(fit1.igauss2$seq.eb$theta[, 1], type="l", xlab="iteration", 
-#      ylab=expression(theta), main="b)", ylim=range(fit1.igauss2$seq.eb$theta))
-# lines(fit1.igauss2$seq.eb$theta[, D/nclass + 1], col=2)
-# lines(fit1.igauss2$seq.eb$theta[, 2*D/nclass + 1], col=3)
-# lines(fit1.igauss2$seq.eb$theta[, 3*D/nclass + 1], col=4)
-# lines(fit1.igauss2$seq.eb$theta[, 4*D/nclass + 1], col=5)
-# legend("topleft", legend=bquote(.(parse(text=paste(
-#   "theta", "[", c(1:nclass), "]", sep="")))),
-#   lty=1, col=c(1:nclass))
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# # igauss lambda convergence
-# omar <- par()$mar
-# par(mfrow=c(1, 2), mar=omar + c(0, 1, 0, 0))
-# plot(fit1.igauss1$seq.eb$lambda, type="l", xlab="iteration", 
-#      ylab=expression(lambda), main="a)")
-# plot(fit1.igauss2$seq.eb$lambda, type="l", xlab="iteration", 
-#      ylab=expression(lambda), main="b)")
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# 
-# 
-# 
-# ### posterior mean estimates against true values
-# # sigma^2
-# omar <- par()$mar
-# par(mfrow=c(1, 3), mar=omar + c(0, 1, 0, 0))
-# plot(sigma^2, 2*fit1.igauss1$vb.post$zeta/(n + p - 1), xlab=expression(sigma^2),
-#      ylab=expression(hat(E(sigma^2 ~ "|" ~ y))), main="a)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   sigma^2 - 2*fit1.igauss1$vb.post$zeta/(n + p - 1))^2), 2), sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# plot(sigma^2, 2*fit1.igauss2$vb.post$zeta/(n - 2.5), xlab=expression(sigma^2),
-#      ylab=expression(hat(E(sigma^2 ~ "|" ~ y))), main="b)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   sigma^2 - 2*fit1.igauss2$vb.post$zeta/(n + p - 1))^2), 2), sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# plot(sigma^2, fit1.gwen$vb.post$dpost/(fit1.gwen$vb.post$cpost - 1), 
-#      xlab=expression(sigma^2), ylab=expression(hat(E(sigma^2 ~ "|" ~ y))), 
-#      main="c)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   sigma^2 - fit1.gwen$vb.post$dpost/(fit1.gwen$vb.post$cpost - 1))^2), 2), 
-#   sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# # gamma^2
-# est1 <- sqrt(fit1.igauss1$vb.post$delta*
-#                fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]^2/
-#                fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb, ])*
-#   ratio_besselK_cpp(sqrt(fit1.igauss1$vb.post$delta*fit1.igauss1$seq.eb$lambda[
-#     fit1.igauss1$iter$eb, ]/
-#       fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]^2), p)
-# est2 <- sqrt(fit1.igauss2$vb.post$delta*
-#                fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]^2/
-#                fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb, ])*
-#   ratio_besselK_cpp(sqrt(fit1.igauss2$vb.post$delta*fit1.igauss2$seq.eb$lambda[
-#     fit1.igauss2$iter$eb, ]/
-#       fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]^2), p)
-# omar <- par()$mar
-# par(mfrow=c(1, 3), mar=omar + c(0, 1, 0, 0))
-# plot(gamma^2, est1, xlab=expression(gamma^2),
-#      ylab=expression(hat(E(gamma^2 ~ "|" ~ y))), main="a)")
-# legend("bottomright", paste("MSE=", round(mean((gamma^2 - est1)^2), 2), sep=""), 
-#        bty="n") 
-# abline(a=0, b=1, lty=2)
-# plot(gamma^2, est2, xlab=expression(gamma^2),
-#      ylab=expression(hat(E(gamma^2 ~ "|" ~ y))), main="b)")
-# legend("bottomright", paste("MSE=", round(mean((gamma^2 - est2)^2), 2), sep=""), 
-#        bty="n")
-# abline(a=0, b=1, lty=2)
-# plot(gamma^2, fit1.gwen$vb.post$bpost/(fit1.gwen$vb.post$apost - 1),
-#      xlab=expression(gamma^2), ylab=expression(hat(E(gamma^2 ~ "|" ~ y))), 
-#      main="c)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   gamma^2 - fit1.gwen$vb.post$bpost/(fit1.gwen$vb.post$apost - 1))^2), 2), 
-#   sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# # beta
-# omar <- par()$mar
-# par(mfrow=c(1, 3), mar=omar + c(0, 1, 0, 0))
-# plot(beta, fit1.igauss1$vb.post$mu, xlab=expression(beta),
-#      ylab=expression(hat(E(beta ~ "|" ~ y))), main="a)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   beta - fit1.igauss1$vb.post$mu)^2), 2), sep=""), bty="n") 
-# abline(a=0, b=1, lty=2)
-# plot(beta, fit1.igauss2$vb.post$mu, xlab=expression(beta),
-#      ylab=expression(hat(E(beta ~ "|" ~ y))), main="b)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   beta - fit1.igauss2$vb.post$mu)^2), 2), sep=""), bty="n") 
-# abline(a=0, b=1, lty=2)
-# plot(beta, fit1.gwen$vb.post$mu, xlab=expression(beta),
-#      ylab=expression(hat(E(beta ~ "|" ~ y))), main="c)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   beta - fit1.gwen$vb.post$mu)^2), 2), sep=""), bty="n") 
-# abline(a=0, b=1, lty=2)
-# par(mfrow=c(1, 1), mar=omar)
-# 
-# ### EB estimation
-# # prior mean estimates of gamma^2 against true values
-# omar <- par()$mar
-# par(mfrow=c(1, 3), mar=omar + c(0, 1, 0, 0))
-# plot(theta, 1/(C %*% fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]),
-#      xlab=expression(E(gamma^2)), ylab=expression(hat(E(gamma^2))), main="a)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   theta - 1/(C %*% fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]))^2), 2), 
-#   sep=""), bty="n") 
-# abline(a=0, b=1, lty=2)
-# plot(theta, 1/(C %*% fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]),
-#      xlab=expression(E(gamma^2)), ylab=expression(hat(E(gamma^2))), main="b)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   theta - 1/(C %*% fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]))^2), 2), 
-#   sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# plot(theta, rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]/
-#                   (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ] - 1), 
-#                 each=D/nclass),
-#      xlab=expression(E(gamma^2)), ylab=expression(hat(E(gamma^2))), main="c)")
-# legend("bottomright", paste("MSE=", round(mean((
-#   theta - rep(fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]/
-#                 (fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ] - 1), 
-#               each=D/nclass))^2), 2), sep=""), bty="n")
-# abline(a=0, b=1, lty=2)
-# par(mfrow=c(1, 1), mar=omar)
 
