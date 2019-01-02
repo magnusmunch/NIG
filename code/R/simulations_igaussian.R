@@ -21,7 +21,7 @@ library(cambridge)
 nreps <- 100
 n <- 100
 p <- 200
-D <- 100
+D <- 300
 nclass <- 5
 
 # create fixed parameters
@@ -147,6 +147,10 @@ for(r in 1:nreps) {
   write.table(fit1, file="../../results/simulations_igaussian_fit1.csv")
 
 }
+
+
+res1 <- read.table("../../results/simulations_igaussian_res1.csv")
+res1$mSNR
 
 ###############################   simulation 2   ###############################
 

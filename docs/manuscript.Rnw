@@ -285,6 +285,8 @@
 	- Hamming distance to assess variable selection
 	
 	\section{Data application}
+	We predict IC50 of the drugs. Other choices of efficacy measures are possible, but a discussion on the pros and cons of these different choices is not the aim of this paper. In any case, the presented methods may be used with any continuous efficay measure. 
+	
 	- check GSK open target EBI or ask Chris Wallace about it. Database that links targets to drugs and diseases. Might be useful for drugs co-data.
 	
 	- check NCI-60
@@ -296,6 +298,7 @@
 	- start with gene expression (one $g(j)$)
 	
 	\subsection{GDSC}
+	After iteratively removing the cell line or drug with the highest proportion of missings until there are no more missing values, we end up with  IC50 estimates for 495 cell lines on 167 drugs.
 	
 	\subsection{CCLE}
 	
