@@ -14,8 +14,12 @@ cache: packages
 r_binary_packages:
   - gsl
 
-env:
-  global:
-    - WARNINGS_ARE_ERRORS=1
-    - R_BUILD_ARGS=--no-manual
-    - R_CHECK_ARGS=--no-manual --as-cran
+# to stop warnings because of missing manuals
+warnings_are_errors: false
+# alternative is
+# env:
+#   global:
+#     - WARNINGS_ARE_ERRORS=1
+#     - R_BUILD_ARGS=--no-manual
+#     - R_CHECK_ARGS=--no-manual --as-cran
+# alternative is
