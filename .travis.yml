@@ -1,6 +1,6 @@
 # R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
 
-warnings_are_errors: false
+
 addons:
   apt:
     packages:
@@ -14,8 +14,8 @@ cache: packages
 r_binary_packages:
   - gsl
 
-r_packages:
-  - covr
-
-after_success:
-  - Rscript -e 'library(covr); codecov()'
+env:
+  global:
+    - WARNINGS_ARE_ERRORS=1
+    - R_BUILD_ARGS=--no-manual
+    - R_CHECK_ARGS=--no-manual --as-cran

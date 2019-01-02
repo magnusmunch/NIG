@@ -451,6 +451,70 @@ par(cex=1)
 layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 @
 
+<<"boxplot_igaussian_res2_theta", fig.cap="a) MSE and b) correlation for prior means of $\\gamma_d^2$ ($\\theta_d$) in simulation 2", fig.align="center", echo=FALSE>>=
+res2 <- read.table("../results/simulations_igaussian_res2.csv")
+set2 <- read.table("../results/simulations_igaussian_set2.csv")
+names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
+temp1 <- list(res2[, substr(colnames(res2), 1, 15)=="theta.inv.Gauss"],
+              res2[, substr(colnames(res2), 1, 19)=="theta.ind.inv.Gauss"],
+              res2[, substr(colnames(res2), 1, 16)=="aprior.inv.Gamma"],
+              res2[, substr(colnames(res2), 1, 16)=="bprior.inv.Gamma"])
+temp2 <- list(colMeans((t(temp1[[1]]) - 
+                          as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))^2),
+              colMeans((t(temp1[[2]]) - 
+                          as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))^2),
+              colMeans((t(temp1[[4]]/(temp1[[3]] - 1)) - 
+                          unique(as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"])))^2))
+temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {
+  cor(r, as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))}),
+              apply(t(temp1[[2]]), 2, function(r) {
+                cor(r, as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))}),
+              apply(t(temp1[[4]]/(temp1[[3]] - 1)), 2, function(r) {
+                cor(r, unique(as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"])))}))
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(temp2, names=names1, ylab="MSE", main="a)")
+legend("bottomright", title=expression(bold("median MSE")), bty="n",
+       paste(names1, round(sapply(temp2, median), 2), sep="="))
+boxplot(temp3, names=names1, ylab="Correlation", main="b)")
+legend("bottomleft", title=expression(bold("median correlation")), bty="n",
+       paste(names1, round(sapply(temp3, median), 2), sep="="))
+par(cex=1)
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+@
+
+<<"boxplot_igaussian_res1_alpha", fig.cap="a) MSE and b) correlation for $\\alpha$", fig.align="center", echo=FALSE>>=
+res2 <- read.table("../results/simulations_igaussian_res2.csv")
+set2 <- read.table("../results/simulations_igaussian_set2.csv")
+
+names1 <- c("inv Gauss", "ind inv Gauss")
+temp1 <- list(res2[, substr(colnames(res2), 1, 15)=="alpha.inv.Gauss"],
+              res2[, substr(colnames(res2), 1, 19)=="alpha.ind.inv.Gauss"])
+temp2 <- list(colMeans((t(temp1[[1]]) - as.numeric(set2[, substr(colnames(set2), 1, 5)=="alpha"]))^2),
+              colMeans((t(temp1[[2]]) - as.numeric(set2[, substr(colnames(set2), 1, 5)=="alpha"]))^2))
+temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {cor(r, as.numeric(set2[, substr(colnames(set2), 1, 5)=="alpha"]))}),
+              apply(t(temp1[[2]]), 2, function(r) {cor(r, as.numeric(set2[, substr(colnames(set2), 1, 5)=="alpha"]))}))
+par(cex=1.3)
+layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
+boxplot(temp2, names=names1, ylab="MSE", main="a)")
+legend("topright", title=expression(bold("median MSE")), bty="n",
+       paste(names1, round(sapply(temp2, median), 2), sep="="))
+boxplot(temp3, names=names1, ylab="Correlation", main="b)")
+legend("bottomright", title=expression(bold("median correlation")), bty="n",
+       paste(names1, round(sapply(temp3, median), 2), sep="="))
+par(cex=1)
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+@
+
+<<>>=
+fit2 <- read.table("../results/simulations_igaussian_fit2.csv")
+plot(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"][, 1], type="l",
+     ylim=range(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"]))
+for(i in 2:5) {
+  lines(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"][, 2], col=i)  
+}
+@
+
   \section{Starting values}
   \subsection{Method 1}
   Starting value for $\sigma_d^2$ as in \cite{chipman_bart:_2010}. They consider a scaled-Chi squared distribution for the error variance with degrees of freedom 3 and scale chosen such that the $q*100$th percentile matches the error variance in the data $s^2(\mathbf{y}_d)$. As starting value for $\sigma_d^2$ we take the mode of this distribution: $\hat{\sigma}_d^2 = 3a/5$, with $a$ the solution to:

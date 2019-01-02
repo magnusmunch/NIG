@@ -33,4 +33,3 @@ cell.lines <- unlist(strsplit("5637 	22Rv1 	786-O 	A-204 	A-253 	A2780 	A3/KAW 	
 cell.lines2 <- data2[data2$Primary.Cell.Line.Name %in% cell.lines & data2$Compound=="Nutlin-3", c(2, 11)]
 cell.lines3 <- cell.lines2[order(cell.lines2$Primary.Cell.Line.Name), ]
 cell.lines3
-
