@@ -291,9 +291,13 @@
 	
 	- check NCI-60
 	
+	- check CTRP study
+	
+	- check data in PharamcoGx R-package
+	
 	- how to transform the data and deal with missingness (ask Oslo and read papers published on GDSC and CCLE repositories) 
 	
-	- what information is available on drugs (ask Oslo)
+	- create drug covariates from SMILES formulas with R-package rcdk.
 	
 	- start with gene expression (one $g(j)$)
 	

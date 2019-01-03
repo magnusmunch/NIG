@@ -1,5 +1,10 @@
 #!/usr/bin/env Rscript
 
+# set working directory to source (this) file (only works with Rstudio)
+if(any(grepl("rstudio", search()))) {
+  setwd(gsub("(.*)/.*", "\\1", rstudioapi::getActiveDocumentContext()$path))  
+}
+
 ### installation of package
 # if(!("cambridge" %in% installed.packages())) {
 #   if(!("devtools" %in% installed.packages())) {
@@ -15,24 +20,73 @@ install_github("magnusmunch/cambridge/code", local=FALSE,
 
 ### libraries
 library(cambridge)
+library(gdata)
 
 ################################## analysis 1 ##################################
 # loading the data either from a local file or from the GDSC website
-# data <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/v17.3_fitted_dose_response.xlsx",
-#                    header=TRUE, sep=",", stringsAsFactors=FALSE)
-resp <- read.table("../../data/v17.3_fitted_dose_response.csv", header=TRUE, 
-                   sep=",", stringsAsFactors=FALSE)
+if(file.exists("../../data/v17.3_fitted_dose_response.csv")) {
+  resp1 <- read.table("../../data/v17.3_fitted_dose_response.csv", header=TRUE, 
+                      sep=",", stringsAsFactors=FALSE)
+} else {
+  resp1 <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/v17.3_fitted_dose_response.xlsx",
+                      header=TRUE, sep=",", stringsAsFactors=FALSE)
+}
+if(file.exists("../../data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
+  expr1 <- read.table("../../data/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
+                      header=TRUE, stringsAsFactors=FALSE)
+} else {
+  expr1 <- read.table(gcon(url("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz"), 
+                           text=TRUE), header=TRUE, stringsAsFactors=FALSE)
+}
+if(file.exists("../../data/Cell_Lines_Details.xlsx")) {
+  cell1 <- read.xls("../../data/Cell_Lines_Details.xlsx", 
+                    stringsAsFactors=FALSE)
+} else {
+  cell1 <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx", 
+                    stringsAsFactors=FALSE)
+}
+if(file.exists("../../data/Screened_Compounds.xlsx")) {
+  drug1 <- read.xls("../../data/Screened_Compounds.xlsx", 
+                    stringsAsFactors=FALSE)
+} else {
+  drug1 <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Screened_Compounds.xlsx", 
+                    stringsAsFactors=FALSE)
+}
 
+# load data from "A landscape of pharmacogenomic interaction in cancer" analysis
+if(file.exists("../../data/TableS1F.xlsx")) {
+  drug2 <- read.xls("../../data/TableS1F.xlsx", stringsAsFactors=FALSE, skip=1)
+} else {
+  drug2 <- read.xls("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/suppData/TableS1F.xlsx", 
+                    stringsAsFactors=FALSE, skip=1)
+}
+if(file.exists("../../data/TableS1G.xlsx")) {
+  drug3 <- read.xls("../../data/TableS1G.xlsx", stringsAsFactors=FALSE, skip=1)
+} else {
+  drug3 <- read.xls("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/suppData/TableS1G.xlsx", 
+                    stringsAsFactors=FALSE, skip=1)
+}
 
-# take average if more than one measurement for drug cell line combination
-resp2 <- aggregate(LN_IC50 ~ CELL_LINE_NAME + DRUG_NAME, data=resp, FUN=mean, 
-                   na.rm=TRUE)
+# fix mistakes with reading in excel file
+drug4 <- drug3[, -c(6:25)]
+drug4$Cluster.identifier <- sapply(1:nrow(drug4), function(s) {
+  if(is.na(drug4$Cluster.identifier[s])) {
+    drug4$Cluster.identifier[c(1:s)][tail(which(!is.na(drug4$Cluster.identifier[
+      c(1:s)])), n=1)]
+  } else {
+    drug4$Cluster.identifier[s]
+  }})
+
+# take average IC50 if more than one measurement for drug cell line combination
+resp2 <- aggregate(LN_IC50 ~ COSMIC_ID + CELL_LINE_NAME + DRUG_NAME, data=resp1, 
+                   FUN=mean, na.rm=TRUE)
 
 # put the data in the wide format (cell lines in rows and drugs in columns)
-resp3 <- reshape(resp2, timevar="DRUG_NAME", idvar="CELL_LINE_NAME",
-                 direction="wide")
-rownames(resp3) <- resp3$CELL_LINE_NAME
-resp4 <- resp3[, -1]
+resp3 <- reshape(resp2, timevar="DRUG_NAME", 
+                 idvar=c("COSMIC_ID", "CELL_LINE_NAME"), direction="wide")
+rownames(resp3) <- resp3$COSMIC_ID
+colnames(resp3) <- substr(colnames(resp3), 9, 10000L)
+resp4 <- resp3[, -c(1, 2)]
 
 # sequentially remove drug or cell line with highest proportion missings
 nomiss <- FALSE
@@ -49,7 +103,36 @@ while(!nomiss) {
   nomiss <- !any(is.na(resp5))
 }
 
-str(resp5)
+# cell lines in rows and genes in columns
+expr2 <- t(expr1[, -1])
+colnames(expr2) <- expr1$ensembl_gene
+rownames(expr2) <- substr(rownames(expr2), 2, 10000L)
+
+# only retain the cell lines that are in both the response and expression set
+resp <- resp5[rownames(resp5) %in% rownames(expr2), ]
+expr <- expr2[rownames(expr2) %in% rownames(resp5), ]
+
+# remove all in-between steps
+rm(list=c("resp1", "resp2", "resp3", "resp4", "resp5", "expr1", "expr2"))
+
+expr.scale <- scale(expr)
+resp.scale <- scale(resp)
+
+target <- drug1$TARGET[match(colnames(resp.scale), drug1$DRUG_NAME)]
+pathway <- drug1$TARGET_PATHWAY[match(colnames(resp.scale), drug1$DRUG_NAME)]
+stage <- drug2$Clinical.Stage
+action <- drug2$Action
+cluster <- drug4$Cluster.identifier
+
+paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/",
+      paste(drug1$DRUG_NAME, collapse=","), "/property/MolecularFormula/CSV", 
+      sep="")
+
+
+
+drug1$DRUG_ID
+drug1$DRUG_NAME
+
 
 # 1.2) Preselecting GEX features: we selected gene expression features 
 # explaining 50% variations over all cell lines, since this results in not too 
