@@ -299,6 +299,8 @@
 	
 	- create drug covariates from SMILES formulas with R-package rcdk.
 	
+	- check whether compounds are PAINS \cite[]{baell_new_2010} or not. PAINS indicates whether compound is frequent false hitter.
+	
 	- start with gene expression (one $g(j)$)
 	
 	\subsection{GDSC}

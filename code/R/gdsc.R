@@ -21,6 +21,7 @@ install_github("magnusmunch/cambridge/code", local=FALSE,
 ### libraries
 library(cambridge)
 library(gdata)
+library(rcdk)
 
 ################################## analysis 1 ##################################
 # loading the data either from a local file or from the GDSC website
@@ -115,23 +116,81 @@ expr <- expr2[rownames(expr2) %in% rownames(resp5), ]
 # remove all in-between steps
 rm(list=c("resp1", "resp2", "resp3", "resp4", "resp5", "expr1", "expr2"))
 
+# scaling the response and expressions to mean 0 and variance 1
 expr.scale <- scale(expr)
 resp.scale <- scale(resp)
 
+# creating some drug covariates
 target <- drug1$TARGET[match(colnames(resp.scale), drug1$DRUG_NAME)]
 pathway <- drug1$TARGET_PATHWAY[match(colnames(resp.scale), drug1$DRUG_NAME)]
 stage <- drug2$Clinical.Stage
 action <- drug2$Action
 cluster <- drug4$Cluster.identifier
 
-paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/",
-      paste(drug1$DRUG_NAME, collapse=","), "/property/MolecularFormula/CSV", 
-      sep="")
+# retrieve CID and SMILES from PUG REST
+smiles.list <- vector("list", nrow(drug1))
+for(i in 1:nrow(drug1)) {
+  cat("\r", "drug", i)
+  
+  # create a vector of all drug name synonyms
+  syn <- c(drug1$DRUG_NAME[i], trimws(unlist(strsplit(drug1$SYNONYMS[i], ","))))
+  
+  # loop over the synonyms to find SMILES and CID
+  sfound <- FALSE
+  snum <- 0
+  start <- -1
+  while(!sfound & (snum < length(syn))) {
+    snum <- snum + 1
+    
+    # see PUG REST website for url explanation
+    url <- paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/",
+                 paste(syn[snum], collapse=","), 
+                 "/property/CanonicalSMILES/CSV", sep="")
+    
+    # PUG REST asks for not more than 5 requests per second
+    elapsed <- proc.time()[3] - start
+    Sys.sleep((0.2 - elapsed)*(elapsed < 0.2))
+    start <- proc.time()[3]
+    
+###################### FIGURE OUT HOW TO READ ERROR CODES ######################
+    # error handling if the name is not found in PUG REST (return NA's)
+    smiles.list[[i]] <- suppressWarnings(tryCatch(read.table(
+      url, sep=",", header=TRUE, stringsAsFactors=FALSE), error=function(e) {
+        data.frame(CID=NA, CanonicalSMILES=NA)}))
+    closeAllConnections()
+    
+    # indicator whether a CID and SMILES was found
+    sfound <- !is.na(smiles.list[[i]]$CID[1])
+    
+  }
+}
+# just picking the first SMILES to use
+smiles <- sapply(smiles.list, function(s) {s$CanonicalSMILES[1]})
 
+# parse the smiles to IAtomContainer objects
+mols <- parse.smiles(na.omit(smiles))
 
+# fingerprint as binary string indicating occurence of structures
+fps <- lapply(mols, get.fingerprint, type='circular')
 
-drug1$DRUG_ID
-drug1$DRUG_NAME
+fingerprint::bit.importance(list(fps[[1]]), fps[-1])
+fingerprint::shannon(fps)
+
+# creating clustering based on distance matrix between fingerprints
+fp.sim <- fingerprint::fp.sim.matrix(fps, method='tanimoto')
+fullclus <- hclust(as.dist(1 - fp.sim))
+
+# choose clustering such that each cluster contains at least 10 drugs
+clust <- replace(rep(9, nrow(drug1)), !is.na(smiles), cutree(fullclus, 8))
+
+# trying to figure out how retrieve medicinal use information
+library(XML)
+url <- "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/Erlotinib/description/XML"
+test <- xmlParse(readLines(url), asText=TRUE)
+
+url <- "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/Erlotinib/assaysummary/CSV"
+test <- read.table(url, sep=",", header=TRUE, stringsAsFactors=FALSE)
+str(test)
 
 
 # 1.2) Preselecting GEX features: we selected gene expression features 
