@@ -3,12 +3,9 @@
 ^cran-comments\.md$
 ^NEWS\.md$
 ^\.travis\.yml$
-^ccle\.R$
-^gdsc\.R$
-^simulations_igaussian\.R$
-^script\.R$
+.DS_Store
 ccle.R
 gdsc.R
 simulations_igaussian.R
 script.R
-.DS_Store
+figures.R
