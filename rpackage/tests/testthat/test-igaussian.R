@@ -13,9 +13,10 @@ test_that("dependent beta and sigma^2 caluclations", {
   delta <- 0.5*(n + p + 1)*(sum(diag(Sigma)) + sum(mu^2))/zetaold + lambda
   a <- sqrt(lambda/(theta^2*delta))*
     ratio_besselK_cpp(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
-  zeta <- as.numeric(0.5*a*(sum(y^2) - 2*t(y) %*% x %*% mu +
-                              sum(diag((t(x) %*% x + diag(p)) %*% Sigma)) +
-                              t(mu) %*% (t(x) %*% x + diag(p)) %*% mu))
+  zeta <- as.numeric(0.5*(sum(y^2) - 2*t(y) %*% x %*% mu +
+                            sum(diag(t(x) %*% x %*% Sigma)) +
+                            t(mu) %*% t(x) %*% x  %*% mu + 
+                            a*sum(diag(Sigma)) + a*t(mu) %*% mu))
   v <- sqrt(delta*theta^2/lambda)*
     ratio_besselK_cpp(sqrt(lambda*delta)/theta, p)
   

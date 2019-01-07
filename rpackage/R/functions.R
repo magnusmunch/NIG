@@ -14,7 +14,7 @@ single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   delta <- 0.5*(n + p + 1)*(trSigma + mutmu)/zetaold + lambda
   ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
   a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  zeta <- 0.5*a*(yty + trSigma + mutmu + trXtXSigma + mutXtXmu - 2*ytXmu)
+  zeta <- 0.5*(yty + a*trSigma + a*mutmu + trXtXSigma + mutXtXmu - 2*ytXmu)
   v <- sqrt(delta*theta^2/lambda)*ratio
   
   # calculate the elbo part that is constant after next eb update

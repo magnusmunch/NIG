@@ -1,5 +1,5 @@
 # ---- figures ----
-# ---- boxplot_igaussian_res1_sigma2 ----
+# ---- boxplot_igaussian_res1_sigma2 ----  
 res1 <- read.table("../results/simulations_igaussian_res1.csv")
 set1 <- read.table("../results/simulations_igaussian_set1.csv")
 names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")

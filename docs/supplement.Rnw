@@ -92,12 +92,11 @@ library(cambridge)
 @
 
 <<figures, cache=FALSE, echo=FALSE>>=
-read_chunk("../code/R/figures.R")
+read_chunk("../code/figures.R")
 @
 
 % settings
 \pgfplotsset{compat=1.13}
-\graphicspath{{/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/graphs/}}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
 \setlength{\textwidth}{15cm}
 \title{Supplementary material to: Drug efficacy prediction in cell lines}
@@ -167,12 +166,8 @@ read_chunk("../code/R/figures.R")
 	& \text{ with } \bm{\Psi}_d =\E(\sigma^{-2}_d) \[\V(\mathbf{u}_d) + \E(\mathbf{u}_d) \E( \mathbf{u}_d \tr) \] + \bm{\Omega}.
 	\end{align*}
 	
-  \section{Model without tissue effects}
-  \subsection{Introduction}
-  In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$.
-  
-  \subsection{Model and estimation}
-  The model is given by:
+  \section{Model without tissue effects}\label{sec:notissuemodel}
+  In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$. The model is given by:
   \begin{align*}
   y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
   \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \\
@@ -189,11 +184,11 @@ read_chunk("../code/R/figures.R")
   \begin{align*}
   \bm{\Sigma}_d^{(h+1)} & = \frac{2 \zeta_d^{(h)}}{n+p+1} (\X \tr \X + a_d^{(h)} \I)^{-1}, \\
   \bm{\mu}_d^{(h+1)} & = (\X \tr \X + a_d^{(h)} \I)^{-1} \X \tr \y_d, \\
-  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}] + \lambda, \\ \zeta_d^{(h+1)} & = \frac{a_d^{(h+1)}}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace [ (\X \tr \X + \I_p) \bm{\Sigma}_d^{(h+1)}] + (\bm{\mu}_d^{(h+1)}) \tr (\X \tr \X + \I_p)\bm{\mu}_d^{(h+1)}\],
+  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}] + \lambda, \\ \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} + \\
+  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, a_d^{(h+1)} \trace ( \bm{\Sigma}_d^{(h+1)}) + a_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
   with $a_d^{(h)}$ as in the full model in the MD. Equivalently, the empirical Bayes updates for $\bm{\alpha}$ and $\lambda$ are the same as in the full model in the MD.
   
-  \subsection{Evidence lower bound}
   We monitor convergence through the evidence lower bound (ELBO):
   \begin{align*}
   \text{ELBO} & (Q^{(l)}) \propto \frac{1}{2} \sum_{d=1}^D \log |\bm{\Sigma}_d^{(l)}| - \frac{n + p + 1}{2} \sum_{d=1}^D \log \zeta_d^{(l)} + \sum_{d=1}^D \log K_{\frac{p+1}{2}}\(\sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}\) \\
@@ -204,7 +199,6 @@ read_chunk("../code/R/figures.R")
   
   - Different options for convergence. We may monitor parameters, ELBO, or a combination. We may also iterate a fixed number of times, especially for the VB (currently doing this, using 2 VB iterations and 20 EB iterations).
   
-  \subsection{Efficient computation}
   The empirical Bayes updates require the following quantities: $\zeta_d$, $a_d$, $\delta_d$, $\trace (\bm{\Sigma}_d)$, $\trace (\X \tr \X \bm{\Sigma}_d)$, $\bm{\mu}_d \tr \bm{\mu}_d$, and $\bm{\mu}_d \tr \X \tr \X \bm{\mu}_d$. In addition, we need $\log|\bm{\Sigma}|$ and $\mathbf{y}_d \tr \X \bm{\mu}_d$ to monitor the ELBO. The first three quantities are obtained by scalar operations of $\mathcal{O}(n)$. The rest is easily calculated using the SVD $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$:
   \begin{align*}
   \trace (\bm{\Sigma}_d^{(h+1)}) & = \frac{2\zeta_d^{(h)}}{n + p + 1} \[\sum_{i=1}^n (v_i^2 + a_d^{(h)})^{-1} + \max (p - n, 0)\cdot (a_d^{(h)})^{-1}\], \\
@@ -216,7 +210,7 @@ read_chunk("../code/R/figures.R")
   \end{align*}
   where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
   
-  \subsection{Independent error variance model parameters}
+  \section{Independent error variance model}\label{sec:indvarmodel}
   \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ and $\sigma_d^2$ should be independent \textit{a priori}. However, in our case that is debatable. The $D$ regressions need not be on the same scale, so some form of calibration of the $\bm{\beta}_d$ posteriors to this scale is required. A simple way of doing this is to include the scales $\sigma_d^2$ in the priors for the $\bm{\beta}_d$. For a sense of completeness we still compare to the independent prior model in our simulations. The independent prior model is given by:
   \begin{align*}
   y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
@@ -224,6 +218,7 @@ read_chunk("../code/R/figures.R")
   \gamma_d^2 & \sim \mathcal{IG}((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda), \\
   \sigma_d^2 & \sim 1/\sigma_d^3.
   \end{align*}
+  
   Its variational posterior is given by:
   \begin{align*}
   q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
@@ -236,7 +231,9 @@ read_chunk("../code/R/figures.R")
   \bm{\mu}_d^{(h+1)} & = \frac{n+1}{2 \zeta_d^{(h)}} \bm{\Sigma}_d^{(h+1)} \X \tr \y_d, \\
   \delta_d^{(h+1)} & = \trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} + \lambda, \\ \zeta_d^{(h+1)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\],
   \end{align*}
-  with $a_d^{(h)}$ and the empirical Bayes updates $\bm{\alpha}^{(l+1)}$ and $\lambda^{(l+1)}$ as in the full model in the MD. A singular value decomposition $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$ leads to the following efficient computations:
+  with $a_d^{(h)}$ and the empirical Bayes updates $\bm{\alpha}^{(l+1)}$ and $\lambda^{(l+1)}$ as in the full model in the MD. 
+  
+  A singular value decomposition $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$ leads to the following efficient computations:
   \begin{align*}
   \trace (\bm{\Sigma}^{(h+1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1} + \max (p - n, 0)\cdot (a^{(h)}_d)^{-1}, \\
   \trace (\X \tr \X \bm{\Sigma}^{(h + 1)}_d) & = \frac{2\zeta^{(h)}_d}{n + 1} \sum_{i=1}^n v_i^2 \(v_i^2 + \frac{2\zeta^{(h)}_d a^{(h)}_d}{n+1}\)^{-1}, \\
@@ -248,19 +245,34 @@ read_chunk("../code/R/figures.R")
   \end{align*}
   where $v_i$ are the singular values of $\X$. As before, this renders $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ calculations once at the start of the algorithm and iterative updates of $\mathcal{O}(n)$.
   
-  \subsection{Simulations}
-  We simulate from a correctly specified model. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
-  
-  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times.
-  
-  We compare the results to a model where the $\gamma_d^2$ are drawn from a class-specific inverse Gamma distribution; a generalisation of the models in \cite{kpogbezan_empirical_2017} and \cite{leday_gene_2017}:
+  \section{Inverse Gamma model}\label{sec:invgammamodel}
+  An alternative model is one where the $\gamma_d^2$ are drawn from a class-specific inverse Gamma distribution; a generalisation of the models in \cite{kpogbezan_empirical_2017} and \cite{leday_gene_2017}:
   \begin{align*}
   y_{id} | \bm{\beta}_d ,\sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
   \beta_{jd} | \gamma_d^2 ,\sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \\
   \gamma_d^2 & \sim \Gamma^{-1} (a_{\text{class}(d)}, b_{\text{class}(d)}), \\
   \sigma_d^2 & \sim \Gamma^{-1} (0.001, 0.001),
   \end{align*}
-  where $\text{class}(c)$ denotes the class of drug $d$. This allows for more flexible empirical Bayes estimation of the $a_d$ and $b_d$, and thus prior means of the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs. We present the results in Figures \ref{fig:boxplot_igaussian_res1_sigma2}-\ref{fig:boxplot_igaussian_res1_alpha}.
+  where $\text{class}(c)$ denotes the class of drug $d$. This allows for more flexible empirical Bayes estimation of the $a_d$ and $b_d$, and thus prior means of the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs.
+  
+  Its variational posterior is given by:
+  \begin{align*}
+  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{p}{2} + a_{\text{class}(d)}, b^*_{\text{class}(d)}\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{n+p}{2} + 0.001, d^*_{\text{class}(d)} \),
+  \end{align*}
+  with variational parameter updates:
+  \begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = \frac{n + p - 1.998}{2(d^*_{\text{class}(d)})^{(h)}}\(\X \tr \X + \frac{p + 2a_{\text{class}(d)} - 2}{2(b^*_{\text{class}(d)})^{(h)}} \I_p\)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = \(\X \tr \X + \frac{p + 2a_{\text{class}(d)} - 2}{2(b^*_{\text{class}(d)})^{(h)}} \I_p\)^{-1} \X \tr \y_d, \\
+  b^*_{\text{class}(d)} & = b_{\text{class}(d)} + \frac{(d^*_{\text{class}(d)})^{(h)}}{n + p -1.998} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}],\\
+  d^*_{\text{class}(d)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\].
+  \end{align*}
+  
+  \section{Simulations}
+  We simulate from a correctly specified model given in \ref{sec:notissuemodel}. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
+  
+  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times. We compare the results to the models in \ref{sec:indvarmodel} and \ref{sec:invgammamodel}, and present the results in Figures \ref{fig:boxplot_igaussian_res1_sigma2}-\ref{fig:boxplot_igaussian_res1_alpha}.
 
 <<boxplot_igaussian_res1_sigma2, cache=FALSE, echo=FALSE, fig.cap="MSEs for posterior means of $\\sigma_d^2$ in simulation 1", out.width="50%", fig.align="center">>=
 @
@@ -378,7 +390,7 @@ Simulations with no difference between classes:
   f_j^{(l)} & = \sqrt{\frac{\eta_j^{(l)}}{\nu^{(l)}(\mathbf{z}_j \tr \bm{\theta}^{(l)})^2}} \frac{K_{\frac{D - 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}{K_{\frac{D + 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}.
   \end{align*}
 	
-  \bibliographystyle{author_short3} 
+  \bibliographystyle{author_short3}  
 	\bibliography{refs}
 
 \end{document}
