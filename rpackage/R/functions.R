@@ -74,6 +74,44 @@ single.vb.update.ind <- function(zetaold, aold, lambda, theta, sv, n, p, uty,
   
 }
 
+# one fast VB update with inverse Gamma model
+single.vb.update.inv <- function(bstarold, dstarold, a, b) {
+  
+  # auxiliary variables involving mu and Sigma
+  val <- 2*zetaold/(n + 1)
+  trSigma <- val*sum(1/(sv^2 + val*aold)) + max(p - n, 0)/aold
+  mutmu <- sum(sv^2*uty^2/(sv^2 + val*aold)^2)
+  trXtXSigma <- val*sum(sv^2/(sv^2 + val*aold))
+  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + val*aold)^2)
+  ytXmu <- sum(sv^2*uty^2/(sv^2 + val*aold))
+  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + val*aold)) - 
+    max(p - n, 0)*(log(aold) + log(val))
+  
+  # vb parameters and auxiliaries
+  delta <- trSigma + mutmu + lambda
+  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
+  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
+  zeta <- 0.5*(yty + trXtXSigma + mutXtXmu - 2*ytXmu)
+  v <- sqrt(delta*theta^2/lambda)*ratio
+  
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*logdetSigma - 0.5*(n + 1)*log(zeta) - 
+    0.25*(n + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
+    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
+    0.5*(p + 1)*log(theta) + 
+    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
+    0.5*(delta - mutmu - trSigma)*a + 0.5*lambda*v/theta^2
+  
+  # total elbo calculation
+  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
+  
+  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+           elbo=unname(elbo), elbo.const=unname(elbo.const))
+  return(out)
+  
+}
+
 # one EB update (tested)
 eb.update <- function(v, a, elbo.const, C, D) {
   

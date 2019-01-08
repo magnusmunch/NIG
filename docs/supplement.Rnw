@@ -86,15 +86,6 @@
 \renewcommand{\[}{\left[}
 \renewcommand{\]}{\right]}
 
-% R packages
-<<echo=FALSE>>=
-library(cambridge)
-@
-
-<<figures, cache=FALSE, echo=FALSE>>=
-read_chunk("../code/figures.R")
-@
-
 % settings
 \pgfplotsset{compat=1.13}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
@@ -104,6 +95,19 @@ read_chunk("../code/figures.R")
 \author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
 \begin{document}
+
+% load packages and set options
+<<include=FALSE>>=
+library(cambridge)
+opts_knit$set(base.dir="../figs")
+opts_chunk$set(fig.align='center', echo=FALSE, fig.path="../figs/")
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("../code/figures.R")
+@
+
 	\maketitle
 	
 	\noindent
@@ -166,6 +170,67 @@ read_chunk("../code/figures.R")
 	& \text{ with } \bm{\Psi}_d =\E(\sigma^{-2}_d) \[\V(\mathbf{u}_d) + \E(\mathbf{u}_d) \E( \mathbf{u}_d \tr) \] + \bm{\Omega}.
 	\end{align*}
 	
+	\section{Simulations}
+	\subsection{Models}
+	In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$. The model is given by:
+	\begin{align*}
+  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
+  \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim p(\beta_{jd}), \\
+  \gamma_d^2 & \sim p(\gamma_d^2), \\
+  \sigma_d^2 & \sim 1/\sigma_d^3.
+  \end{align*}
+  We use a conjugate and non-conjugate model for $\beta_{jd}$:
+	\begin{align*}
+  \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \\
+  \beta_{jd} | \gamma_d^2, \sigma_d^2 \sim \beta_{jd} | \gamma_d^2 & \sim \mathcal{N} (0, \gamma_d^2),
+  \end{align*}
+	respectively. For the prior variances we use an inverse Gaussian and inverse Gamma model
+	\begin{align*}
+  \gamma_d^2 \sim \mathcal{IG}(\theta_d, \lambda_d) = \mathcal{GIG}(-1/2, \lambda_d \theta_d^{-2}, \lambda_d), \\
+  \gamma_d^2 \sim \Gamma^{-1}(\alpha_d/2, \lambda_d/2) = \mathcal{GIG}(-\alpha_d/2, 0, \lambda_d),
+  \end{align*}
+	respectively. We have rescaled the inverse Gamma parameters to make them more comparable in the following. The two distributions coincide if $\theta_d \to \infty$ and $\alpha_d = 1$.
+	
+	\subsection{Estimation}
+	The variational distributions are:
+	\begin{align*}
+  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+\alpha_d}{2}, \lambda_d \theta_d^{-2}, \delta_d\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\),
+  \end{align*}
+	where $\alpha_d=1$ if we use the inverse Gaussian prior and $\theta_d \to \infty$ if we use the inverse Gamma prior. The parameters contain cyclic dependencies and are, in the conjugate setting updated by:
+	\begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} (\X \tr \X + b_d^{(h)} \I)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = (\X \tr \X + b_d^{(h)} \I)^{-1} \X \tr \y_d, \\
+  \delta_d^{(h+1)} & = a_d^{(h)} \bmu_d \tr \bmu_d + \lambda_d, \\ 
+  \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
+  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + b_d^{(h+1)} \trace ( \bm{\Sigma}_d^{(h+1)}) + b_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg].
+  \end{align*}
+	Likewise in the non-conjugate setting:
+	\begin{align*}
+  \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} (\X \tr \X + b_d^{(h)} (a_d^{(h)})^{-1} \I)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = (\X \tr \X + b_d^{(h)} (a_d^{(h)})^{-1} \I)^{-1} \X \tr \y_d, \\
+  \delta_d^{(h+1)} & = \bmu_d \tr \bmu_d + \lambda_d, \\ 
+  \zeta_d^{(h+1)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \].
+  \end{align*}
+  We have $a_d^{(h)}=\E_{Q^{(h)}}(\sigma_d^{-2})=(n+p+1)/(2 \zeta_d^{(h)})$ and
+  $$
+  b_d^{(h)} = \E_{Q^{(h)}}(\gamma_d^{-2}) = \sqrt{\frac{\lambda}{\theta_d^2 \delta_d^{(h)}}} \frac{K_{\frac{p + \alpha_d -2}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)}{K_{\frac{p+\alpha_d}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)} + \frac{p+\alpha_d^{(h)}}{\delta_d^{(h)}}.\\
+  $$
+  This simplifies to $b_d^{(h)}=(p+\alpha_d)/\delta_d^{(h)}$ in the inverse Gamma model.
+  
+  \subsection{Efficient computation}
+  Let the SVD of $\X$ be $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$, $v_i$ be the singular values, and $c_d^{(h)}=b_d^{(h)}$ in the conjugate setting and $c_d^{(h)}=b_d^{(h)}/a_d^{(h)}$ in the non-conjugate setting. Then:
+  \begin{align*}
+  \trace (\bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \[\sum_{i=1}^n (v_i^2 + c_d^{(h)})^{-1} + \max (p - n, 0)\cdot (c_d^{(h)})^{-1}\], \\
+  \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \sum_{i=1}^n v_i^2(v_i^2 + c_d^{(h)})^{-1}, \\
+  (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)})^2, \\
+  (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^4 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)})^2, \\
+  \log|\bm{\Sigma}^{(h+1)}| & \propto -p \log a_d^{(h)} - \sum_{i=1} \log (v_i^2 + c_d^{(h)}) - \max(p - n, 0) \cdot \log c_d^{(h)}, \\
+  \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)}).
+  \end{align*}
+  The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions.
+  
   \section{Model without tissue effects}\label{sec:notissuemodel}
   In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$. The model is given by:
   \begin{align*}
@@ -184,8 +249,9 @@ read_chunk("../code/figures.R")
   \begin{align*}
   \bm{\Sigma}_d^{(h+1)} & = \frac{2 \zeta_d^{(h)}}{n+p+1} (\X \tr \X + a_d^{(h)} \I)^{-1}, \\
   \bm{\mu}_d^{(h+1)} & = (\X \tr \X + a_d^{(h)} \I)^{-1} \X \tr \y_d, \\
-  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}] + \lambda, \\ \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} + \\
-  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, a_d^{(h+1)} \trace ( \bm{\Sigma}_d^{(h+1)}) + a_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg],
+  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}] + \lambda, \\ 
+  \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
+  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + a_d^{(h+1)} \trace ( \bm{\Sigma}_d^{(h+1)}) + a_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
   with $a_d^{(h)}$ as in the full model in the MD. Equivalently, the empirical Bayes updates for $\bm{\alpha}$ and $\lambda$ are the same as in the full model in the MD.
   
@@ -258,15 +324,27 @@ read_chunk("../code/figures.R")
   Its variational posterior is given by:
   \begin{align*}
   q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
-  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{p}{2} + a_{\text{class}(d)}, b^*_{\text{class}(d)}\), \\
-  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{n+p}{2} + 0.001, d^*_{\text{class}(d)} \),
+  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{p}{2} + a_{\text{class}(d)}, b^*_d\), \\
+  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \( \frac{n+p}{2} + 0.001, d^*_d \),
   \end{align*}
   with variational parameter updates:
   \begin{align*}
-  \bm{\Sigma}_d^{(h+1)} & = \frac{n + p - 1.998}{2(d^*_{\text{class}(d)})^{(h)}}\(\X \tr \X + \frac{p + 2a_{\text{class}(d)} - 2}{2(b^*_{\text{class}(d)})^{(h)}} \I_p\)^{-1}, \\
-  \bm{\mu}_d^{(h+1)} & = \(\X \tr \X + \frac{p + 2a_{\text{class}(d)} - 2}{2(b^*_{\text{class}(d)})^{(h)}} \I_p\)^{-1} \X \tr \y_d, \\
-  b^*_{\text{class}(d)} & = b_{\text{class}(d)} + \frac{(d^*_{\text{class}(d)})^{(h)}}{n + p -1.998} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}],\\
-  d^*_{\text{class}(d)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\].
+  \bm{\Sigma}_d^{(h+1)} & = (c_d^{(h)})^{-1} \(\X \tr \X + (e_d^{(h)})^{-1} \I_p\)^{-1}, \\
+  \bm{\mu}_d^{(h+1)} & = \(\X \tr \X + (e_d^{(h)})^{-1} \I_p\)^{-1} \X \tr \y_d, \\
+  (b^*_d)^{(h+1)} & = b_{\text{class}(d)} + \frac{c_d^{(h)}}{2} [\trace(\bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}],\\
+  (d^*_d)^{(h+1)} & = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)}\] + \\
+  & \frac{e_d^{(h)}}{2} \trace ( \bm{\Sigma}_d^{(h+1)}) + \frac{e_d^{(h)}}{2} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)},
+  \end{align*}
+  where
+  $$
+  c_d^{(h)} = \frac{2(d_d^*)^{(h)}}{n + p -1.998} \text{ and } e_d^{(h)} = \frac{2(b_d^*)^{(h)}}{p + 2a_{\text{class}(d)} - 2}.
+  $$
+  
+  \begin{align*}
+  \text{ELBO}_d & (Q^{(l)}) \propto -\(\frac{n+p}{2} + 0.001 \) \log \[ (d^*_d)^{(l)}\] + \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \[ (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} + \trace (\bm{\Sigma}_d^{(l)}) \] \frac{c_d^{(l)} e_d^{(l)}}{2} \\
+  & - \[ \bm{y}_d \tr \bm{y}_d - \bm{y}_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace (\X \tr \X \bm{\Sigma}_d^{(l)})\] \frac{c_d^{(l)}}{2} \\
+  & + a_{\text{class}(d)}^{(l)} + \log \[\frac{\Gamma (a_{\text{class}(d)}^{(l)} + p/2)}{\Gamma (a_{\text{class}(d)}^{(l)})}\] - \( a_{\text{class}(d)}^{(l)} +\frac{p}{2} \) \log \[(b_d^*)^{(l)}\]  \\ 
+  & + a_{\text{class}(d)}^{(l)} \log b_{\text{class}(d)}^{(l)} - b_{\text{class}(d)}^{(l)} \frac{a_{\text{class}(d)}^{(l)} + p/2}{(b_d^*)^{(h)}}.
   \end{align*}
   
   \section{Simulations}
