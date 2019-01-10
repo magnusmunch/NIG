@@ -1,3 +1,53 @@
+# single VB update for conjugate, non-conjugate, inverse Gauss and Gamma
+single.vb.update <- function(aold, bold, alpha, theta, lambda, sv, n, p, uty, 
+                             yty, conjugate, inv.gauss) {
+  
+  # variables that change with conjugacy
+  cold <- bold/aold^conjugate
+  df <- n + conjugate*p
+  
+  # auxiliary variables involving mu and Sigma
+  trSigma <- (sum(1/(sv^2 + cold)) + max(p - n, 0)/cold)/aold
+  trXtXSigma <- sum(sv^2/(sv^2 + cold))/aold
+  mutmu <- sum(sv^2*uty^2/(sv^2 + cold)^2)
+  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + cold)^2)
+  logdetSigma <- -p*log(aold) - sum(log(sv^2 + cold)) - 
+    max(p - n, 0)*log(cold)
+  ytXmu <- sum(sv^2*uty^2/(sv^2 + cold))
+  
+  # vb parameters
+  delta <- aold^conjugate*mutmu + lambda
+  b <- ifelse(inv.gauss, 
+              sqrt(lambda/(theta^2*delta))*ratio_besselK_cpp(sqrt(
+                lambda*delta/theta^2), p)+ (p + 1)/delta,
+              (p + alpha)/delta)
+  zeta <- 0.5*(yty - 2*ytXmu + trXtXSigma + mutXtXmu + 
+                 conjugate*b*(trSigma + mutmu))
+  a <- (df + 1)/(2*zeta)
+  
+  # variable needed in eb steps
+  e <- ifelse(inv.gauss, (b + delta/p)*delta*theta^2/lambda, 
+              log(lambda) - digamma(alpha/2) - log(2))
+  
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
+    0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) +
+    0.25*(p + alpha)*log(lambda) - 0.5*(p + alpha)*log(theta) -
+    0.25*(p + alpha)*log(delta) + bessel_lnKnu(0.5*(p + alpha), sqrt(lambda*delta)/theta) + 
+    0.5*(delta - 0.5*(n + p + 1)*(mutmu + trSigma)/zeta)*a +
+    0.5*lambda*v/theta^2
+  gsl::bessel_lnKnu(0.5, 0)
+  # total elbo calculation
+  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
+    0.5*lambda*a
+  
+  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+           elbo=unname(elbo), elbo.const=unname(elbo.const))
+  return(out)
+  
+}
+
+
 # one fast VB update with sigma^2 stochastic (tested)
 single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
   
@@ -487,3 +537,7 @@ est.gwen <- function(x, y, eqid,
   return(out)
   
 }
+
+
+
+
