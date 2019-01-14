@@ -299,6 +299,8 @@
 	
 	- create drug covariates from SMILES formulas with R-package rcdk.
 	
+	- try non-negative matrix factorisation/independent component analysis on binary fingerprints to get principal components that characterise the different drugs.
+	
 	- check whether compounds are PAINS \cite[]{baell_new_2010} or not. PAINS indicates whether compound is frequent false hitter.
 	
 	- start with gene expression (one $g(j)$)
@@ -309,6 +311,8 @@
 	\subsection{CCLE}
 	
 	\section{Discussion}
+	- use copula's and marginal posteriors to find multivariate posteriors for contrast testing.
+	
 	- empirical Bayes gives extra information via estimation of the hyper-parameters, such as informativeness of the drug information (via model for the $\gamma_d$) and relatedness of the tissues (via $\bm{\Omega}$ and $\nu$)
 	
 	- regression on drug covariates very intuitive.
