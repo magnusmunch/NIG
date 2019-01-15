@@ -1,17 +1,12 @@
 #!/usr/bin/env Rscript
 
 ### installation of package
-# if(!("cambridge" %in% installed.packages())) {
-#   if(!("devtools" %in% installed.packages())) {
-#     install.packages("devtools")
-#   }
-#   library(devtools)
-#   install_github("magnusmunch/cambridge/code", local=FALSE, 
-#                  auth_token=Sys.getenv("GITHUB_PAT"))
+# if(!("devtools" %in% installed.packages())) {
+#   install.packages("devtools")
 # }
-library(devtools)
-install_github("magnusmunch/cambridge/code", local=FALSE, 
-               auth_token=Sys.getenv("GITHUB_PAT"))
+# library(devtools)
+# install_github("magnusmunch/cambridge/rpackage", local=FALSE,
+#                auth_token=Sys.getenv("GITHUB_PAT"))
 
 ### libraries
 library(cambridge)
@@ -95,18 +90,18 @@ for(r in 1:nreps) {
                                      trace=FALSE),
                         init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
 
-  # store results (not correct)
+  # store results
   res1[r, c(1:D)] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
-  res1[r, c(101:(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
-  res1[r, c(201:(3*D))]  <- fit1.igauss1$vb.post$delta
-  res1[r, c(301:(4*D))]  <- fit1.igauss2$vb.post$delta
-  res1[r, c(401:(5*D))] <- fit1.igauss1$vb.post$zeta
-  res1[r, c(501:(6*D))] <- fit1.igauss2$vb.post$zeta
-  res1[r, c(601:(7*D))] <- fit1.gwen$vb.post$apost
-  res1[r, c(701:(8*D))] <- fit1.gwen$vb.post$bpost
-  res1[r, c(801:(9*D))] <- fit1.gwen$vb.post$cpost
-  res1[r, c(901:(10*D))] <- fit1.gwen$vb.post$dpost
-  res1[r, c(1001:(10*D + 1*nclass))] <-
+  res1[r, c((D + 1):(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
+  res1[r, c((2*D + 1):(3*D))]  <- fit1.igauss1$vb.post$delta
+  res1[r, c((3*D + 1):(4*D))]  <- fit1.igauss2$vb.post$delta
+  res1[r, c((4*D + 1):(5*D))] <- fit1.igauss1$vb.post$zeta
+  res1[r, c((5*D + 1):(6*D))] <- fit1.igauss2$vb.post$zeta
+  res1[r, c((6*D + 1):(7*D))] <- fit1.gwen$vb.post$apost
+  res1[r, c((7*D + 1):(8*D))] <- fit1.gwen$vb.post$bpost
+  res1[r, c((8*D + 1):(9*D))] <- fit1.gwen$vb.post$cpost
+  res1[r, c((9*D + 1):(10*D))] <- fit1.gwen$vb.post$dpost
+  res1[r, c((10*D + 1):(10*D + 1*nclass))] <-
     fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
   res1[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <-
     fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
@@ -142,15 +137,11 @@ for(r in 1:nreps) {
                      inv.Gamma.elbo=fit1.gwen$seq.elbo,
                      inv.Gamma=fit1.gwen$seq.eb)
 
-  write.table(set1, file="../../results/simulations_igaussian_set1.csv")
-  write.table(res1, file="../../results/simulations_igaussian_res1.csv")
-  write.table(fit1, file="../../results/simulations_igaussian_fit1.csv")
+  write.table(set1, file="../results/simulations_igaussian_set1.csv")
+  write.table(res1, file="../results/simulations_igaussian_res1.csv")
+  write.table(fit1, file="../results/simulations_igaussian_fit1.csv")
 
 }
-
-
-res1 <- read.table("../../results/simulations_igaussian_res1.csv")
-res1$mSNR
 
 ###############################   simulation 2   ###############################
 
@@ -232,37 +223,37 @@ for(r in 1:nreps) {
                                      trace=FALSE),
                         init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
   
-  # store results (not correct)
+  # store results
   res2[r, c(1:D)] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
-  res2[r, c(101:(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
-  res2[r, c(201:(3*D))]  <- fit1.igauss1$vb.post$delta
-  res2[r, c(301:(4*D))]  <- fit1.igauss2$vb.post$delta
-  res2[r, c(401:(5*D))] <- fit1.igauss1$vb.post$zeta
-  res2[r, c(501:(6*D))] <- fit1.igauss2$vb.post$zeta
-  res2[r, c(601:(7*D))] <- fit1.gwen$vb.post$apost
-  res2[r, c(701:(8*D))] <- fit1.gwen$vb.post$bpost
-  res2[r, c(801:(9*D))] <- fit1.gwen$vb.post$cpost
-  res2[r, c(901:(10*D))] <- fit1.gwen$vb.post$dpost
-  res2[r, c(1001:(10*D + 1*nclass))] <- 
+  res2[r, c((D + 1):(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
+  res2[r, c((2*D + 1):(3*D))]  <- fit1.igauss1$vb.post$delta
+  res2[r, c((3*D + 1):(4*D))]  <- fit1.igauss2$vb.post$delta
+  res2[r, c((4*D + 1):(5*D))] <- fit1.igauss1$vb.post$zeta
+  res2[r, c((5*D + 1):(6*D))] <- fit1.igauss2$vb.post$zeta
+  res2[r, c((6*D + 1):(7*D))] <- fit1.gwen$vb.post$apost
+  res2[r, c((7*D + 1):(8*D))] <- fit1.gwen$vb.post$bpost
+  res2[r, c((8*D + 1):(9*D))] <- fit1.gwen$vb.post$cpost
+  res2[r, c((9*D + 1):(10*D))] <- fit1.gwen$vb.post$dpost
+  res2[r, c((10*D + 1):(10*D + 1*nclass))] <-
     fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
-  res2[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <- 
+  res2[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <-
     fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
-  res2[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <- 
+  res2[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <-
     fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
-  res2[r, c((10*D + 3*nclass + 1):(10*D + 4*nclass))] <- 
+  res2[r, c((10*D + 3*nclass + 1):(10*D + 4*nclass))] <-
     fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
-  res2[r, 10*D + 4*nclass + 1] <- 
+  res2[r, 10*D + 4*nclass + 1] <-
     fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
-  res2[r, 10*D + 4*nclass + 2] <- 
+  res2[r, 10*D + 4*nclass + 2] <-
     fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
   res2[r, 10*D + 4*nclass + 3] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
   res2[r, 10*D + 4*nclass + 4] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
   res2[r, 10*D + 4*nclass + 5] <- mean((beta - fit1.gwen$vb.post$mu)^2)
-  res2[r, 10*D + 4*nclass + 6] <- 
+  res2[r, 10*D + 4*nclass + 6] <-
     cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
-  res2[r, 10*D + 4*nclass + 7] <- 
+  res2[r, 10*D + 4*nclass + 7] <-
     cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
-  res2[r, 10*D + 4*nclass + 8] <- 
+  res2[r, 10*D + 4*nclass + 8] <-
     cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
   
   # store actual mean SNR
@@ -279,9 +270,9 @@ for(r in 1:nreps) {
                      inv.Gamma.elbo=fit1.gwen$seq.elbo,
                      inv.Gamma=fit1.gwen$seq.eb)
   
-  write.table(set2, file="../../results/simulations_igaussian_set2.csv")
-  write.table(res2, file="../../results/simulations_igaussian_res2.csv")
-  write.table(fit2, file="../../results/simulations_igaussian_fit2.csv")
+  write.table(set2, file="../results/simulations_igaussian_set2.csv")
+  write.table(res2, file="../results/simulations_igaussian_res2.csv")
+  write.table(fit2, file="../results/simulations_igaussian_fit2.csv")
   
 }
 

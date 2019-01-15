@@ -1,69 +1,4 @@
 running
   '/Library/Frameworks/R.framework/Versions/3.5/Resources/bin/R --slave --no-restore --no-save --no-restore --file=simulations_igaussian.R'
 
-During startup - Warning messages:
-1: Setting LC_COLLATE failed, using "C" 
-2: Setting LC_TIME failed, using "C" 
-3: Setting LC_MESSAGES failed, using "C" 
-4: Setting LC_MONETARY failed, using "C" 
-Downloading GitHub repo magnusmunch/cambridge@master
-from URL https://api.github.com/repos/magnusmunch/cambridge/zipball/master
-Installing cambridge
-'/Library/Frameworks/R.framework/Resources/bin/R' --no-site-file --no-environ  \
-  --no-save --no-restore --quiet CMD build  \
-  '/private/var/folders/yn/9dq5cb7n35x9hbh56_hn2f1r0000gn/T/Rtmp4IvGYc/devtoolsd55e59a8cddd/magnusmunch-cambridge-9be1f7ffa511992afdc28db30371af906ea79fe2/code'  \
-  --no-resave-data --no-manual --no-build-vignettes 
-
-During startup - Warning messages:
-1: Setting LC_COLLATE failed, using "C" 
-2: Setting LC_TIME failed, using "C" 
-3: Setting LC_MESSAGES failed, using "C" 
-4: Setting LC_MONETARY failed, using "C" 
-* checking for file ‘/private/var/folders/yn/9dq5cb7n35x9hbh56_hn2f1r0000gn/T/Rtmp4IvGYc/devtoolsd55e59a8cddd/magnusmunch-cambridge-9be1f7ffa511992afdc28db30371af906ea79fe2/code/DESCRIPTION’ ... OK
-* preparing ‘cambridge’:
-* checking DESCRIPTION meta-information ... OK
-* cleaning src
-* checking for LF line-endings in source and make files and shell scripts
-* checking for empty or unneeded directories
-* building ‘cambridge_0.0.0.9000.tar.gz’
-
-'/Library/Frameworks/R.framework/Resources/bin/R' --no-site-file --no-environ  \
-  --no-save --no-restore --quiet CMD INSTALL  \
-  '/private/var/folders/yn/9dq5cb7n35x9hbh56_hn2f1r0000gn/T/Rtmp4IvGYc/cambridge_0.0.0.9000.tar.gz'  \
-  --library='/Library/Frameworks/R.framework/Versions/3.5/Resources/library'  \
-  --install-tests 
-
-During startup - Warning messages:
-1: Setting LC_COLLATE failed, using "C" 
-2: Setting LC_TIME failed, using "C" 
-3: Setting LC_MESSAGES failed, using "C" 
-4: Setting LC_MONETARY failed, using "C" 
-* installing *source* package ‘cambridge’ ...
-** libs
-clang++  -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG  -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/Rcpp/include" -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/RcppArmadillo/include" -I/usr/local/include   -fPIC  -Wall -g -O2  -c RcppExports.cpp -o RcppExports.o
-clang++  -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG  -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/Rcpp/include" -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/RcppArmadillo/include" -I/usr/local/include   -fPIC  -Wall -g -O2  -c functions.cpp -o functions.o
-clang++  -I"/Library/Frameworks/R.framework/Resources/include" -DNDEBUG  -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/Rcpp/include" -I"/Library/Frameworks/R.framework/Versions/3.5/Resources/library/RcppArmadillo/include" -I/usr/local/include   -fPIC  -Wall -g -O2  -c myfunctions.cpp -o myfunctions.o
-clang++ -dynamiclib -Wl,-headerpad_max_install_names -undefined dynamic_lookup -single_module -multiply_defined suppress -L/Library/Frameworks/R.framework/Resources/lib -L/usr/local/lib -o cambridge.so RcppExports.o functions.o myfunctions.o -L/Library/Frameworks/R.framework/Resources/lib -lRlapack -L/Library/Frameworks/R.framework/Resources/lib -lRblas -L/usr/local/gfortran/lib/gcc/x86_64-apple-darwin15/6.1.0 -L/usr/local/gfortran/lib -lgfortran -lquadmath -lm -F/Library/Frameworks/R.framework/.. -framework R -Wl,-framework -Wl,CoreFoundation
-ld: warning: directory not found for option '-L/usr/local/gfortran/lib/gcc/x86_64-apple-darwin15/6.1.0'
-ld: warning: directory not found for option '-L/usr/local/gfortran/lib'
-installing to /Library/Frameworks/R.framework/Versions/3.5/Resources/library/cambridge/libs
-** R
-** inst
-** tests
-** byte-compile and prepare package for lazy loading
-** help
-No man pages found in package  ‘cambridge’ 
-*** installing help indices
-** building package indices
-** testing if installed package can be loaded
-During startup - Warning messages:
-1: Setting LC_COLLATE failed, using "C" 
-2: Setting LC_TIME failed, using "C" 
-3: Setting LC_MESSAGES failed, using "C" 
-4: Setting LC_MONETARY failed, using "C" 
-* DONE (cambridge)
- replication 1 replication 2 replication 3 replication 4 replication 5 replication 6 replication 7 replication 8 replication 9 replication 10 replication 11 replication 12 replication 13 replication 14 replication 15 replication 16 replication 17 replication 18 replication 19 replication 20 replication 21 replication 22 replication 23 replication 24 replication 25 replication 26 replication 27 replication 28 replication 29 replication 30 replication 31 replication 32 replication 33 replication 34 replication 35 replication 36 replication 37 replication 38 replication 39 replication 40 replication 41 replication 42 replication 43 replication 44 replication 45 replication 46 replication 47 replication 48 replication 49 replication 50 replication 51 replication 52 replication 53 replication 54 replication 55 replication 56 replication 57 replication 58 replication 59 replication 60 replication 61 replication 62 replication 63 replication 64 replication 65 replication 66 replication 67 replication 68 replication 69 replication 70 replication 71 replication 72 replication 73 replication 74 replication 75 replication 76 replication 77 replication 78 replication 79 replication 80 replication 81 replication 82 replication 83 replication 84 replication 85 replication 86 replication 87 replication 88 replication 89 replication 90 replication 91 replication 92 replication 93 replication 94 replication 95 replication 96 replication 97 replication 98 replication 99 replication 100Warning messages:
-1: Setting LC_COLLATE failed, using "C"
-2: Setting LC_TIME failed, using "C"
-3: Setting LC_MESSAGES failed, using "C"
-4: Setting LC_MONETARY failed, using "C"
+ replication 1 replication 2 replication 3 replication 4 replication 5 replication 6 replication 7 replication 8 replication 9 replication 10 replication 11 replication 12 replication 13 replication 14 replication 15 replication 16 replication 17 replication 18 replication 19 replication 20 replication 21 replication 22 replication 23 replication 24 replication 25 replication 26 replication 27 replication 28 replication 29 replication 30 replication 31 replication 32 replication 33 replication 34 replication 35 replication 36 replication 37 replication 38 replication 39 replication 40 replication 41 replication 42 replication 43 replication 44 replication 45 replication 46 replication 47 replication 48 replication 49 replication 50 replication 51 replication 52 replication 53 replication 54 replication 55 replication 56 replication 57 replication 58 replication 59 replication 60 replication 61 replication 62 replication 63 replication 64 replication 65 replication 66 replication 67 replication 68 replication 69 replication 70 replication 71 replication 72 replication 73 replication 74 replication 75 replication 76 replication 77 replication 78 replication 79 replication 80 replication 81 replication 82 replication 83 replication 84 replication 85 replication 86 replication 87 replication 88 replication 89 replication 90 replication 91 replication 92 replication 93 replication 94 replication 95 replication 96 replication 97 replication 98 replication 99 replication 100 replication 1 replication 2 replication 3 replication 4 replication 5 replication 6 replication 7 replication 8 replication 9 replication 10 replication 11 replication 12 replication 13 replication 14 replication 15 replication 16 replication 17 replication 18 replication 19 replication 20 replication 21 replication 22 replication 23 replication 24 replication 25 replication 26 replication 27 replication 28 replication 29 replication 30 replication 31 replication 32 replication 33 replication 34 replication 35 replication 36 replication 37 replication 38 replication 39 replication 40 replication 41 replication 42 replication 43 replication 44 replication 45 replication 46 replication 47 replication 48 replication 49 replication 50 replication 51 replication 52 replication 53 replication 54 replication 55 replication 56 replication 57 replication 58 replication 59 replication 60 replication 61 replication 62 replication 63 replication 64 replication 65 replication 66 replication 67 replication 68 replication 69 replication 70 replication 71 replication 72 replication 73 replication 74 replication 75 replication 76 replication 77 replication 78 replication 79 replication 80 replication 81 replication 82 replication 83 replication 84 replication 85 replication 86 replication 87 replication 88 replication 89 replication 90 replication 91 replication 92 replication 93 replication 94 replication 95 replication 96 replication 97 replication 98 replication 99 replication 100

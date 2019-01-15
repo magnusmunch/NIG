@@ -1,4 +1,4 @@
-# single VB update for conjugate, non-conjugate, inverse Gauss and Gamma
+# single VB update conjugate, non-conjugate, inv. Gauss and Gamma (not tested)
 single.vb.update <- function(aold, bold, alpha, theta, lambda, sv, n, p, uty, 
                              yty, conjugate, inv.gauss) {
   
@@ -29,24 +29,39 @@ single.vb.update <- function(aold, bold, alpha, theta, lambda, sv, n, p, uty,
   e <- ifelse(inv.gauss, (b + delta/p)*delta*theta^2/lambda, 
               log(lambda) - digamma(alpha/2) - log(2))
   
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
-    0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) +
-    0.25*(p + alpha)*log(lambda) - 0.5*(p + alpha)*log(theta) -
-    0.25*(p + alpha)*log(delta) + bessel_lnKnu(0.5*(p + alpha), sqrt(lambda*delta)/theta) + 
-    0.5*(delta - 0.5*(n + p + 1)*(mutmu + trSigma)/zeta)*a +
-    0.5*lambda*v/theta^2
-  gsl::bessel_lnKnu(0.5, 0)
-  # total elbo calculation
-  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
+  # calculate the elbo separately for the inverse Gaussian and Gamma models
+  if(inv.gauss) {
+    
+    # calculate the elbo part that is constant after next eb update
+    elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
+      0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) + 
+      0.5*b*(delta - a^conjugate*(mutmu + trSigma)) + 
+      0.25*(p + alpha)*log(lambda) - 0.5*(p + alpha)*log(theta) - 
+      0.25*(p + alpha)*log(delta) + 
+      bessel_lnKnu(0.5*(p + alpha), sqrt(lambda*delta)/theta) + 
+      0.5*lambda*e/theta^2
+    
+    # total elbo
+    elbo <- elbo.const + lambda/theta + 0.5*log(lambda) - 0.5*lambda*e/theta^2 -
+      0.5*lambda*b
+  } else {
+    
+    # calculate the elbo part that is constant after next eb update
+    elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
+      0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) + 
+      0.5*b*(delta - a^conjugate*(mutmu + trSigma)) - 
+      0.5*alpha*digamma(0.5*(p + alpha)) + lgamma(0.5*(p + alpha))
+    
+    # total elbo
+    elbo <- elbo.const - 0.5*(p + alpha)*log(delta) - lgamma(0.5*alpha) +
+      0.5*alpha*digamma(0.5*(p + alpha)) + 0.5*alpha*log(lambda) - 0.5*lambda*b
+  }
   
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
+  out <- c(delta=unname(delta), zeta=unname(zeta), b=unname(b), e=unname(e), 
            elbo=unname(elbo), elbo.const=unname(elbo.const))
   return(out)
   
 }
-
 
 # one fast VB update with sigma^2 stochastic (tested)
 single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {

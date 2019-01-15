@@ -1,39 +1,53 @@
-PKGNAME := $(shell sed -n "s/Package: *\([^ ]*\)/\1/p" code/DESCRIPTION)
-PKGVERS := $(shell sed -n "s/Version: *\([^ ]*\)/\1/p" code/DESCRIPTION)
-RDIR := code/R
-R_OPTS := --no-save --no-restore --verbose
+################################### PREAMBLE ###################################
 
-# all: check clean
+# set directories
+CDIR := code
+DDIR := docs
+PKGDIR := rpackage
 
-build: 
-	R CMD build --no-manual code
+# set R package compile options
+ROPTS := --no-save --no-restore --verbose
 
+# retrieve package name and version
+PKGNAME := $(shell sed -n "s/Package: *\([^ ]*\)/\1/p" $(PKGDIR)/DESCRIPTION)
+PKGVERS := $(shell sed -n "s/Version: *\([^ ]*\)/\1/p" $(PKGDIR)/DESCRIPTION)
+
+#################################### RULES #####################################
+
+all: $(DDIR)/supplement.pdf $(DDIR)/manuscript.pdf
+
+# build the package if contents changed
+#$(PKGNAME)_$(PKGVERS).tar.gz: $(shell find $(PKGDIR))
+#	R CMD build $(PKGDIR)
+build:
+	R CMD build $(PKGDIR)
+
+# check the package if the compiled package changed
+#$(PKGNAME).Rcheck: $(PKGNAME)_$(PKGVERS).tar.gz
+#	R CMD check $(PKGNAME)_$(PKGVERS).tar.gz
 check: build
 	R CMD check $(PKGNAME)_$(PKGVERS).tar.gz
 
-code/R/simulations_igaussian.Rout: $(PKGNAME)_$(PKGVERS).tar.gz code/R/simulations_igaussian.R
-	Rscript $(R_OPTS) code/R/simulations_igaussian.R > code/R/simulations_igaussian.Rout 2>&1
+install: build
+	R CMD INSTALL $(PKGNAME)_$(PKGVERS).tar.gz
 
-docs/supplement.pdf: supplement.Rnw code/R/figures.R refs.bib author_short3.bst results/simulations_igaussian_fit1.csv results/simulations_igaussian_fit2.csv results/simulations_igaussian_res1.csv results/simulations_igaussian_res2.csv results/simulations_igaussian_set1.csv results/simulations_igaussian_set2.csv
-	Rscript -e "library(knitr); knit('docs/supplement.Rnw')"
-	pdflatex docs/supplement.tex
+# run the simulations if the script or package changed
+$(CDIR)/simulations_igaussian.Rout: install $(CDIR)/simulations_igaussian.R
+	cd $(CDIR);\
+	Rscript $(ROPTS) simulations_igaussian.R > simulations_igaussian.Rout 2>&1
 
-docs/manuscript.pdf: manuscript.Rnw code/R/figures.R refs.bib author_short3.bst results/simulations_igaussian_fit1.csv results/simulations_igaussian_fit2.csv results/simulations_igaussian_res1.csv results/simulations_igaussian_res2.csv results/simulations_igaussian_set1.csv results/simulations_igaussian_set2.csv
-	Rscript -e "library(knitr); knit('docs/manuscript.Rnw')"
-	pdflatex docs/manuscript.tex
+# run knitr if simulations output, or the knitr file changed
+$(DDIR)/supplement.tex: $(CDIR)/simulations_igaussian.Rout $(DDIR)/supplement.Rnw
+	Rscript -e "library(knitr); knit('$(DDIR)/supplement.Rnw', '$(DDIR)/supplement.tex')"
 
+# compile the supplement if the tex file or refs file changed
+$(DDIR)/supplement.pdf: $(DDIR)/supplement.tex $(DDIR)/refs.bib
+	pdflatex -output-directory=$(DDIR) $(DDIR)/supplement.tex
 
-# results/%.csv: code/R/simulations_igaussian.R 
-# 	Rscript $(R_OPTS) simulations_igaussian.R > simulations_igaussian.Rout 2>&1
-#
-# docs/supplement.pdf: supplement.Rnw code/R/figures.R refs.bib author_short3.bst
-# 	Rscript -e "library(knitr); knit('docs/supplement.Rnw')"
-# 	pdflatex supplement.tex
-#
-# list R files
-# RFILES := $(wildcard $(RDIR)/simulations_*.R)
+# run knitr if the knitr file changed
+$(DDIR)/manuscript.tex: $(DDIR)/manuscript.Rnw
+	Rscript -e "library(knitr); knit('$(DDIR)/manuscript.Rnw', '$(DDIR)/supplement.tex')"
 
-# run simulations and data analysis scripts
-# $(RDIR)/%.Rout: $(RDIR)/%.R $(RDIR)/functions.R
-# 	Rscript $(R_OPTS) simulations_igaussian.R > simulations_igaussian.Rout 2>&1
-
+# compile the manuscript if the tex file or refs file changed
+$(DDIR)/manuscript.pdf: $(DDIR)/manuscript.tex $(DDIR)/refs.bib
+	pdflatex -output-directory=$(DDIR) $(DDIR)/manuscript.tex

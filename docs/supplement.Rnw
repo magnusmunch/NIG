@@ -263,19 +263,23 @@ read_chunk("../code/figures.R")
 	The inverse Gamma model with independent drug classes allows for more flexible empirical Bayes estimation of the prior means for the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs.
 	
 	\subsection{Evidence lower bound}
-	We monitor convergence through the evidence lower bound (ELBO). To compute the evidence lower bound after updating the EB parameters from $\alpha_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}$ to $\alpha_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$, we compute $\text{ELBO}^{(l + 1)} = \sum_{d=1}^D \text{ELBO}_d^{(l + 1)}$, with, in the conjugate case:
+	We monitor convergence through the evidence lower bound (ELBO). To compute the evidence lower bound after updating the EB parameters from $\alpha_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}$ to $\alpha_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$, we compute $\text{ELBO}^{(l + 1)} = \sum_{d=1}^D \text{ELBO}_d^{(l + 1)}$, with, in the inverse Gaussian conjugate case:
 	\begin{align*}
 	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
-	& - \frac{df + 1}{2} \log \zeta_d^{(l)} + \frac{p + \alpha_d^{(l)}}{4} \log \lambda_d^{(l)} - \frac{p + \alpha_d^{(l)}}{2} \log \theta_d^{(l)} - \frac{p+\alpha_d^{(l)}}{4} \log \delta_d^{(l)} \\
-	& + \log K_{\frac{p+\alpha_d^{(l)}}{2}}\(\sqrt{\lambda_d^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}\) + \frac{b_d^{(l)}}{2} \[ \delta_d^{(l)} - a_d^{(l)} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - a_d^{(l)} \trace (\bm{\Sigma}_d^{(l)}) \] \\
-	& + \frac{\lambda_d^{(l)} e_d^{(l)}}{2(\theta_d^{(l)})^2} + \frac{(\alpha_d^{(l)} - \alpha_d^{(l + 1)})h_d^{(l)}}{2} - \log K_{\frac{\alpha_d^{(l + 1)}}{2}}\(\lambda_d^{(l + 1)}/\theta_d^{(l + 1)}\) + \frac{\alpha_d^{(l + 1)}}{2} \log \theta_d^{(l)} \\
-	& - \frac{\lambda_d^{(l+1)} e_d^{(l)}}{2 (\theta_d^{(l + 1)})^2} - \frac{\lambda_d^{(l + 1)} b_d^{(l)}}{2},
+	& - \frac{df + 1}{2} \log \zeta_d^{(l)} + \frac{b_d^{(l)}}{2} \[ \delta_d^{(l)} - a_d^{(l)} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - a_d^{(l)} \trace (\bm{\Sigma}_d^{(l)}) \] + \frac{p + 1}{4} \log \lambda_d^{(l)} \\
+	& - \frac{p + 1}{2} \log \theta_d^{(l)} - \frac{p+1}{4} \log \delta_d^{(l)} + \log K_{\frac{p+1}{2}}\(\sqrt{\lambda_d^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}\) \\
+	& + \frac{\lambda_d^{(l)} e_d^{(l)}}{2(\theta_d^{(l)})^2} +\frac{\lambda_d^{(l+1)}}{\theta_d^{(l+1)}} + \frac{1}{2}\log \lambda_d^{(l+1)} - \frac{\lambda_d^{(l+1)} e_d^{(l)}}{2 (\theta_d^{(l + 1)})^2} - \frac{\lambda_d^{(l + 1)} b_d^{(l)}}{2}.
 	\end{align*}
-	where $h_d^{(l)} = \log \delta_d^{(l)} - \psi [(p + \alpha_d^{(l)})/2] - \log 2$ in the inverse Gamma model and
-	$$
-	h_d^{(l)} = \frac{1}{2}\log \delta_d^{(l)} - \frac{1}{2}\log \lambda_d^{(l)} + \log \theta_d^{(l)} + \frac{\partial}{\partial \nu} \log K_{\nu} (\sqrt{\lambda_d^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}) \bigg|_{\nu = \frac{p + \alpha_d^{(l)}}{2}}
-	$$
-	in the inverse Gaussian case. Note that in the inverse Gaussian case, the computationally expensive $h_d^{(l)}$ terms never have to be calculated, since we have $\alpha_d^{(l)} - \alpha_d^{(l + 1)}=0$. The non-conjugate ELBO simply exchanges the $a_d^{(l)} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)}$ and $a_d^{(l)} \trace (\bm{\Sigma}_d^{(l)})$ terms with $(\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)}$ and $\trace (\bm{\Sigma}_d^{(l)})$, respectively. To compute the ELBO after a VB update we simply let $\alpha_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}=\alpha_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$.
+	
+	In the conjugate inverse Gamma setting, we have:
+	\begin{align*}
+	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
+	& - \frac{df + 1}{2} \log \zeta_d^{(l)} + \frac{b_d^{(l)}}{2} \[ \delta_d^{(l)} - a_d^{(l)} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - a_d^{(l)} \trace (\bm{\Sigma}_d^{(l)}) \] -\frac{\alpha_d^{(l)}}{2} \psi \(\frac{p + \alpha_d^{(l)}}{2}\) \\
+	& + \log \Gamma \( \frac{p + \alpha_d^{(l)}}{2} \) - \frac{p+\alpha_d^{(l + 1)}}{2} \log \delta_d^{(l)} - \log \Gamma \( \frac{\alpha_d^{(l + 1)}}{2} \) + \frac{\alpha_d^{(l + 1)}}{2} \psi \(\frac{p + \alpha_d^{(l)}}{2}\) \\
+	& + \frac{\alpha_d^{(l + 1)}}{2} \log \lambda_d^{(l+1)} - \frac{\lambda_d^{(l + 1)} b_d^{(l)}}{2}.
+	\end{align*}
+	
+	The non-conjugate ELBO versions of both the inverse Gaussian and inverse Gamma models simply exchanges the $a_d^{(l)} (\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)}$ and $a_d^{(l)} \trace (\bm{\Sigma}_d^{(l)})$ terms with $(\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)}$ and $\trace (\bm{\Sigma}_d^{(l)})$, respectively. To compute the ELBO after a VB update we simply let $\alpha_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}=\alpha_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$.
   
   In practice, there are different options to assess convergence. We may monitor the parameters themselves, the ELBO, or a combination of the two. We may also iterate for an \textit{a priori} fixed number of times. We may also choose to use a different convergence criterium for the EB and VB iterations. Currently we fix the number of EB iterations to 20, while we do 2 VB iterations per EB iteration.
   
@@ -296,11 +300,11 @@ read_chunk("../code/figures.R")
   
   - make one group of drugs and compare methods
   
-  - use drug-specific lambda's
+  - use drug-specific lambda's 
   
   - try smaller $p$ to see whether $\sigma_d^2$ become more identifiable.
   
-  - scale-invariant instead of conjugate.
+  - scale-invariant instead of conjugate.   
   
   We simulate from a correctly specified model given in \ref{sec:notissuemodel}. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
   
