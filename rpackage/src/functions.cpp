@@ -6,38 +6,33 @@
 // To use functions in Rcpp library without the need of specifying "Rcpp::"
 using namespace Rcpp;
 
-// computes ratio besselK(x, (p - 1)/2)/besselK(x, (p + 1)/2) (tested)
+// computes ratio besselK(x, nu - 1)/besselK(x, nu) (not tested)
 // [[Rcpp::export]]
-NumericVector ratio_besselK_cpp(arma::vec x, int p) {
-  
+NumericVector ratio_besselK_cpp(arma::vec x, double nu) {
+
   // initialize variables
   int n = x.size();
   NumericVector value(n);
   double num;
-  
+
   // check whether p/2 is an even and set the number of iteration accordingly
-  bool even = (p % 2)==0;
-  int niter = floor(p/2) + 1 - even;
-  
-  // set starting value
-  if(even) {
-    num = 0.5;
-  } else {
-    num = 1;
-  }
-  
+  int fnu = floor(nu);
+  double rnu = nu - fnu;
+
   // iterate over the values in x and estimate the ratio iteratively
   for(int i=0; i<n; i++) {
-    if(even) {
-      value[i] = 1;
+    if(fnu==0) {
+      value[i] = R::bessel_k(x[i], nu - 1, exp(1))/
+        R::bessel_k(x[i], nu, exp(1));
     } else {
-      value[i] = R::bessel_k(x[i], 1, exp(1))/R::bessel_k(x[i], 0, exp(1));
-    }
-    for(int j=0; j<niter; j++) {
-      value[i] = 1/(value[i] + 2*(j + 1 - num)/x[i]);
+      num = R::bessel_k(x[i], rnu - 1, exp(1))/R::bessel_k(x[i], rnu, exp(1));
+      for(int j=0; j<fnu; j++) {
+        num = 1/(num + 2*(nu - fnu + j)/x[i]);
+      }
+      value[i] = num;
     }
   }
-  
+
   // return a vector with the estimated values
   return value;
 }

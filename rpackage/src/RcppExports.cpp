@@ -7,14 +7,14 @@
 using namespace Rcpp;
 
 // ratio_besselK_cpp
-NumericVector ratio_besselK_cpp(arma::vec x, int p);
-RcppExport SEXP _cambridge_ratio_besselK_cpp(SEXP xSEXP, SEXP pSEXP) {
+NumericVector ratio_besselK_cpp(arma::vec x, double nu);
+RcppExport SEXP _cambridge_ratio_besselK_cpp(SEXP xSEXP, SEXP nuSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
-    Rcpp::traits::input_parameter< int >::type p(pSEXP);
-    rcpp_result_gen = Rcpp::wrap(ratio_besselK_cpp(x, p));
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    rcpp_result_gen = Rcpp::wrap(ratio_besselK_cpp(x, nu));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -1,10 +1,5 @@
-# single VB update conjugate, non-conjugate, inv. Gauss and Gamma (not tested)
-single.vb.update <- function(aold, bold, alpha, theta, lambda, sv, n, p, uty, 
-                             yty, conjugate, inv.gauss) {
-  
-  # variables that change with conjugacy
-  cold <- bold/aold^conjugate
-  df <- n + conjugate*p
+# calculates the auxiliary variables in the VB step (tested)
+.aux.var <- function(cold, aold, sv, uty, n, p) {
   
   # auxiliary variables involving mu and Sigma
   trSigma <- (sum(1/(sv^2 + cold)) + max(p - n, 0)/cold)/aold
@@ -15,186 +10,190 @@ single.vb.update <- function(aold, bold, alpha, theta, lambda, sv, n, p, uty,
     max(p - n, 0)*log(cold)
   ytXmu <- sum(sv^2*uty^2/(sv^2 + cold))
   
-  # vb parameters
-  delta <- aold^conjugate*mutmu + lambda
-  b <- ifelse(inv.gauss, 
-              sqrt(lambda/(theta^2*delta))*ratio_besselK_cpp(sqrt(
-                lambda*delta/theta^2), p)+ (p + 1)/delta,
-              (p + alpha)/delta)
-  zeta <- 0.5*(yty - 2*ytXmu + trXtXSigma + mutXtXmu + 
-                 conjugate*b*(trSigma + mutmu))
-  a <- (df + 1)/(2*zeta)
+  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
+              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
+              ytXmu=ytXmu)
+  return(out)
+}
+
+# calculates the ELBO in the inverse Gaussian model (tested)
+.elbo.inv.gauss <- function(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
+                            yty) {
   
-  # variable needed in eb steps
-  e <- ifelse(inv.gauss, (b + delta/p)*delta*theta^2/lambda, 
-              log(lambda) - digamma(alpha/2) - log(2))
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*aux$logdetSigma -
+    0.5*a*(yty - 2*aux$ytXmu + aux$mutXtXmu + aux$trXtXSigma) +
+    0.5*b*(delta - (a + 1 - b/c)*(aux$mutmu + aux$trSigma)) - 
+    0.5*(df + 1)*log(zeta) + 0.25*(p + 1)*log(lambda) - 
+    0.5*(p + 1)*log(theta) - 0.25*(p + 1)*log(delta) + 
+    gsl::bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
+    0.5*lambda*e/theta^2
+  
+  # total elbo
+  elbo <- elbo.const + lambda/theta + 0.5*log(lambda) - 0.5*lambda*e/theta^2 -
+    0.5*lambda*b
+  
+  out <- list(elbo=elbo, elbo.const=elbo.const)
+  return(out)
+}
+
+# calculates the ELBO in the inverse Gamma model (tested)
+.elbo.inv.gamma <- function(aux, zeta, delta, a, b, c, e, lambda, eta, df, p, 
+                            yty) {
+  
+  # calculate the elbo part that is constant after next eb update
+  elbo.const <- 0.5*aux$logdetSigma -
+    0.5*a*(yty - 2*aux$ytXmu + aux$mutXtXmu + aux$trXtXSigma) +
+    0.5*b*(delta - (a + 1 - b/c)*(aux$mutmu + aux$trSigma)) - 
+    0.5*(df + 1)*log(zeta) - 0.25*(p + 1)*log(delta) + 0.5*eta*e + 
+    0.5*eta*log(2) + lgamma(0.5*(p + eta))
+  
+  # total elbo
+  elbo <- elbo.const - lgamma(0.5*eta) - 0.5*eta*e - 0.5*eta*log(2) + 
+    0.5*eta*log(lambda) - 0.5*lambda*b
+  
+  out <- list(elbo=elbo, elbo.const=elbo.const)
+  return(out)
+  
+}
+
+# single VB update, drugs covariate model only (tested)
+.single.vb.update <- function(aold, bold, eta, theta, lambda, sv, n, p, uty, 
+                              yty, conjugate, inv.gauss) {
+  
+  # variables that change with conjugacy
+  cold <- bold/(aold^(1 - conjugate))
+  df <- n + conjugate*p
+  
+  # auxiliary variables involving mu and Sigma
+  aux <- .aux.var(cold, aold, sv, uty, n, p)
+  
+  # vb parameters
+  delta <- (bold/cold)*aux$mutmu + lambda
+  if(inv.gauss) {
+    b <- sqrt(lambda/(theta^2*delta))*
+      ratio_besselK_cpp(sqrt(lambda*delta/theta^2), 0.5*(p + eta)) + 
+      (p + eta)/delta
+    
+    # needed in EB step
+    e <- (b - (p + eta)/delta)*delta*theta^2/lambda
+  } else {
+    b <- (p + eta)/delta
+    e <- log(delta) - digamma(0.5*(p + eta)) - log(2)
+  }
+  zeta <- 0.5*(yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
+                 ifelse(conjugate, b, 0)*(aux$trSigma + aux$mutmu))
+  a <- (df + 1)/(2*zeta)
+  c <- b/(a^(1 - conjugate))
   
   # calculate the elbo separately for the inverse Gaussian and Gamma models
   if(inv.gauss) {
-    
-    # calculate the elbo part that is constant after next eb update
-    elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
-      0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) + 
-      0.5*b*(delta - a^conjugate*(mutmu + trSigma)) + 
-      0.25*(p + alpha)*log(lambda) - 0.5*(p + alpha)*log(theta) - 
-      0.25*(p + alpha)*log(delta) + 
-      bessel_lnKnu(0.5*(p + alpha), sqrt(lambda*delta)/theta) + 
-      0.5*lambda*e/theta^2
-    
-    # total elbo
-    elbo <- elbo.const + lambda/theta + 0.5*log(lambda) - 0.5*lambda*e/theta^2 -
-      0.5*lambda*b
+    elbo <- .elbo.inv.gauss(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
+                            yty)
   } else {
-    
-    # calculate the elbo part that is constant after next eb update
-    elbo.const <- 0.5*logdetSigma - 0.5*(df + 1)*log(zeta) - 
-      0.5*a*(yty + mutXtXmu + trXtXSigma - 2*ytXmu) + 
-      0.5*b*(delta - a^conjugate*(mutmu + trSigma)) - 
-      0.5*alpha*digamma(0.5*(p + alpha)) + lgamma(0.5*(p + alpha))
-    
-    # total elbo
-    elbo <- elbo.const - 0.5*(p + alpha)*log(delta) - lgamma(0.5*alpha) +
-      0.5*alpha*digamma(0.5*(p + alpha)) + 0.5*alpha*log(lambda) - 0.5*lambda*b
+    elbo <- .elbo.inv.gamma(aux, zeta, delta, a, b, c, e, lambda, eta, df, p, 
+                            yty)
   }
   
-  out <- c(delta=unname(delta), zeta=unname(zeta), b=unname(b), e=unname(e), 
-           elbo=unname(elbo), elbo.const=unname(elbo.const))
+  
+  out <- c(delta=delta, zeta=zeta, a=a, b=b, e=e, elbo=elbo$elbo, 
+           elbo.const=elbo$elbo.const)
+  return(out)
+}
+
+# estimating equation for eta for root-finding (tested)
+.froot.inv.gamma <- function(eta, lambda, esum, size) {
+  log(lambda) - log(2) - digamma(eta/2) - esum/size
+}
+
+# inverse Gamma EB update (tested)
+.eb.update.inv.gamma <- function(esum, bsum, b, delta, old.eta, elbo.const, 
+                                 nclass, sclass, p, epsilon, maxit) {
+  
+  # obtaining initial values and bounds for root-finding
+  old.eta <- eta.star <- 1/(log(bsum) + esum/sclass - log(sclass))
+  old.lambda <- old.eta*sclass/bsum
+  
+  # iterate between root-finding alpha and computing lambda
+  conv <- FALSE
+  iter <- 0
+  while(!(conv | iter >= maxit)) {
+    
+    # update iteration number and EB parameters
+    iter <- iter + 1
+    eta <- sapply(c(1:nclass), function(c) {
+      uniroot(.froot.inv.gamma, c(eta.star[c], 2*eta.star[c]), 
+              old.lambda[c], esum[c], sclass[c])$root})
+    lambda <- eta*sclass/bsum
+    conv <- all(abs(c(eta - old.eta, lambda - old.lambda)) < epsilon)
+    old.lambda <- lambda
+    old.eta <- eta
+  }
+  
+  # elbo calculation involves constant part plus updated part
+  elbo <- elbo.const - 0.5*(p + rep(eta, sclass))*log(delta) - 
+    rep(lgamma(0.5*eta), sclass) + 
+    0.5*rep(eta*digamma(0.5*(p + old.eta)), sclass) + 
+    0.5*rep(eta*log(lambda), sclass) - 0.5*rep(lambda, sclass)*b
+                              
+  out <- list(eta=eta, lambda=lambda, elbo=elbo, conv=conv)
   return(out)
   
 }
 
-# one fast VB update with sigma^2 stochastic (tested)
-single.vb.update <- function(zetaold, aold, lambda, theta, sv, n, p, uty, yty) {
+# one multiple lambda inverse Gaussian EB update (tested)
+.eb.update.mult.lambda <- function(old.lambda, old.alpha, e, b, C, epsilon) {
   
-  # auxiliary variables involving mu and Sigma
-  trSigma <- 2*zetaold*(sum(1/(sv^2 + aold)) + max(p - n, 0)/aold)/(n + p + 1)
-  mutmu <- sum(sv^2*uty^2/(sv^2 + aold)^2)
-  trXtXSigma <- 2*zetaold*sum(sv^2/(sv^2 + aold))/(n + p + 1)
-  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + aold)^2)
-  ytXmu <- sum(sv^2*uty^2/(sv^2 + aold))
-  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + aold)) - 
-    max(p - n, 0)*log(aold)
+  # create new IRLS updates
+  alpha <- rowSums(solve(t(C*e*old.lambda) %*% C) %*% t(C*old.lambda))
+  lambda <- 1/(b + e*as.numeric(C %*% alpha)^2 - 2*as.numeric(C %*% alpha))
   
-  # vb parameters and auxiliaries
-  delta <- 0.5*(n + p + 1)*(trSigma + mutmu)/zetaold + lambda
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
-  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  zeta <- 0.5*(yty + a*trSigma + a*mutmu + trXtXSigma + mutXtXmu - 2*ytXmu)
-  v <- sqrt(delta*theta^2/lambda)*ratio
+  # check convergence of IRLS
+  conv <- all(abs(c(alpha - old.alpha, lambda - old.lambda)) < epsilon)
   
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*logdetSigma - 0.5*(n + p + 1)*log(zeta) - 
-    0.25*(n + p + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
-    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
-    0.5*(p + 1)*log(theta) + 
-    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
-    0.5*(delta - 0.5*(n + p + 1)*(mutmu + trSigma)/zeta)*a +
-    0.5*lambda*v/theta^2
-  
-  # total elbo calculation
-  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
-  
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
-           elbo=unname(elbo), elbo.const=unname(elbo.const))
+  out <- list(alpha=unname(alpha), lambda=unname(lambda), conv=unname(conv))
   return(out)
 }
 
-# one fast VB update with independent beta and sigma^2 prior (tested)
-single.vb.update.ind <- function(zetaold, aold, lambda, theta, sv, n, p, uty, 
-                                 yty) {
-  
-  # auxiliary variables involving mu and Sigma
-  val <- 2*zetaold/(n + 1)
-  trSigma <- val*sum(1/(sv^2 + val*aold)) + max(p - n, 0)/aold
-  mutmu <- sum(sv^2*uty^2/(sv^2 + val*aold)^2)
-  trXtXSigma <- val*sum(sv^2/(sv^2 + val*aold))
-  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + val*aold)^2)
-  ytXmu <- sum(sv^2*uty^2/(sv^2 + val*aold))
-  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + val*aold)) - 
-    max(p - n, 0)*(log(aold) + log(val))
-  
-  # vb parameters and auxiliaries
-  delta <- trSigma + mutmu + lambda
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
-  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  zeta <- 0.5*(yty + trXtXSigma + mutXtXmu - 2*ytXmu)
-  v <- sqrt(delta*theta^2/lambda)*ratio
-  
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*logdetSigma - 0.5*(n + 1)*log(zeta) - 
-    0.25*(n + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
-    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
-    0.5*(p + 1)*log(theta) + 
-    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
-    0.5*(delta - mutmu - trSigma)*a + 0.5*lambda*v/theta^2
-  
-  # total elbo calculation
-  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
-  
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
-           elbo=unname(elbo), elbo.const=unname(elbo.const))
-  return(out)
-  
-}
-
-# one fast VB update with inverse Gamma model
-single.vb.update.inv <- function(bstarold, dstarold, a, b) {
-  
-  # auxiliary variables involving mu and Sigma
-  val <- 2*zetaold/(n + 1)
-  trSigma <- val*sum(1/(sv^2 + val*aold)) + max(p - n, 0)/aold
-  mutmu <- sum(sv^2*uty^2/(sv^2 + val*aold)^2)
-  trXtXSigma <- val*sum(sv^2/(sv^2 + val*aold))
-  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + val*aold)^2)
-  ytXmu <- sum(sv^2*uty^2/(sv^2 + val*aold))
-  logdetSigma <- p*log(zetaold) - sum(log(sv^2 + val*aold)) - 
-    max(p - n, 0)*(log(aold) + log(val))
-  
-  # vb parameters and auxiliaries
-  delta <- trSigma + mutmu + lambda
-  ratio <- ratio_besselK_cpp(sqrt(lambda*delta/theta^2), p)
-  a <- sqrt(lambda/(theta^2*delta))*ratio + (p + 1)/delta
-  zeta <- 0.5*(yty + trXtXSigma + mutXtXmu - 2*ytXmu)
-  v <- sqrt(delta*theta^2/lambda)*ratio
-  
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*logdetSigma - 0.5*(n + 1)*log(zeta) - 
-    0.25*(n + 1)*(yty + mutXtXmu + trXtXSigma - 2*ytXmu)/zeta -
-    0.25*(p + 1)*log(delta) + 0.25*(p + 1)*log(lambda) - 
-    0.5*(p + 1)*log(theta) + 
-    bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
-    0.5*(delta - mutmu - trSigma)*a + 0.5*lambda*v/theta^2
-  
-  # total elbo calculation
-  elbo <- elbo.const  + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
-  
-  out <- c(delta=unname(delta), zeta=unname(zeta), a=unname(a), v=unname(v), 
-           elbo=unname(elbo), elbo.const=unname(elbo.const))
-  return(out)
-  
-}
-
-# one EB update (tested)
-eb.update <- function(v, a, elbo.const, C, D) {
+# inverse Gaussian EB update (tested)
+.eb.update.inv.gauss <- function(e, b, elbo.const, C, D, mult.lambda=FALSE, 
+                                 epsilon, maxit) {
   
   # eb parameters
-  alpha <- rowSums(solve(t(C*v) %*% C) %*% t(C))
-  lambda <- D/(sum(a) - sum(t(C)*alpha))
+  alpha <- rowSums(solve(t(C*e) %*% C) %*% t(C))
+  lambda <- D/(sum(b) - sum(t(C)*alpha))
+  
+  # IRLS
+  if(mult.lambda) {
+    new.eb <-  list(alpha=alpha, lambda=rep(lambda, D), conv=FALSE)
+    iter <- 0
+    while(!(new.eb$conv | iter >= maxit)) {
+      
+      # update iteration number and EB parameters
+      iter <- iter + 1
+      new.eb <- .eb.update.mult.lambda(new.eb$lambda, new.eb$alpha, e, b, C, 
+                                       epsilon)
+    }
+    alpha <- new.eb$alpha
+    lambda <- new.eb$lambda
+    conv <- new.eb$conv
+  } else {
+    conv <- NA
+  }
+  
+  # compute theta
   theta <- 1/as.numeric(C %*% alpha)
   
   # elbo calculation involves constant part plus updated part
-  elbo <- elbo.const + 0.5*log(lambda) - 0.5*lambda*v/theta^2 + lambda/theta -
-    0.5*lambda*a
+  elbo <- elbo.const + lambda/theta + 0.5*log(lambda) - 0.5*lambda*e/theta^2 -
+    0.5*lambda*b
   
-  out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo)
+  out <- list(theta=theta, alpha=alpha, lambda=lambda, elbo=elbo, conv=conv)
   return(out)
 }
 
 # ridge marginal log likelihood of ridge model (not tested)
-ridge.mll <- function(par, sv, uty, n) {
+.ridge.mll <- function(par, sv, uty, n) {
   sigma.sq <- par[1]
   gamma.sq <- par[2]
   mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
@@ -204,7 +203,7 @@ ridge.mll <- function(par, sv, uty, n) {
 }
 
 # ridge marginal log lik for independent beta and sigma^2 prior (not tested)
-ridge.mll.ind <- function(par, sv, uty, n) {
+.ridge.mll.ind <- function(par, sv, uty, n) {
   sigma.sq <- par[1]
   gamma.sq <- par[2]
   mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
@@ -214,7 +213,7 @@ ridge.mll.ind <- function(par, sv, uty, n) {
 }
 
 # initial values (not tested)
-init.param <- function(C, sv, uty, D, n, p) {
+.init.param <- function(C, sv, uty, D, n, p) {
   # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
   init.mll.est <- t(sapply(c(1:D), function(d) {
       constrOptim(c(1, 1), ridge.mll, NULL, ui=diag(2), ci=c(0, 0),
@@ -241,7 +240,7 @@ init.param <- function(C, sv, uty, D, n, p) {
 }
 
 # initial values with independent beta and sigma^2 prior (not tested)
-init.param.ind <- function(C, sv, uty, D, n, p) {
+.init.param.ind <- function(C, sv, uty, D, n, p) {
   # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
   init.mll.est <- t(sapply(c(1:D), function(d) {
         constrOptim(c(1, 1), ridge.mll.ind, NULL, ui=diag(2), ci=c(0, 0),
@@ -267,14 +266,14 @@ init.param.ind <- function(C, sv, uty, D, n, p) {
 }
 
 # fit model without tissue effect and molecular feature groups (not tested)
-est.igauss <- function(x, y, C,
-                       control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+est.model <- function(x, y, C, inv.gauss, conjugate,
+                      control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
                                     maxit.eb=20, maxit.vb=2, trace=TRUE), 
-                       init=NULL,
-                       test=list(ind=FALSE)) {
+                      init=NULL) {
   # init is either NULL or list(alpha, lambda, a, zeta)
   # control$epsilon.vb=Inf is equivalent to control$maxit.vb=1
-  # test$ind=TRUE estimates the model with independent beta and sigma^2
+  # inv.gauss indicates inv. Gaussian model (TRUE) or inv. Gamma (FALSE)
+  # conjugate indicates independent beta and sigma^2 (FALSE) or dependent (TRUE)
   
   # fixed parameters
   n <- nrow(x)

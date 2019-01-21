@@ -14,7 +14,7 @@ PKGVERS := $(shell sed -n "s/Version: *\([^ ]*\)/\1/p" $(PKGDIR)/DESCRIPTION)
 
 #################################### RULES #####################################
 
-all: $(DDIR)/supplement.pdf $(DDIR)/manuscript.pdf
+all: $(DDIR)/supplement.pdf $(DDIR)/manuscript.pdf build
 
 # build the package if contents changed
 #$(PKGNAME)_$(PKGVERS).tar.gz: $(shell find $(PKGDIR))
@@ -32,7 +32,7 @@ install: build
 	R CMD INSTALL $(PKGNAME)_$(PKGVERS).tar.gz
 
 # run the simulations if the script or package changed
-$(CDIR)/simulations_igaussian.Rout: install $(CDIR)/simulations_igaussian.R
+$(CDIR)/simulations_igaussian.Rout: $(CDIR)/simulations_igaussian.R
 	cd $(CDIR);\
 	Rscript $(ROPTS) simulations_igaussian.R > simulations_igaussian.Rout 2>&1
 
@@ -45,9 +45,17 @@ $(DDIR)/supplement.pdf: $(DDIR)/supplement.tex $(DDIR)/refs.bib
 	pdflatex -output-directory=$(DDIR) $(DDIR)/supplement.tex
 
 # run knitr if the knitr file changed
-$(DDIR)/manuscript.tex: $(DDIR)/manuscript.Rnw
-	Rscript -e "library(knitr); knit('$(DDIR)/manuscript.Rnw', '$(DDIR)/supplement.tex')"
+# $(DDIR)/manuscript.tex: $(DDIR)/manuscript.Rnw
+# 	Rscript -e "library(knitr); knit('$(DDIR)/manuscript.Rnw', '$(DDIR)/supplement.tex')"
 
 # compile the manuscript if the tex file or refs file changed
-$(DDIR)/manuscript.pdf: $(DDIR)/manuscript.tex $(DDIR)/refs.bib
-	pdflatex -output-directory=$(DDIR) $(DDIR)/manuscript.tex
+# $(DDIR)/manuscript.pdf: $(DDIR)/manuscript.tex $(DDIR)/refs.bib
+# 	pdflatex -output-directory=$(DDIR) $(DDIR)/manuscript.tex
+
+# have to check these two:
+$(DDIR)/%.tex: $(DDIR)/%.Rnw
+	Rscript -e "library(knitr); knit('$<', '$(DDIR)/%.tex')"
+
+$(DDIR)/%.pdf: $(DDIR)/%.tex $(DDIR)/refs.bib
+	pdflatex -output-directory=$(DDIR) $<
+
