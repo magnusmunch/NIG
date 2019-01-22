@@ -266,13 +266,13 @@
 }
 
 # fit model without tissue effect and molecular feature groups (not tested)
-est.model <- function(x, y, C, inv.gauss, conjugate,
+est.model <- function(x, y, C, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
+                      conjugate, init=NULL,
                       control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                    maxit.eb=20, maxit.vb=2, trace=TRUE), 
-                      init=NULL) {
+                                   maxit.eb=20, maxit.vb=2, trace=TRUE)) {
   # init is either NULL or list(alpha, lambda, a, zeta)
   # control$epsilon.vb=Inf is equivalent to control$maxit.vb=1
-  # inv.gauss indicates inv. Gaussian model (TRUE) or inv. Gamma (FALSE)
+  # hyperprior indicates inv. Gaussian model (TRUE) or inv. Gamma (FALSE)
   # conjugate indicates independent beta and sigma^2 (FALSE) or dependent (TRUE)
   
   # fixed parameters
