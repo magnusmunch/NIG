@@ -1,233 +1,215 @@
+################################## supplement ##################################
 # ---- figures ----
-# ---- boxplot_igaussian_res1_sigma2 ----  
-res1 <- read.table("../results/simulations_igaussian_res1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
-names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
-temp1 <- list(res1[, substr(colnames(res1), 1, 14)=="zeta.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 18)=="zeta.ind.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 5)=="cpost"],
-              res1[, substr(colnames(res1), 1, 5)=="dpost"])
-temp2 <- cbind(colMeans((2*temp1[[1]]/(set1$n + set1$p - 1) - as.numeric(set1[, substr(colnames(set1), 1, 5)=="sigma"])^2)^2),
-               colMeans((2*temp1[[2]]/(set1$n - 1) - 
-                           as.numeric(set1[, substr(colnames(set1), 1, 5)=="sigma"])^2)^2),
-               colMeans((temp1[[4]]/(temp1[[3]] - 1) - 
-                           as.numeric(set1[, substr(colnames(set1), 1, 5)=="sigma"])^2)^2))
-par(cex=1.3)
-boxplot(temp2, outline=FALSE, names=names1, ylab="MSE")
-legend("topright", title=expression(bold("median MSE")), bty="n", 
-       paste(names1, round(apply(temp2, 2, median), 2), sep="="))
-par(cex=1)
+# ---- boxplot_igaussian_res1_prior_mean ----  
+res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
+set1 <- read.table("results/simulations_igaussian_set1.csv")
+labels1 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
+              "c. inv. \n Gamma", "nc. inv. \n Gamma")
+colors1 <- sp::bpy.colors(6)[-c(1, 6)]
 
-# ---- boxplot_igaussian_res1_gamma2 ----
-res1 <- read.table("../results/simulations_igaussian_res1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
-names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
-temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="delta.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 15)=="theta.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 16)=="lambda.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 19)=="delta.ind.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 19)=="theta.ind.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 20)=="lambda.ind.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 15)=="apost.inv.Gamma"],
-              res1[, substr(colnames(res1), 1, 15)=="bpost.inv.Gamma"])
-temp2 <- list(as.matrix(sqrt(temp1[[1]]*temp1[[2]]^2/temp1[[3]]))*
-                ratio_besselK_cpp(as.matrix(sqrt(
-                  temp1[[1]]*temp1[[3]])/temp1[[2]]), set1$p),
-              as.matrix(sqrt(temp1[[4]]*temp1[[5]]^2/temp1[[6]]))*
-                ratio_besselK_cpp(as.matrix(sqrt(
-                  temp1[[4]]*temp1[[6]])/temp1[[5]]), set1$p),
-              as.matrix(temp1[[8]]/(temp1[[7]] - 1)))
-temp3 <- sapply(temp2, function(m) {
-  colMeans((t(m) - as.numeric(set1[, substr(colnames(set1), 1, 5)=="gamma"])^2)^2)})
-temp4 <- sapply(temp2, function(m) {apply(t(m), 2, function(r) {
-  cor(r, as.numeric(set1[, substr(colnames(set1), 1, 5)=="gamma"])^2)})})
-par(cex=1.3)
-layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp3, names=names1, ylab="MSE", main="a)")
-legend("right", title=expression(bold("median MSE")), bty="n", 
-       paste(names1, round(apply(temp3, 2, median), 2), sep="="))
-boxplot(temp4, names=names1, ylab="Correlation", main="b)")
-legend("bottomleft", title=expression(bold("median correlation")), bty="n", 
-       paste(names1, round(apply(temp4, 2, median), 2), sep="="))
-par(cex=1)
+C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
+                   function(s) {eval(parse(text=s))}), 
+            ncol=set1$nclass, nrow=set1$D)
+prior.means <- as.numeric((sapply(paste("set1$theta", 1:set1$D, sep=""),
+                                  function(s) {eval(parse(text=s))}) %*% C)/
+                            (set1$D/set1$nclass))
+temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
+                    method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
+                    prior.means=c((res1[, grepl("igauss.conj_theta", colnames(
+                      res1))] %*% C)/(set1$D/set1$nclass), 
+                      (res1[, grepl("igauss.non.conj_theta", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass), 
+                      ((res1[, grepl("igamma.conj_lambda", colnames(res1))]/
+                          (res1[, grepl("igamma.conj_eta", colnames(
+                            res1))] - 2)) %*% C)/(set1$D/set1$nclass), 
+                      ((res1[, grepl("igamma.non.conj_lambda", colnames(res1))]/
+                          (res1[, grepl("igamma.non.conj_eta", colnames(
+                            res1))] - 2)) %*% C)/(set1$D/set1$nclass)))
+  
+opar <- par(no.readonly=TRUE)
+at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
+           2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
+at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
+         mean(1:set1$nclass + 2*set1$nclass + 2),
+         mean(1:set1$nclass + 3*set1$nclass + 3))
+par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+        at=at1, col=colors1, names=NA, xaxt="n",
+        ylab=expression(hat(E)(gamma[d]^2)))
+abline(h=prior.means, col=colors1, lty=2, lwd=1.5)
+# text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
+axis(1, at=at2, labels=labels1, tick=FALSE)
+legend("topright", legend=c(paste("class", 1:set1$nclass), "true value"), 
+       lty=c(rep(NA, 4), 2), col=c(colors1, 1), seg.len=rep(1, 5), 
+       border=c(rep(1, 4), NA), fill=c(colors1, NA), merge=TRUE)
+par(opar)
+
+# ---- boxplot_igaussian_res1_mu_mse ----  
+res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
+set1 <- read.table("results/simulations_igaussian_set1.csv")
+labels1 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
+             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+colors1 <- sp::bpy.colors(6)[-c(1, 6)]
+
+C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
+                   function(s) {eval(parse(text=s))}), 
+            ncol=set1$nclass, nrow=set1$D)
+temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
+                    method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
+                    prior.means=c((res1[, grepl("igauss.conj_mu", colnames(
+                      res1))] %*% C)/(set1$D/set1$nclass), 
+                      (res1[, grepl("igauss.non.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass), 
+                      (res1[, grepl("igamma.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass),
+                      (res1[, grepl("igamma.non.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass)))
+
+opar <- par(no.readonly=TRUE)
+at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
+           2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
+at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
+         mean(1:set1$nclass + 2*set1$nclass + 2),
+         mean(1:set1$nclass + 3*set1$nclass + 3))
+par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+        at=at1, col=colors1, names=NA, xaxt="n",
+        ylab=expression("MSE" (hat(beta))))
+axis(1, at=at2, labels=labels1, tick=FALSE)
+legend("topleft", legend=paste("class", 1:set1$nclass), col=colors1, 
+       seg.len=rep(1, 4), border=rep(1, 4), fill=colors1)
+par(opar)
+
+# ---- boxplot_igaussian_res2_prior_mean ----  
+res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
+set2 <- read.table("results/simulations_igaussian_set2.csv")
+labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
+             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+colors2 <- sp::bpy.colors(6)[-c(1, 6)]
+
+C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
+                   function(s) {eval(parse(text=s))}), 
+            ncol=set2$nclass, nrow=set2$D)
+prior.means <- as.numeric((sapply(paste(
+  "set2$lambda", 1:set2$D, sep=""), function(s) {eval(parse(text=s))})/
+    (sapply(paste("set2$eta", 1:set2$D, sep=""), function(s) {
+      eval(parse(text=s))}) - 2)) %*% C)/(set1$D/set1$nclass)
+temp1 <- data.frame(class=factor(rep(rep(c(1:set2$nclass), each=set2$D), 4)),
+                    method=rep(paste(1:4, labels2), each=set2$nclass*set2$D),
+                    prior.means=c((res2[, grepl("igauss.conj_theta", colnames(
+                      res2))] %*% C)/(set2$D/set2$nclass), 
+                      (res2[, grepl("igauss.non.conj_theta", colnames(res2))]
+                       %*% C)/(set2$D/set2$nclass), 
+                      ((res2[, grepl("igamma.conj_lambda", colnames(res2))]/
+                          (res2[, grepl("igamma.conj_eta", colnames(
+                            res2))] - 2)) %*% C)/(set2$D/set2$nclass), 
+                      ((res2[, grepl("igamma.non.conj_lambda", colnames(res2))]/
+                          (res2[, grepl("igamma.non.conj_eta", colnames(
+                            res2))] - 2)) %*% C)/(set2$D/set2$nclass)))
+
+opar <- par(no.readonly=TRUE)
+at1 <- c(1:set2$nclass, 1:set2$nclass + set2$nclass + 1, 1:set2$nclass +
+           2*set2$nclass + 2, 1:set2$nclass + 3*set2$nclass + 3)
+at2 <- c(mean(1:set2$nclass), mean(1:set2$nclass + set2$nclass + 1),
+         mean(1:set2$nclass + 2*set2$nclass + 2),
+         mean(1:set2$nclass + 3*set2$nclass + 3))
+par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+b2 <- boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+              at=at1, col=colors2, names=NA, xaxt="n",
+              ylab=expression(hat(E)(gamma[d]^2)), 
+              subset=method!="2 nc. inv. \n Gaussian")
+r2 <- range(b2$stats, na.rm=TRUE)
+arrows(mean(1:set2$nclass + set2$nclass + 1), r2[2] - (r2[2] - r2[1])/5, 
+       mean(1:set2$nclass + set2$nclass + 1), r2[2])
+abline(h=prior.means, col=colors2, lty=2, lwd=1.5)
+# text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
+axis(1, at=at2, labels=labels2, tick=FALSE)
+legend("topright", legend=c(paste("class", 1:set2$nclass), "true value"), 
+       lty=c(rep(NA, 4), 2), col=c(colors2, 1), seg.len=rep(1, 5), 
+       border=c(rep(1, 4), NA), fill=c(colors2, NA), merge=TRUE)
+par(opar)
+
+# ---- boxplot_igaussian_res2_mu_mse ----  
+res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
+set2 <- read.table("results/simulations_igaussian_set2.csv")
+labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
+             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+colors2 <- sp::bpy.colors(6)[-c(1, 6)]
+
+C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
+                   function(s) {eval(parse(text=s))}), 
+            ncol=set2$nclass, nrow=set2$D)
+temp1 <- data.frame(class=factor(rep(rep(c(1:set2$nclass), each=set2$D), 4)),
+                    method=rep(paste(1:4, labels2), each=set2$nclass*set2$D),
+                    prior.means=c((res2[, grepl("igauss.conj_mu", colnames(
+                      res2))] %*% C)/(set2$D/set2$nclass), 
+                      (res2[, grepl("igauss.non.conj_mu", colnames(res2))]
+                       %*% C)/(set2$D/set2$nclass), 
+                      (res2[, grepl("igamma.conj_mu", colnames(res2))]
+                       %*% C)/(set2$D/set2$nclass),
+                      (res2[, grepl("igamma.non.conj_mu", colnames(res2))]
+                       %*% C)/(set2$D/set2$nclass)))
+
+opar <- par(no.readonly=TRUE)
+at1 <- c(1:set2$nclass, 1:set2$nclass + set2$nclass + 1, 1:set2$nclass +
+           2*set2$nclass + 2, 1:set2$nclass + 3*set2$nclass + 3)
+at2 <- c(mean(1:set2$nclass), mean(1:set2$nclass + set2$nclass + 1),
+         mean(1:set2$nclass + 2*set2$nclass + 2),
+         mean(1:set2$nclass + 3*set2$nclass + 3))
+par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+        at=at1, col=colors2, names=NA, xaxt="n",
+        ylab=expression("MSE" (hat(beta))))
+axis(1, at=at2, labels=labels2, tick=FALSE)
+legend("topleft", legend=paste("class", 1:set2$nclass), col=colors2, 
+       seg.len=rep(1, 4), border=rep(1, 4), fill=colors2)
+par(opar)
+
+
+# ---- lines_igaussian_res2_igauss_conj_convergence ----  
+fit2 <- read.table("results/simulations_igaussian_fit2.csv")
+set2 <- read.table("results/simulations_igaussian_set2.csv")
+labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
+             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+colors2 <- sp::bpy.colors(6)[-c(1, 6)]
+
+temp1 <- sapply(paste("fit2$igauss.conj.theta.", 1:set2$D, sep=""),
+                function(s) {eval(parse(text=s))})
+temp2 <- sapply(paste("fit2$igauss.conj.lambda.", 1:set2$D, sep=""),
+                function(s) {eval(parse(text=s))})
+temp3 <- temp1^3/temp2
+
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(c(0, 0, 2, 2), c(1, 1, 2, 2), 
+                c(1, 1, 3, 3), c(0, 0, 3, 3)), 4, 4), 
+       widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/1.3, 1.3, 1/1.3, 1/1.3))
+plot(temp2[, 1], type="l", ylim=range(temp2), ylab=expression(hat(lambda)),
+     xlab="iteration", main="a)")
+for(d in 2:set2$D) {
+  lines(temp2[, d], col=d)
+}
+plot(temp1[, 1], type="l", ylim=range(temp1), 
+     ylab=expression(hat(E)(gamma[d]^2)), xlab="iteration", main="b)")
+for(d in 2:set2$D) {
+  lines(temp1[, d], col=d)
+}
+plot(temp3[, 1], type="l", ylim=range(temp3), 
+     ylab=expression(hat(V)(gamma[d]^2)), xlab="iteration", main="c)")
+for(d in 2:set2$D) {
+  lines(temp3[, d], col=d)
+}
 layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
 
-# ---- boxplot_igaussian_res1_mu ----
-res1 <- read.table("../results/simulations_igaussian_res1.csv")
-names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
-temp1 <- cbind(res1$mse.mu.inv.Gauss, res1$mse.mu.ind.inv.Gauss, 
-               res1$mse.mu.inv.Gamma)
-temp2 <- cbind(res1$cor.mu.inv.Gauss, res1$cor.mu.ind.inv.Gauss, 
-               res1$cor.mu.inv.Gamma)
-par(cex=1.3)
-layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp1, outline=FALSE, names=names1, ylab="MSE", main="a)")
-legend("topleft", title=expression(bold("median MSE")), bty="n", 
-       paste(names1, round(apply(temp1, 2, median), 2), sep="="))
-boxplot(temp2, names=names1, ylab="Correlation", main="b)")
-legend("bottomleft", title=expression(bold("median correlation")), bty="n", 
-       paste(names1, round(apply(temp2, 2, median), 2), 
-             sep="="))
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 
-# ---- boxplot_igaussian_res1_theta ----
-res1 <- read.table("../results/simulations_igaussian_res1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
-names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
-temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="theta.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 19)=="theta.ind.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 16)=="aprior.inv.Gamma"],
-              res1[, substr(colnames(res1), 1, 16)=="bprior.inv.Gamma"])
-temp2 <- list(colMeans((t(temp1[[1]]) - 
-                          as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"]))^2),
-              colMeans((t(temp1[[2]]) - 
-                          as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"]))^2),
-              colMeans((t(temp1[[4]]/(temp1[[3]] - 1)) - 
-                          unique(as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"])))^2))
-temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {
-  cor(r, as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"]))}),
-  apply(t(temp1[[2]]), 2, function(r) {
-    cor(r, as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"]))}),
-  apply(t(temp1[[4]]/(temp1[[3]] - 1)), 2, function(r) {
-    cor(r, unique(as.numeric(set1[, substr(colnames(set1), 1, 5)=="theta"])))}))
-par(cex=1.3)
-layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp2, names=names1, ylab="MSE", main="a)")
-legend("bottomright", title=expression(bold("median MSE")), bty="n",
-       paste(names1, round(sapply(temp2, median), 2), sep="="))
-boxplot(temp3, names=names1, ylab="Correlation", main="b)")
-legend("bottomleft", title=expression(bold("median correlation")), bty="n",
-       paste(names1, round(sapply(temp3, median), 2), sep="="))
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 
-# ---- boxplot_igaussian_res1_alpha ----
-res1 <- read.table("../results/simulations_igaussian_res1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
 
-names1 <- c("inv Gauss", "ind inv Gauss")
-temp1 <- list(res1[, substr(colnames(res1), 1, 15)=="alpha.inv.Gauss"],
-              res1[, substr(colnames(res1), 1, 19)=="alpha.ind.inv.Gauss"])
-temp2 <- list(colMeans((t(temp1[[1]]) - as.numeric(set1[, substr(colnames(set1), 1, 5)=="alpha"]))^2),
-              colMeans((t(temp1[[2]]) - as.numeric(set1[, substr(colnames(set1), 1, 5)=="alpha"]))^2))
-temp3 <- list(apply(t(temp1[[1]]), 2, function(r) {cor(r, as.numeric(set1[, substr(colnames(set1), 1, 5)=="alpha"]))}),
-              apply(t(temp1[[2]]), 2, function(r) {cor(r, as.numeric(set1[, substr(colnames(set1), 1, 5)=="alpha"]))}))
-par(cex=1.3)
-layout(matrix(c(rep(1, 4), rep(2, 4)), 2, 4), widths=1, heights=1, respect=TRUE)
-boxplot(temp2, names=names1, ylab="MSE", main="a)")
-legend("topright", title=expression(bold("median MSE")), bty="n",
-       paste(names1, round(sapply(temp2, median), 2), sep="="))
-boxplot(temp3, names=names1, ylab="Correlation", main="b)")
-legend("bottomright", title=expression(bold("median correlation")), bty="n",
-       paste(names1, round(sapply(temp3, median), 2), sep="="))
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 
-# ---- lines_igaussian_res1_elbo ----
-fit1 <- read.table("../results/simulations_igaussian_fit1.csv")
-par(cex=1.3)
-layout(matrix(c(rep(c(1, 1, 2, 2), times=2), rep(c(0, 3, 3, 0), times=2)), 
-              4, 4, byrow=TRUE), widths=1, heights=1, respect=TRUE)
-plot(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, 1], type="l",
-     ylim=range(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"]),
-     main="a)", xlab="Iteration", ylab="ELBO")
-for(i in 2:100) {
-  lines(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gauss.elbo"][, i], col=i)
-}
-plot(fit1[, substr(colnames(fit1), 1, 18)=="ind.inv.Gauss.elbo"][, 1], type="l",
-     ylim=range(fit1[, substr(colnames(fit1), 1, 18)=="ind.inv.Gauss.elbo"]),
-     main="b)", xlab="Iteration", ylab="ELBO")
-for(i in 2:100) {
-  lines(fit1[, substr(colnames(fit1), 1, 18)=="ind.inv.Gauss.elbo"][, i], col=i)
-}
-plot(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gamma.elbo"][, 1], type="l",
-     ylim=range(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gamma.elbo"]),
-     main="c)", xlab="Iteration", ylab="ELBO")
-for(i in 2:100) {
-  lines(fit1[, substr(colnames(fit1), 1, 14)=="inv.Gamma.elbo"][, i], col=i)
-}
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 
-# ---- lines_igaussian_res1_theta ----
-fit1 <- read.table("../results/simulations_igaussian_fit1.csv")
-set1 <- read.table("../results/simulations_igaussian_set1.csv")
 
-par(cex=1.3)
-layout(matrix(c(rep(c(1, 1, 2, 2), times=2), rep(c(0, 3, 3, 0), times=2)), 
-              4, 4, byrow=TRUE), widths=1, heights=1, respect=TRUE)
-plot(fit1[, substr(colnames(fit1), 1, 15)=="inv.Gauss.theta"][, 1], type="l",
-     ylim=range(fit1[, substr(colnames(fit1), 1, 15)=="inv.Gauss.theta"]),
-     main="a)", xlab="Iteration", ylab=expression(theta[d]))
-for(i in 2:5) {
-  lines(fit1[, substr(colnames(fit1), 1, 15)=="inv.Gauss.theta"][
-    , (i - 1)*(set1$D/set1$nclass) + 1], col=i)
-}
-plot(fit1[, substr(colnames(fit1), 1, 19)=="ind.inv.Gauss.theta"][, 1], 
-     type="l", 
-     ylim=range(fit1[, substr(colnames(fit1), 1, 19)=="ind.inv.Gauss.theta"]),
-     main="b)", xlab="Iteration", ylab=expression(theta[d]))
-for(i in 2:5) {
-  lines(fit1[, substr(colnames(fit1), 1, 19)=="ind.inv.Gauss.theta"][
-    , (i - 1)*(set1$D/set1$nclass) + 1], col=i)
-}
-plot(sort(fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.bprior"][, 1]/
-            (fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.aprior"][
-              , 1] - 1)), 
-     type="l", 
-     ylim=range(fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.bprior"]/
-                  (fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.aprior"] - 
-                     1)),
-     main="c)", xlab="Iteration", ylab=expression(beta/(alpha - 1)))
-for(i in 2:5) {
-  lines(sort((fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.bprior"][, ]/
-                (fit1[, substr(colnames(fit1), 1, 16)=="inv.Gamma.aprior"][
-                  , 1] - 1))[, i]), col=i)
-}
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 
-# ---- boxplot_igaussian_res2_theta ----
-res2 <- read.table("../results/simulations_igaussian_res2.csv")
-set2 <- read.table("../results/simulations_igaussian_set2.csv")
-names1 <- c("inv Gauss", "ind inv Gauss", "inv Gamma")
-temp1 <- list(res2[, substr(colnames(res2), 1, 15)=="theta.inv.Gauss"],
-              res2[, substr(colnames(res2), 1, 19)=="theta.ind.inv.Gauss"],
-              res2[, substr(colnames(res2), 1, 16)=="aprior.inv.Gamma"],
-              res2[, substr(colnames(res2), 1, 16)=="bprior.inv.Gamma"])
-temp2 <- list(colMeans((t(temp1[[1]]) - 
-                          as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))^2),
-              colMeans((t(temp1[[2]]) - 
-                          as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"]))^2),
-              colMeans((t(temp1[[4]]/(temp1[[3]] - 1)) - 
-                          unique(as.numeric(set2[, substr(colnames(set2), 1, 5)=="theta"])))^2))
-par(cex=1.3)
-boxplot(temp2, names=names1, ylab="MSE", main="a)")
-legend("bottomright", title=expression(bold("median MSE")), bty="n",
-       paste(names1, round(sapply(temp2, median), 2), sep="="))
-par(cex=1)
 
-# ---- lines_igaussian_res2_alpha ----
-fit2 <- read.table("../results/simulations_igaussian_fit2.csv")
-set2 <- read.table("../results/simulations_igaussian_set2.csv")
 
-par(cex=1.3)
-layout(matrix(rep(c(1, 1, 2, 2), times=2), 2, 4, byrow=TRUE), widths=1, 
-       heights=1, respect=TRUE)
-plot(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"][, 1], type="l",
-     ylim=range(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"]),
-     main="a)", xlab="Iteration", ylab=expression(theta[d]))
-for(i in 2:5) {
-  lines(fit2[, substr(colnames(fit2), 1, 15)=="inv.Gauss.alpha"][, i], col=i)
-}
-plot(fit2[, substr(colnames(fit2), 1, 19)=="ind.inv.Gauss.alpha"][, 1], 
-     type="l", 
-     ylim=range(fit2[, substr(colnames(fit2), 1, 19)=="ind.inv.Gauss.alpha"]),
-     main="b)", xlab="Iteration", ylab=expression(theta[d]))
-for(i in 2:5) {
-  lines(fit2[, substr(colnames(fit2), 1, 19)=="ind.inv.Gauss.alpha"][, i], 
-        col=i)
-}
-par(cex=1)
-layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+
+        

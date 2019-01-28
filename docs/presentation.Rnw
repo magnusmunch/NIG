@@ -1,0 +1,447 @@
+\documentclass[10pt,letterpaper]{beamer} %
+\usetheme{CambridgeUS}
+\usefonttheme{professionalfonts}
+
+%\usepackage{footnote}
+%\makesavenoteenv{figure}
+
+\usepackage{amsmath,verbatim,bm,caption,soul,graphicx}
+\usepackage[plain]{algorithm}
+\usepackage{algorithmic}
+\usepackage[export]{adjustbox}
+\usepackage[american]{babel}
+\usepackage[backend=bibtex,style=verbose]{biblatex}
+
+\addtobeamertemplate{block begin}{\setlength\abovedisplayskip{0pt}}
+
+\setbeamertemplate{sidebar right}{}% or get rid of navigation entries there somehow
+\addtobeamertemplate{footline}{\hfill\usebeamertemplate***{navigation symbols}%
+    \hspace*{0.1cm}\par\vskip 2pt}{}
+
+\setbeamerfont{caption}{size=\scriptsize}
+
+\makeatletter
+\setbeamertemplate{headline}{%
+	\begin{beamercolorbox}[ht=2.25ex,dp=1ex]{section in head/foot}
+		\insertnavigation{\paperwidth}
+	\end{beamercolorbox}%
+}%
+\makeatother
+
+% vectors and matrices
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bepsilon}{\bm{\epsilon}}
+\newcommand{\bomega}{\bm{\omega}}
+\newcommand{\bOmega}{\bm{\Omega}}
+\newcommand{\bSigma}{\bm{\Sigma}}
+\newcommand{\bkappa}{\bm{\kappa}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bmu}{\bm{\mu}}
+\newcommand{\bpsi}{\bm{\psi}}
+\newcommand{\blambda}{\bm{\lambda}}
+\newcommand{\bLambda}{\bm{\Lambda}}
+\newcommand{\bPsi}{\bm{\Psi}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\bgamma}{\bm{\gamma}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\Z}{\mathbf{Z}}
+\newcommand{\W}{\mathbf{W}}
+\renewcommand{\O}{\mathbf{O}}
+\newcommand{\B}{\mathbf{B}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\U}{\mathbf{U}}
+\newcommand{\Em}{\mathbf{E}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\Vm}{\mathbf{V}}
+\newcommand{\rv}{\mathbf{r}}
+\newcommand{\A}{\mathbf{A}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\Sm}{\mathbf{S}}
+\newcommand{\0}{\bm{0}}
+\newcommand{\tx}{\tilde{\mathbf{x}}}
+\newcommand{\hy}{\hat{y}}
+\newcommand{\tm}{\tilde{m}}
+\newcommand{\tkappa}{\tilde{\kappa}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\C}{\mathbf{C}}
+\renewcommand{\v}{\mathbf{v}}
+\newcommand{\g}{\mathbf{g}}
+\newcommand{\s}{\mathbf{s}}
+\renewcommand{\c}{\mathbf{c}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\rvec}{\mathbf{r}}
+\newcommand{\Lm}{\mathbf{L}}
+
+% functions and operators
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\G}{\mathcal{G}}
+\renewcommand{\P}{\mathcal{P}}
+\newcommand{\argmax}{\text{argmax} \,}
+\newcommand{\expit}{\text{expit}}
+\newcommand{\erfc}{\text{erfc}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\Cov}{\mathbb{C}\text{ov}}
+\newcommand{\tr}{^{\text{T}}}
+\newcommand{\diag}{\text{diag}}
+\newcommand{\KL}{D_{\text{KL}}}
+\newcommand{\trace}{\text{tr}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% distributions
+\newcommand{\N}{\text{N}}
+\newcommand{\TG}{\text{TG}}
+\newcommand{\Bi}{\text{Binom}}
+\newcommand{\PG}{\text{PG}}
+\newcommand{\Mu}{\text{Multi}}
+\newcommand{\GIG}{\text{GIG}}
+\newcommand{\IGauss}{\text{IGauss}}
+\newcommand{\Un}{\text{U}}
+
+% syntax and readability
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+\renewcommand{\[}{\left[}
+\renewcommand{\]}{\right]}
+\renewcommand*{\thefootnote}{\fnsymbol{footnote}}
+
+\author[Magnus M\"unch]{Magnus M\"unch \\[3mm] \footnotesize{Joint work with Mark A. van de Wiel, Sylvia Richardson, and Gwena{\"e}l G. R. Leday}}
+\title[EB for drug efficacy prediction]{Emprical Bayes for drug efficacy prediction in cell lines}
+\institute[LU \& AUMC]{Leiden University and Amsterdam UMC}
+\date{\today} % Date, can be changed to a custom date
+\bibliography{refs}
+
+\begin{document}
+
+% load packages and set options
+<<include=FALSE>>=
+library(cambridge)
+library(statmod)
+opts_knit$set(root.dir="..", base.dir="../figs")
+opts_chunk$set(fig.align='center', echo=FALSE, fig.path="../figs/")
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("code/figures.R")
+@
+
+  \begin{frame}
+    \titlepage % Print the title page as the first slide
+    \begin{figure}
+      \raisebox{-0.5\height}{\includegraphics[width=0.3\linewidth]{../figs/logo-universiteitleiden-cmyk.pdf}}
+		  \raisebox{-0.5\height}{\includegraphics[width=0.3\linewidth]{../figs/Amsterdam_UMC_UK_Logo_CMYK_U_150_dpi.jpg}}
+	  \end{figure}
+  \end{frame}
+  
+  \section{The challenge}
+  \begin{frame}
+    \frametitle{Motivation}
+    \begin{figure}[h]
+      \centering
+			\includegraphics[width=1\linewidth]{../figs/{F2.large}.jpg}
+		\end{figure}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Challenges}
+    \begin{itemize}
+      \item \textbf<2>{number of treatments \only<1>{$D$} \only<2>{$\bm{D}$} large}
+			\item \only<1>{$p > n$} \only<2>{$\bm{p > n}$}
+			\item translation from cell lines to patient
+			\item quantification of drug efficacy
+			\item ...
+		\end{itemize}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Opportunities}
+    \begin{columns}
+	    \begin{column}{0.45\linewidth}
+		    \begin{itemize}
+          \item Highly structured setting
+			    \item Correlated treatments
+			    \item Extra information on drugs
+			    \item ...
+		    \end{itemize}
+	    \end{column}
+	    \begin{column}{0.45\linewidth}
+	      \only<1>{\begin{figure}[h]
+          \centering
+			    \includegraphics[width=0.5\linewidth]{../figs/pubchem.png}
+		    \end{figure}
+		    \begin{columns}
+		      \begin{column}{0.5\linewidth}
+<<drug_effect, include=TRUE, echo=FALSE, fig.align="center", out.width="100%">>=
+curve(dnorm(x), -4, 4, main="", yaxt='n', xaxt="n", bty="n", ann=FALSE, cex=10, asp=10,
+      lwd=4)
+axis(1, line=-6, cex=100, lwd=4)
+title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
+@
+		      \end{column}
+		      \begin{column}{0.5\linewidth}
+		        \begin{figure}[h]
+              \centering
+			        \includegraphics[width=1\linewidth]{../figs/300px-SMILES.png}
+		        \end{figure}
+		      \end{column}
+		    \end{columns}
+		    }
+		    \begin{enumerate}[$\Rightarrow$]
+          \item<2-3> Simple models possible
+			    \item<2-3> \textbf<3>{Learning across treatments}
+			    \item<2-3> \textbf<3>{Incorporate to aid estimation}
+			    \item<2-3> ...
+		    \end{enumerate}
+	    \end{column}
+		\end{columns}
+		\bigskip
+		\only<3> {\centering \textbf{Suggest Bayesian model}}
+  \end{frame}
+  
+  \section{Our solution}
+  \begin{frame}
+    \frametitle{Model}
+    \textbf{Likelihood} for cell line $i$'s response $y_i$ to drug $d$, using $p$ omics features $\mathbf{x}_{ij}$.
+    \begin{align*}
+		  \only<1>{y_{id} & = \beta_{0d} + \x_i \tr \bbeta_d + \mathbf{z}_i \tr \mathbf{u}_d + \epsilon_{id},} 
+		  \only<2>{y_{id} & = \beta_{0d} + \x_i \tr \bbeta_d \phantom{ + \mathbf{z}_i \tr \mathbf{u}_d} + \epsilon_{id},} \\
+		  \epsilon_{id} & \sim \mathcal{N}(0, \sigma_d^2),
+		\end{align*}
+		\textbf{Model parameters}
+		\begin{align*}
+		  \beta_{jd} & \sim \mathcal{N}_p (0, \gamma_d^2 \sigma_d^2), \\
+		  \only<1>{\mathbf{u}_{d} & \sim \mathcal{N}_T (\mathbf{0}, \bm{\Xi}_d \sigma_d^2),}
+		\end{align*}
+	  \textbf{Error and prior variance}
+		\begin{align*}
+			\sigma_d^{2} & \sim 1/\sigma_d^{3}, \\
+			\gamma_d^{2} & \sim \mathcal{IG}(\theta_d, \lambda_d)\only<1>{,}\only<2>{.} \\
+			\only<1>{\bm{\Xi}_d & \sim \mathcal{W}^{-1}_T(\bm{\Omega}, \nu).}
+		\end{align*}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Hyperparameters}
+    \textbf{How to choose $\theta_d$ and $\lambda_d$?} We want to somehow:
+    \begin{columns}
+      \begin{column}{0.5\linewidth}
+        \begin{itemize}
+          \item Learn across drugs
+          \item Be objective
+          \item Incorporate extra drug information $\mathbf{c}_d$
+        \end{itemize}
+      \end{column}
+      \begin{column}{0.5\linewidth}
+        \only<2>{\centering $\Rightarrow$ \textbf{Empirical Bayes} (EB) \\
+        Let $\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ \\
+        $\Downarrow$ \\
+        estimate $\bm{\alpha}$ and $\lambda_d$
+        }
+      \end{column}
+    \end{columns}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Empirical Bayes}
+    \textbf{Cannonical EB}: Maximise the marginal likelihood (MML)
+    \begin{itemize}
+      \item analytical MML
+      \item Laplace approximation
+      \item using EM
+      \begin{itemize}
+        \item MCMC
+        \item \textbf<2>{Variational Bayes} (VB)
+      \end{itemize}
+    \end{itemize}
+    \only<2>{
+    \begin{block}{Empirical Bayes EM}
+      $$
+      \bm{\alpha}^{(l+1)}, \bm{\lambda}^{(l+1)} = \underset{\bm{\alpha}, \bm{\lambda}}{\argmax} \, \E_{\bbeta | \y} \[ \log \L_{\bm{\alpha}, \bm{\lambda}}(\y, \bbeta) | \bm{\alpha}^{(l)}, \bm{\lambda}^{(l)} \]
+      $$
+    \end{block}
+    }
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Variational Bayes}
+    $\E_{\bbeta | \y}$ hard to compute, so we approximate:
+    $$
+    p(\bbeta , \bm{\gamma}^2, \bm{\sigma}^2 | \y) \approx Q(\cdot) = q(\bbeta)q(\bm{\gamma}^2)q(\bm{\sigma}^2)
+    $$
+    Variational calculus tells us $D_{KL}(Q || P)$ is minimised by:
+    \begin{align*}
+    q(\bbeta) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p(\bm{\mu}_d,\bm{\Sigma}_d), \\
+    q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}(-1/2,\lambda_d/\theta^2_d,\delta_d), \text{ with } \theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1} \\
+    q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} ((n + p + 1)/2, \zeta_d).
+    \end{align*}
+    Requires iteratively updating $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, and $\zeta_d$
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Full algorithm}
+    \begin{columns}
+      \begin{column}{0.5\linewidth}
+        \begin{algorithm}[H]
+        \caption{Empirical-variational Bayes EM}
+          \begin{algorithmic}[1]
+            \WHILE{EB not converged}
+              \WHILE{VB not converged}
+                \FOR{$d=1,\dots,D$}
+                  \STATE {update $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, and $\zeta_d$}
+                \ENDFOR
+              \ENDWHILE
+              \STATE {update $\bm{\alpha}$, and $\bm{\lambda}$}
+            \ENDWHILE
+          \end{algorithmic}
+        \end{algorithm}
+      \end{column}
+      \begin{column}{0.5\linewidth}
+      \smallskip
+      \bigskip \\
+      $\Bigg\}$ E-step \\
+      \bigskip
+      \medskip
+      M-step
+      \end{column}
+    \end{columns}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Output}
+    \textbf{Hyperparameters} $\hat{\lambda}_d$ (scale) and $\hat{\theta}_d=(\mathbf{c}_d \tr \hat{\bm{\alpha}})^{-1}$ (location)
+    \begin{itemize}
+      \item adaptively estimated (non-informative if bad prior info)
+      \item indication of important drugs
+      \item indication of important drug `covariates'
+    \end{itemize}
+    \begin{columns}
+      \begin{column}{0.45\linewidth}
+<<eb_effect1, include=TRUE, echo=FALSE, fig.align="center", out.width="80%", fig.asp=2/3>>=
+colors <- sp::bpy.colors(4)[-c(1, 4)]
+curve(dinvgauss(x, 1, 1), 0, 5, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
+curve(dinvgauss(x, 5, 3), 0, 5, add=TRUE, col=colors[2], lwd=4, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
+title(xlab=expression(gamma[d]^2), cex=10, cex.lab=3)
+legend("topright", legend=c(expression(lambda[d]~","~theta[d]~"small"), expression(lambda[d]~","~theta[d]~"large")), lty=1, col=colors, lwd=4, cex=3, box.col=NA)
+@
+      \end{column}
+      \begin{column}{0.1\linewidth}
+        $$\Rightarrow$$
+      \end{column}
+      \begin{column}{0.45\linewidth}
+<<eb_effect2, include=TRUE, echo=FALSE, fig.align="center", out.width="80%", fig.asp=2/3>>=
+colors <- sp::bpy.colors(4)[-c(1, 4)]
+curve(dnorm(x, 0, 1), -7, 7, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
+curve(dnorm(x, 0, 3), -7, 7, col=colors[2], lwd=4, add=TRUE, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
+title(xlab=expression(beta[jd]^2~"|"~gamma[d]^2), cex=10, cex.lab=3)
+@
+      \end{column}
+    \end{columns}
+    \textbf{Posterior} parameters $\bm{\mu}_d$ and $\bm{\Sigma}_d$
+    \begin{itemize}
+      \item predict future cell line data
+      \item feature selection (with caution)
+    \end{itemize}
+  \end{frame}
+
+  \section{Simulations}
+  \begin{frame}
+    \frametitle{Motivation}
+    \textbf{How well does the EB estimation work?} \\ 
+    We consider a simple setting with $K$ classes of drugs:
+    $$
+	  c_{dk} = \begin{cases}
+	    1 & \text{if } \text{class}_d = k, \\
+	    0 & \text{otherwise}.
+	  \end{cases}
+	  $$
+	  and compare to
+	  \begin{itemize}
+	    \item `default' inverse Gamma prior (scaled to match inverse Gaussian):
+        $$
+        \gamma_d^{2} \sim \Gamma^{-1} (\eta_d/2, \lambda_d/2) = \Gamma^{-1} (\eta_{\text{class}_d}/2, \lambda_{\text{class}_d}/2).
+        $$
+      \item non-conjugate models $p(\beta_{jd}|\sigma_d^2,\gamma_d^2)=(\beta_{jd}|\gamma_d^2)$
+    \end{itemize}
+  \end{frame}
+  
+  \section{Simulations}
+  \begin{frame}
+    \frametitle{Setup}
+    We use $n=100$, $p=100$, $D=100$, $\text{class}=4$, $\forall d: \lambda_d,\sigma_d^2=1$, $x_{ij} \overset{ind}{\sim} \mathcal{N}(0,1)$
+    and simulate from
+    \begin{enumerate}
+      \item inv. Gaussian model (correct) with $\bm{\alpha} =\begin{bmatrix} 1 & 2 & 3 & 4 \end{bmatrix} \tr$ and $\theta_d =(\mathbf{c}_d \tr \bm{\alpha})^{-1}$
+      \item inv. Gamma model (incorrect) with $\bm{\alpha} = \begin{bmatrix} 3 & 4 & 5 & 6 \end{bmatrix} \tr$ and $\eta_d =\mathbf{c}_d \tr \bm{\alpha}$
+    \end{enumerate}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Prior means 1}
+<<boxplot_igaussian_res1_prior_mean, cache=FALSE, echo=FALSE, fig.cap="Prior mean estimates", out.width="100%", fig.align="center", fig.asp=2/3>>=
+@
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Model parameters 1}
+<<boxplot_igaussian_res1_mu_mse, cache=FALSE, echo=FALSE, fig.cap="MSE of model parameters", out.width="100%", fig.align="center", fig.asp=2/3>>=
+@
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Prior means 2}
+<<boxplot_igaussian_res2_prior_mean, cache=FALSE, echo=FALSE, fig.cap="Prior mean estimates", out.width="100%", fig.align="center", fig.asp=2/3>>=
+@
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Model parameters 2}
+<<boxplot_igaussian_res2_mu_mse, cache=FALSE, echo=FALSE, fig.cap="MSE of model parameters", out.width="100%", fig.align="center", fig.asp=2/3>>=
+@
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Convergence issues}
+<<lines_igaussian_res2_igauss_conj_convergence, cache=FALSE, echo=FALSE, fig.cap="a) lambda, b) prior mean, and c) prior variance estimates", out.width="50%", fig.align="center">>=
+@
+  \end{frame}
+  
+  \section{Future}
+  \begin{frame}
+    \frametitle{Future work}
+    Lots to do
+    \begin{itemize}
+      \item implement tissue effects
+      \item solve convergence issues
+      \item more simulations
+      \item investigate real data (GDSC and CCLE)
+      \item write award-winning nature/science paper
+    \end{itemize}
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Thank you}
+    \centering {\usebeamercolor[fg]{structure} \textbf{Material}} \\
+    \textit{Paper:} Working progress... \\
+    \textit{R-package:} Working progress on https://github.com/magnusmunch/cambridge
+    \bigskip
+
+    \centering {\usebeamercolor[fg]{structure} \textbf{Website}} \\
+    \textit{Group:} https://www.bigstatistics.nl/ \\
+    \textit{Personal:} http://pub.math.leidenuniv.nl/~munchmm/
+    \bigskip
+
+    \centering {\usebeamercolor[fg]{structure} \textbf{Acknowledgements}} \\
+    This research has received funding from the European Research Council under ERC Grant Agreement 320637
+  \end{frame}
+
+\end{document}

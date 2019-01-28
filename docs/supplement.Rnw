@@ -97,14 +97,14 @@
 \begin{document}
 
 % load packages and set options
-<<include=FALSE>>=
+<<settings, include=FALSE, echo=FALSE>>=
 library(cambridge)
 opts_knit$set(base.dir="../figs")
 opts_chunk$set(fig.align='center', echo=FALSE, fig.path="../figs/")
 @
 
 % read figure code
-<<figures, include=FALSE>>=
+<<figures, include=FALSE, echo=FALSE>>=
 read_chunk("../code/figures.R")
 @
 
@@ -306,35 +306,12 @@ read_chunk("../code/figures.R")
   
   We simulate from a correctly specified model given in \ref{sec:notissuemodel}. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
   
-  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times. We compare the results to the models in \ref{sec:indvarmodel} and \ref{sec:invgammamodel}, and present the results in Figures \ref{fig:boxplot_igaussian_res1_sigma2}-\ref{fig:boxplot_igaussian_res1_alpha}.
+  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times. We compare the results to the models in \ref{sec:indvarmodel} and \ref{sec:invgammamodel}, and present the results in Figures \ref{fig:boxplot_igaussian_res1_prior_mean}-\ref{fig:boxplot_igaussian_res2_prior_mean}.
 
-<<boxplot_igaussian_res1_sigma2, cache=FALSE, echo=FALSE, fig.cap="MSEs for posterior means of $\\sigma_d^2$ in simulation 1", out.width="50%", fig.align="center">>=
+<<boxplot_igaussian_res1_prior_mean, cache=FALSE, echo=FALSE, fig.cap="Prior mean estimates", out.width="80%", fig.align="center", fig.asp=2/3>>=
 @
 
-<<boxplot_igaussian_res1_gamma2, cache=FALSE, echo=FALSE, fig.cap="a) MSE and b) correlation for posterior means of $\\gamma_d^2$ in simulation 1", fig.align="center">>=
-@
-
-<<boxplot_igaussian_res1_mu, cache=FALSE, echo=FALSE, fig.cap="a) MSE and b) correlation for posterior means of $\\beta_d$ in simulation 1", fig.align="center">>=
-@
-
-<<boxplot_igaussian_res1_theta, cache=FALSE, echo=FALSE, fig.cap="a) MSE and b) correlation for prior means of $\\gamma_d^2$ ($\\theta_d$) in simulation 1", fig.align="center">>=
-@
-  
-<<boxplot_igaussian_res1_alpha, cache=FALSE, echo=FALSE, fig.cap="a) MSE and b) correlation for $\\alpha$ in simulation 1", fig.align="center">>=
-@
-
-<<lines_igaussian_res1_elbo, cache=FALSE, echo=FALSE, fig.cap="Convergence of ELBO for a) inverse Gaussian, b) independent inverse Gaussian, and c) inverse Gamma models in simulation 1", fig.align="center">>=
-@
-
-<<lines_igaussian_res1_theta, cache=FALSE, echo=FALSE, fig.cap="Convergence of prior means for a) inverse Gaussian, b) independent inverse Gaussian, and c) inverse Gamma models in simulation 1", fig.align="center">>=
-@
-
-Simulations with no difference between classes:
-
-<<boxplot_igaussian_res2_theta, cache=FALSE, echo=FALSE, fig.cap="a) MSE and b) correlation for prior means of $\\gamma_d^2$ ($\\theta_d$) in simulation 2", out.width="50%", fig.align="center">>=
-@
-
-<<lines_igaussian_res2_alpha, cache=FALSE, echo=FALSE, fig.cap="Convergence of $\\alpha$ for a) inverse Gaussian and b) independent inverse Gaussian in simulation 2", fig.align="center">>=
+<<boxplot_igaussian_res2_prior_mean, cache=FALSE, echo=FALSE, fig.cap="Prior mean estimates", out.width="80%", fig.align="center", fig.asp=2/3>>=
 @
 
   \section{Starting values}

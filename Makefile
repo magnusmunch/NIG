@@ -14,7 +14,7 @@ PKGVERS := $(shell sed -n "s/Version: *\([^ ]*\)/\1/p" $(PKGDIR)/DESCRIPTION)
 
 #################################### RULES #####################################
 
-all: $(DDIR)/supplement.pdf $(DDIR)/manuscript.pdf build
+all: $(DDIR)/supplement.pdf $(DDIR)/manuscript.pdf $(DDIR)/presentation.pdf build
 
 # build the package if contents changed
 #$(PKGNAME)_$(PKGVERS).tar.gz: $(shell find $(PKGDIR))

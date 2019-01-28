@@ -180,17 +180,18 @@ test_that("low dim. conjugate inverse Gaussian VB update", {
   cold <- bold; x <- matrix(rnorm(p*n), nrow=n, ncol=p); y <- matrix(rnorm(n))
   svd.x <- svd(x); sv <- svd.x$d; uty <- t(svd.x$u) %*% y
   yty <- as.numeric(t(y) %*% y); eta <- rchisq(1, 2); lambda <- rchisq(1, 2)
-  theta <- rchisq(1, 1); conjugate <- TRUE; inv.gauss <- TRUE; df <- n + p
+  theta <- rchisq(1, 1); conjugate <- TRUE; hyperprior <- "inv. Gaussian"
+  df <- n + p
 
   new.vb <- .single.vb.update(aold, bold, eta, theta, lambda, sv, n, p, uty,
-                              yty, conjugate, inv.gauss)
+                              yty, conjugate, hyperprior)
 
   # the actual calculation are this (see manuscript):
   Sigma <- solve(t(x) %*% x + cold*diag(p))/aold
   mu <- solve(t(x) %*% x + cold*diag(p)) %*% t(x) %*% y
   delta <- c(delta=(bold/cold)*as.numeric(t(mu) %*% mu) + lambda)
   b <- sqrt(lambda/(theta^2*delta))*
-    ratio_besselK_cpp(sqrt(lambda*delta)/theta, 0.5*(p + eta)) + (p + eta)/delta
+    ratio_besselK(sqrt(lambda*delta)/theta, 0.5*(p + eta)) + (p + eta)/delta
   zeta <- 0.5*(yty - 2*t(y) %*% x %*% mu + sum(diag(t(x) %*% x %*% Sigma)) +
                  t(mu) %*% t(x) %*% x %*% mu + 
                  b*(sum(diag(Sigma)) + t(mu) %*% mu))
@@ -211,17 +212,18 @@ test_that("high dim. conjugate inverse Gaussian VB update", {
   cold <- bold; x <- matrix(rnorm(p*n), nrow=n, ncol=p); y <- matrix(rnorm(n))
   svd.x <- svd(x); sv <- svd.x$d; uty <- t(svd.x$u) %*% y
   yty <- as.numeric(t(y) %*% y); eta <- rchisq(1, 2); lambda <- rchisq(1, 2)
-  theta <- rchisq(1, 1); conjugate <- TRUE; inv.gauss <- TRUE; df <- n + p
+  theta <- rchisq(1, 1); conjugate <- TRUE; hyperprior <- "inv. Gaussian"
+  df <- n + p
   
   new.vb <- .single.vb.update(aold, bold, eta, theta, lambda, sv, n, p, uty,
-                              yty, conjugate, inv.gauss)
+                              yty, conjugate, hyperprior)
   
   # the actual calculation are this (see manuscript):
   Sigma <- solve(t(x) %*% x + cold*diag(p))/aold
   mu <- solve(t(x) %*% x + cold*diag(p)) %*% t(x) %*% y
   delta <- c(delta=(bold/cold)*as.numeric(t(mu) %*% mu) + lambda)
   b <- sqrt(lambda/(theta^2*delta))*
-    ratio_besselK_cpp(sqrt(lambda*delta)/theta, 0.5*(p + eta)) + (p + eta)/delta
+    ratio_besselK(sqrt(lambda*delta)/theta, 0.5*(p + eta)) + (p + eta)/delta
   zeta <- 0.5*(yty - 2*t(y) %*% x %*% mu + sum(diag(t(x) %*% x %*% Sigma)) +
                  t(mu) %*% t(x) %*% x %*% mu + 
                  b*(sum(diag(Sigma)) + t(mu) %*% mu))
@@ -242,10 +244,11 @@ test_that("low dim. conjugate inverse Gamma VB update", {
   cold <- bold; x <- matrix(rnorm(p*n), nrow=n, ncol=p); y <- matrix(rnorm(n))
   svd.x <- svd(x); sv <- svd.x$d; uty <- t(svd.x$u) %*% y
   yty <- as.numeric(t(y) %*% y); eta <- rchisq(1, 2); lambda <- rchisq(1, 2)
-  theta <- rchisq(1, 1); conjugate <- TRUE; inv.gauss <- FALSE; df <- n + p
+  theta <- rchisq(1, 1); conjugate <- TRUE; hyperprior <- "inv. Gamma"
+  df <- n + p
   
   new.vb <- .single.vb.update(aold, bold, eta, theta, lambda, sv, n, p, uty,
-                              yty, conjugate, inv.gauss)
+                              yty, conjugate, hyperprior)
   
   # the actual calculation are this (see manuscript):
   Sigma <- solve(t(x) %*% x + cold*diag(p))/aold
@@ -272,10 +275,11 @@ test_that("high dim. conjugate inverse Gamma VB update", {
   cold <- bold; x <- matrix(rnorm(p*n), nrow=n, ncol=p); y <- matrix(rnorm(n))
   svd.x <- svd(x); sv <- svd.x$d; uty <- t(svd.x$u) %*% y
   yty <- as.numeric(t(y) %*% y); eta <- rchisq(1, 2); lambda <- rchisq(1, 2)
-  theta <- rchisq(1, 1); conjugate <- TRUE; inv.gauss <- FALSE; df <- n + p
+  theta <- rchisq(1, 1); conjugate <- TRUE; hyperprior <- "inv. Gamma"
+  df <- n + p
   
   new.vb <- .single.vb.update(aold, bold, eta, theta, lambda, sv, n, p, uty,
-                              yty, conjugate, inv.gauss)
+                              yty, conjugate, hyperprior)
   
   # the actual calculation are this (see manuscript):
   Sigma <- solve(t(x) %*% x + cold*diag(p))/aold
@@ -324,7 +328,7 @@ test_that("inverse Gamma EB update", {
   
   # implemented function
   new.eb <- .eb.update.inv.gamma(esum, bsum, b, delta, old.eta, elbo.const, 
-                                 nclass, sclass, p, epsilon, maxit)
+                                 nclass, sclass, p, D, epsilon, maxit)
   
   # actual calculations (see supplement)
   old.eta <- eta.star <- 1/(log(bsum) + esum/sclass - log(sclass))
@@ -347,8 +351,8 @@ test_that("inverse Gamma EB update", {
     0.5*rep(eta*log(lambda), sclass) - 0.5*rep(lambda, sclass)*b
   
   # checks
-  expect_equal(new.eb["eta"], list(eta=eta))
-  expect_equal(new.eb["lambda"], list(lambda=lambda))
+  expect_equal(new.eb["eta"], list(eta=rep(eta, times=sclass)))
+  expect_equal(new.eb["lambda"], list(lambda=rep(lambda, times=sclass)))
   expect_equal(new.eb["conv"], list(conv=conv))
   expect_equal(new.eb["elbo"], list(elbo=elbo))
   expect_equal(all(new.eb$lambda > 0), TRUE)

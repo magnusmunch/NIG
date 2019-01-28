@@ -1,282 +1,224 @@
 #!/usr/bin/env Rscript
 
-### installation of package
+### installation of packages
 # if(!("devtools" %in% installed.packages())) {
 #   install.packages("devtools")
 # }
 # library(devtools)
 # install_github("magnusmunch/cambridge/rpackage", local=FALSE,
 #                auth_token=Sys.getenv("GITHUB_PAT"))
+if(!("statmod" %in% installed.packages())) {
+  install.packages("statmod")
+}
 
 ### libraries
 library(cambridge)
+library(statmod)
 
 ################################# simulation 1 #################################
 # settings
 nreps <- 100
 n <- 100
-p <- 200
-D <- 300
-nclass <- 5
+p <- 100
+D <- 100
+nclass <- 4
 
 # create fixed parameters
 alpha <- c(1:nclass)
-C <- model.matrix(~ 1 + factor(rep(c(1:nclass), each=D/nclass)))
-theta <- as.numeric(1/(C %*% alpha))
-gamma <- sqrt(theta)
+C.inv.gauss <- model.matrix(~ -1 + factor(rep(c(1:nclass), each=D/nclass)))
+C.inv.gamma <- as.numeric(C.inv.gauss %*% c(1:nclass))
+theta <- as.numeric(1/(C.inv.gauss %*% alpha))
+lambda <- rep(1, D)
 sigma <- rep(1, D)
-SNR <- 10
+SNR <- 50
 
 # store settings in an object
-temp <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C,
-          theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
-set1 <- t(matrix(temp))
-colnames(set1) <- names(temp)
+temp1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, 
+           C=C.inv.gauss, theta=theta, lambda=lambda, sigma=sigma, SNR=SNR)
+set1 <- t(matrix(temp1))
+colnames(set1) <- names(temp1)
 
 # objects to store simulation results
-list1 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  matrix(NA, ncol=D, nrow=nreps,
-         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
-list2 <- sapply(c("inv Gamma"), function(m) {
-  matrix(NA, ncol=D, nrow=nreps,
-         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
-list3 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  matrix(NA, ncol=nclass, nrow=nreps,
-         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))},
-  simplify=FALSE)
-list4 <- sapply(c("inv Gamma"), function(m) {
-  matrix(NA, ncol=nclass, nrow=nreps,
-         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))},
-  simplify=FALSE)
-list5 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  rep(NA, nreps)}, simplify=FALSE)
-list6 <- sapply(c("inv Gauss", "ind inv Gauss", "inv Gamma"), function(m) {
-  rep(NA, nreps)}, simplify=FALSE)
-res1 <- data.frame(theta=list1, delta=list1, zeta=list1, apost=list2,
-                   bpost=list2, cpost=list2, dpost=list2, alpha=list3,
-                   aprior=list4, bprior=list4, lambda=list5, mse.mu=list6,
-                   cor.mu=list6, mSNR=numeric(nreps),
-                   row.names=paste("rep", c(1:nreps), sep=""))
+methods <- c("igauss.conj", "igauss.non.conj", "igamma.conj", "igamma.non.conj")
+params <- c("alpha", "eta", "theta", "lambda", "mu", "dSigma", "delta", "zeta")
+drugs <- paste("drug", c(1:D), sep="")
+covs <- paste("cov", c(1:nclass), sep="")
+res1 <- as.data.frame(
+  matrix(NA, nrow=nreps, ncol=length(methods)*length(covs) + 
+           length(methods)*length(params[-1])*length(drugs),
+         dimnames=list(paste("rep", c(1:nreps), sep=""), 
+                       c(apply(expand.grid(covs, methods, params[1]), 1, paste, 
+                               collapse="_"), 
+                         apply(expand.grid(drugs, methods, params[-1]), 1, 
+                               paste, collapse="_")))))
 
 # set initial values and control parameters
-control <- list(epsilon.eb=1e-3, epsilon.vb=1e-3, maxit.eb=20, maxit.vb=2,
-                trace=FALSE)
-init <- list(alpha=c(mean(gamma^2), rep(0, nclass - 1)),
-             lambda=mean(gamma^2)^2, a=rep(mean(1/gamma^2), D),
-             zeta=rep(0.5*mean(sigma^2)*(n + p - 1), D))
+control <- list(epsilon.eb=-1, epsilon.vb=-1, 
+                epsilon.opt=sqrt(sqrt(.Machine$double.eps)), 
+                maxit.eb=20, maxit.vb=2, maxit.opt=100, trace=FALSE)
+init.inv.gauss <- list(a=rep(mean(1/sigma^2), D), b=rep(mean(theta), D), 
+                       theta=theta, lambda=rep(1, D))
+init.inv.gamma <- list(a=rep(mean(1/sigma^2), D), b=rep(mean(theta), D),  
+                       eta=rep(theta, D), lambda=rep(1, D))
 
-# simulation (SNR not correct)
+# simulation
 set.seed(2018)
 for(r in 1:nreps) {
 
   cat("\r", "replication", r)
-
+  
   # create data
+  gamma <- sqrt(rinvgauss(D, theta, shape=lambda))
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
-  x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
+  x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(theta)*p))), nrow=n, ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
+  
   # fit inverse Gaussian models
-  fit1.igauss1 <- est.igauss(x, y, C, control=control, init=init,
-                             test=list(ind=FALSE))
-  fit1.igauss2 <- est.igauss(x, y, C, control=control, init=init,
-                             test=list(ind=TRUE))
-
-  # fit independent inverse Gamma priors model (vague, but one-point prior)
-  fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
-                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3,
-                                     epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2,
-                                     maxit.opt=20, conv.vb="elbo",
-                                     trace=FALSE),
-                        init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
-
+  fit1.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE, 
+                                init=init.inv.gauss, control=control)
+  fit1.igauss.non.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", FALSE, 
+                                    init=init.inv.gauss, control=control)
+  
+  # fit independent inverse Gamma models
+  fit1.igamma.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", TRUE, 
+                                init=init.inv.gamma, control=control)
+  fit1.igamma.non.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", FALSE, 
+                                    init=init.inv.gamma, control=control)
+  
   # store results
-  res1[r, c(1:D)] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
-  res1[r, c((D + 1):(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
-  res1[r, c((2*D + 1):(3*D))]  <- fit1.igauss1$vb.post$delta
-  res1[r, c((3*D + 1):(4*D))]  <- fit1.igauss2$vb.post$delta
-  res1[r, c((4*D + 1):(5*D))] <- fit1.igauss1$vb.post$zeta
-  res1[r, c((5*D + 1):(6*D))] <- fit1.igauss2$vb.post$zeta
-  res1[r, c((6*D + 1):(7*D))] <- fit1.gwen$vb.post$apost
-  res1[r, c((7*D + 1):(8*D))] <- fit1.gwen$vb.post$bpost
-  res1[r, c((8*D + 1):(9*D))] <- fit1.gwen$vb.post$cpost
-  res1[r, c((9*D + 1):(10*D))] <- fit1.gwen$vb.post$dpost
-  res1[r, c((10*D + 1):(10*D + 1*nclass))] <-
-    fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
-  res1[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <-
-    fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
-  res1[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <-
-    fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
-  res1[r, c((10*D + 3*nclass + 1):(10*D + 4*nclass))] <-
-    fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
-  res1[r, 10*D + 4*nclass + 1] <-
-    fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
-  res1[r, 10*D + 4*nclass + 2] <-
-    fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
-  res1[r, 10*D + 4*nclass + 3] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
-  res1[r, 10*D + 4*nclass + 4] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
-  res1[r, 10*D + 4*nclass + 5] <- mean((beta - fit1.gwen$vb.post$mu)^2)
-  res1[r, 10*D + 4*nclass + 6] <-
-    cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
-  res1[r, 10*D + 4*nclass + 7] <-
-    cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
-  res1[r, 10*D + 4*nclass + 8] <-
-    cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
+  temp1 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[1]), 1, 
+                                paste, collapse="$"), "[fit1.", methods, 
+                 "$iter$eb", ", ]", sep="")
+  temp2 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[2:4]), 1, 
+                                paste, collapse="$"), "[fit1.", methods, 
+                 "$iter$eb", ", ]", sep="")
+  temp3 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[5]), 1, 
+                                paste, collapse="$"), sep="")
+  temp4 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[6]), 1, 
+                                paste, collapse="$"), sep="")
+  temp5 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[7:8]), 1, 
+                                paste, collapse="$"), sep="")
+  res1[r, ] <- c(c(sapply(temp1, function(s) {eval(parse(text=s))})), 
+                 c(sapply(temp2, function(s) {eval(parse(text=s))})),
+                 c(sapply(temp3, function(s) {
+                   colMeans((eval(parse(text=s)) - beta)^2)})),
+                 c(sapply(temp4, function(s) {colMeans(eval(parse(text=s)))})),
+                 c(sapply(temp5, function(s) {eval(parse(text=s))})))
 
-  # store actual mean SNR
-  res1[r, 10*D + 4*nclass + 9] <-
-    mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
-
-  # save the settings, results, and last model fits for convergence examples
-  temp1 <- data.frame(inv.Gauss=fit1.igauss1$seq.eb)
-  temp1 <- temp1[rep(seq_len(nrow(temp1)), times=fit1.igauss1$iter$vb + 1), ]
-  temp2 <- data.frame(ind.inv.Gauss=fit1.igauss2$seq.eb)
-  temp2 <- temp2[rep(seq_len(nrow(temp2)), times=fit1.igauss2$iter$vb + 1), ]
-  fit1 <- data.frame(inv.Gauss.elbo=fit1.igauss1$seq.elbo, temp1,
-                     ind.inv.Gauss.elbo=fit1.igauss2$seq.elbo, temp2,
-                     inv.Gamma.elbo=fit1.gwen$seq.elbo,
-                     inv.Gamma=fit1.gwen$seq.eb)
-
-  write.table(set1, file="../results/simulations_igaussian_set1.csv")
-  write.table(res1, file="../results/simulations_igaussian_res1.csv")
-  write.table(fit1, file="../results/simulations_igaussian_fit1.csv")
+  
+  # save fitted models and results
+  fit1 <- data.frame(igauss.conj=fit1.igauss.conj$seq.eb,
+                     igauss.non.conj=fit1.igauss.non.conj$seq.eb,
+                     igamma.conj=fit1.igamma.conj$seq.eb,
+                     igamma.non.conj=fit1.igamma.non.conj$seq.eb)
+  write.table(set1, file="results/simulations_igaussian_set1.csv")
+  write.table(res1, file="results/simulations_igaussian_res1.csv")
+  write.table(fit1, file="results/simulations_igaussian_fit1.csv")
 
 }
 
 ###############################   simulation 2   ###############################
-
 # settings
 nreps <- 100
 n <- 100
-p <- 200
+p <- 100
 D <- 100
-nclass <- 5
+nclass <- 4
 
 # create fixed parameters
-alpha <- c(1, 0, 0, 0, 0)
-C <- model.matrix(~ 1 + factor(rep(c(1:nclass), each=D/nclass)))
-theta <- as.numeric(1/(C %*% alpha))
-gamma <- sqrt(theta)
+alpha <- c(1:nclass) + 2
+C.inv.gauss <- model.matrix(~ -1 + factor(rep(c(1:nclass), each=D/nclass)))
+C.inv.gamma <- as.numeric(C.inv.gauss %*% c(1:nclass))
+eta <- as.numeric(C.inv.gauss %*% alpha)
+lambda <- rep(1, D)
 sigma <- rep(1, D)
-SNR <- 10
+SNR <- 50
 
 # store settings in an object
-temp <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, C=C, 
-          theta=theta, gamma=gamma, sigma=sigma, SNR=SNR)
-set2 <- t(matrix(temp))
-colnames(set2) <- names(temp)
+temp1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, 
+           C=C.inv.gauss, eta=eta, lambda=lambda, sigma=sigma, SNR=SNR)
+set2 <- t(matrix(temp1))
+colnames(set2) <- names(temp1)
 
 # objects to store simulation results
-list1 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  matrix(NA, ncol=D, nrow=nreps, 
-         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
-list2 <- sapply(c("inv Gamma"), function(m) {
-  matrix(NA, ncol=D, nrow=nreps, 
-         dimnames=list(NULL, paste("drug", c(1:D), sep="")))}, simplify=FALSE)
-list3 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  matrix(NA, ncol=nclass, nrow=nreps, 
-         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))}, 
-  simplify=FALSE)
-list4 <- sapply(c("inv Gamma"), function(m) {
-  matrix(NA, ncol=nclass, nrow=nreps, 
-         dimnames=list(NULL, paste("class", c(1:nclass), sep="")))}, 
-  simplify=FALSE)
-list5 <- sapply(c("inv Gauss", "ind inv Gauss"), function(m) {
-  rep(NA, nreps)}, simplify=FALSE)
-list6 <- sapply(c("inv Gauss", "ind inv Gauss", "inv Gamma"), function(m) {
-  rep(NA, nreps)}, simplify=FALSE)
-res2 <- data.frame(theta=list1, delta=list1, zeta=list1, apost=list2, 
-                   bpost=list2, cpost=list2, dpost=list2, alpha=list3, 
-                   aprior=list4, bprior=list4, lambda=list5, mse.mu=list6, 
-                   cor.mu=list6, mSNR=numeric(nreps), 
-                   row.names=paste("rep", c(1:nreps), sep=""))
+methods <- c("igauss.conj", "igauss.non.conj", "igamma.conj", "igamma.non.conj")
+params <- c("alpha", "eta", "theta", "lambda", "mu", "dSigma", "delta", "zeta")
+drugs <- paste("drug", c(1:D), sep="")
+covs <- paste("cov", c(1:nclass), sep="")
+res2 <- as.data.frame(
+  matrix(NA, nrow=nreps, ncol=length(methods)*length(covs) + 
+           length(methods)*length(params[-1])*length(drugs),
+         dimnames=list(paste("rep", c(1:nreps), sep=""), 
+                       c(apply(expand.grid(covs, methods, params[1]), 1, paste, 
+                               collapse="_"), 
+                         apply(expand.grid(drugs, methods, params[-1]), 1, 
+                               paste, collapse="_")))))
 
 # set initial values and control parameters
-control <- list(epsilon.eb=1e-3, epsilon.vb=1e-3, maxit.eb=20, maxit.vb=2, 
-                trace=FALSE)
-init <- list(alpha=c(mean(gamma^2), rep(0, nclass - 1)), 
-             lambda=mean(gamma^2)^2, a=rep(mean(1/gamma^2), D), 
-             zeta=rep(0.5*mean(sigma^2)*(n + p - 1), D))
+control <- list(epsilon.eb=-1, epsilon.vb=-1, 
+                epsilon.opt=sqrt(sqrt(.Machine$double.eps)), 
+                maxit.eb=20, maxit.vb=2, maxit.opt=100, trace=FALSE)
+init.inv.gauss <- list(a=rep(mean(1/sigma^2), D), 
+                       b=rep(mean(lambda/(eta - 2)), D), 
+                       theta=rep(mean(lambda/(eta - 2)), D), lambda=rep(1, D))
+init.inv.gamma <- list(a=rep(mean(1/sigma^2), D), 
+                       b=rep(mean(lambda/(eta - 2)), D),  
+                       eta=eta, lambda=rep(1, D))
 
-# simulation (SNR not correct)
+# simulation
 set.seed(2018)
 for(r in 1:nreps) {
   
   cat("\r", "replication", r)
   
   # create data
+  gamma <- 1/sqrt(rgamma(D, shape=eta/2, scale=lambda/2))
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
-  x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(gamma^2)*p))), nrow=n, ncol=p)
+  x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(lambda/(eta - 2))*p))), nrow=n, 
+              ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
   
   # fit inverse Gaussian models
-  fit1.igauss1 <- est.igauss(x, y, C, control=control, init=init,
-                             test=list(ind=FALSE))
-  fit1.igauss2 <- est.igauss(x, y, C, control=control, init=init,
-                             test=list(ind=TRUE))
+  fit2.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE, 
+                                init=init.inv.gauss, control=control)
+  fit2.igauss.non.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", FALSE, 
+                                    init=init.inv.gauss, control=control)
   
-  # fit independent inverse Gamma priors model (vague, but one-point prior)
-  fit1.gwen <- est.gwen(x, y, eqid=rep(c(1:nclass), each=D/nclass),
-                        control=list(epsilon.eb=1e-3, epsilon.vb=1e-3,
-                                     epsilon.opt=1e-6, maxit.eb=20, maxit.vb=2,
-                                     maxit.opt=20, conv.vb="elbo",
-                                     trace=FALSE),
-                        init=list(aprior=0.001/mean(gamma^2), bprior=0.001))
+  # fit independent inverse Gamma models
+  fit2.igamma.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", TRUE, 
+                                init=init.inv.gamma, control=control)
+  fit2.igamma.non.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", FALSE, 
+                                    init=init.inv.gamma, control=control)
   
   # store results
-  res2[r, c(1:D)] <- fit1.igauss1$seq.eb$theta[fit1.igauss1$iter$eb, ]
-  res2[r, c((D + 1):(2*D))] <- fit1.igauss2$seq.eb$theta[fit1.igauss2$iter$eb, ]
-  res2[r, c((2*D + 1):(3*D))]  <- fit1.igauss1$vb.post$delta
-  res2[r, c((3*D + 1):(4*D))]  <- fit1.igauss2$vb.post$delta
-  res2[r, c((4*D + 1):(5*D))] <- fit1.igauss1$vb.post$zeta
-  res2[r, c((5*D + 1):(6*D))] <- fit1.igauss2$vb.post$zeta
-  res2[r, c((6*D + 1):(7*D))] <- fit1.gwen$vb.post$apost
-  res2[r, c((7*D + 1):(8*D))] <- fit1.gwen$vb.post$bpost
-  res2[r, c((8*D + 1):(9*D))] <- fit1.gwen$vb.post$cpost
-  res2[r, c((9*D + 1):(10*D))] <- fit1.gwen$vb.post$dpost
-  res2[r, c((10*D + 1):(10*D + 1*nclass))] <-
-    fit1.igauss1$seq.eb$alpha[fit1.igauss1$iter$eb, ]
-  res2[r, c((10*D + 1*nclass + 1):(10*D + 2*nclass))] <-
-    fit1.igauss2$seq.eb$alpha[fit1.igauss2$iter$eb, ]
-  res2[r, c((10*D + 2*nclass + 1):(10*D + 3*nclass))] <-
-    fit1.gwen$seq.eb$aprior[fit1.gwen$iter$eb, ]
-  res2[r, c((10*D + 3*nclass + 1):(10*D + 4*nclass))] <-
-    fit1.gwen$seq.eb$bprior[fit1.gwen$iter$eb, ]
-  res2[r, 10*D + 4*nclass + 1] <-
-    fit1.igauss1$seq.eb$lambda[fit1.igauss1$iter$eb]
-  res2[r, 10*D + 4*nclass + 2] <-
-    fit1.igauss2$seq.eb$lambda[fit1.igauss2$iter$eb]
-  res2[r, 10*D + 4*nclass + 3] <- mean((beta - fit1.igauss1$vb.post$mu)^2)
-  res2[r, 10*D + 4*nclass + 4] <- mean((beta - fit1.igauss2$vb.post$mu)^2)
-  res2[r, 10*D + 4*nclass + 5] <- mean((beta - fit1.gwen$vb.post$mu)^2)
-  res2[r, 10*D + 4*nclass + 6] <-
-    cor(as.numeric(beta), as.numeric(fit1.igauss1$vb.post$mu))
-  res2[r, 10*D + 4*nclass + 7] <-
-    cor(as.numeric(beta), as.numeric(fit1.igauss2$vb.post$mu))
-  res2[r, 10*D + 4*nclass + 8] <-
-    cor(as.numeric(beta), as.numeric(fit1.gwen$vb.post$mu))
+  temp1 <- paste("fit2.", apply(expand.grid(methods, "seq.eb", params[1]), 1, 
+                                paste, collapse="$"), "[fit2.", methods, 
+                 "$iter$eb", ", ]", sep="")
+  temp2 <- paste("fit2.", apply(expand.grid(methods, "seq.eb", params[2:4]), 1, 
+                                paste, collapse="$"), "[fit2.", methods, 
+                 "$iter$eb", ", ]", sep="")
+  temp3 <- paste("fit2.", apply(expand.grid(methods, "vb.post", params[5]), 1, 
+                                paste, collapse="$"), sep="")
+  temp4 <- paste("fit2.", apply(expand.grid(methods, "vb.post", params[6]), 1, 
+                                paste, collapse="$"), sep="")
+  temp5 <- paste("fit2.", apply(expand.grid(methods, "vb.post", params[7:8]), 1, 
+                                paste, collapse="$"), sep="")
+  res2[r, ] <- c(c(sapply(temp1, function(s) {eval(parse(text=s))})), 
+                 c(sapply(temp2, function(s) {eval(parse(text=s))})),
+                 c(sapply(temp3, function(s) {
+                   colMeans((eval(parse(text=s)) - beta)^2)})),
+                 c(sapply(temp4, function(s) {colMeans(eval(parse(text=s)))})),
+                 c(sapply(temp5, function(s) {eval(parse(text=s))})))
   
-  # store actual mean SNR
-  res2[r, 10*D + 4*nclass + 9] <- 
-    mean(apply(x %*% beta, 2, var)/apply(y, 2, var))
-  
-  # save the settings, results, and last model fits for convergence examples
-  temp1 <- data.frame(inv.Gauss=fit1.igauss1$seq.eb)
-  temp1 <- temp1[rep(seq_len(nrow(temp1)), times=fit1.igauss1$iter$vb + 1), ]
-  temp2 <- data.frame(ind.inv.Gauss=fit1.igauss2$seq.eb)
-  temp2 <- temp2[rep(seq_len(nrow(temp2)), times=fit1.igauss2$iter$vb + 1), ]
-  fit2 <- data.frame(inv.Gauss.elbo=fit1.igauss1$seq.elbo, temp1, 
-                     ind.inv.Gauss.elbo=fit1.igauss2$seq.elbo, temp2, 
-                     inv.Gamma.elbo=fit1.gwen$seq.elbo,
-                     inv.Gamma=fit1.gwen$seq.eb)
-  
-  write.table(set2, file="../results/simulations_igaussian_set2.csv")
-  write.table(res2, file="../results/simulations_igaussian_res2.csv")
-  write.table(fit2, file="../results/simulations_igaussian_fit2.csv")
-  
+  # save fitted models and results
+  fit2 <- data.frame(igauss.conj=fit2.igauss.conj$seq.eb,
+                     igauss.non.conj=fit2.igauss.non.conj$seq.eb,
+                     igamma.conj=fit2.igamma.conj$seq.eb,
+                     igamma.non.conj=fit2.igamma.non.conj$seq.eb)
+  write.table(set2, file="results/simulations_igaussian_set2.csv")
+  write.table(res2, file="results/simulations_igaussian_res2.csv")
+  write.table(fit2, file="results/simulations_igaussian_fit2.csv")
+
 }
 
 warnings()
-
-
-
