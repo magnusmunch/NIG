@@ -132,7 +132,7 @@ C.inv.gamma <- as.numeric(C.inv.gauss %*% c(1:nclass))
 eta <- as.numeric(C.inv.gauss %*% alpha)
 lambda <- rep(1, D)
 sigma <- rep(1, D)
-SNR <- 50
+SNR <- 3
 
 # store settings in an object
 temp1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, 
@@ -157,7 +157,7 @@ res2 <- as.data.frame(
 # set initial values and control parameters
 control <- list(epsilon.eb=-1, epsilon.vb=-1, 
                 epsilon.opt=sqrt(sqrt(.Machine$double.eps)), 
-                maxit.eb=20, maxit.vb=2, maxit.opt=100, trace=FALSE)
+                maxit.eb=30, maxit.vb=4, maxit.opt=100, trace=FALSE)
 init.inv.gauss <- list(a=rep(mean(1/sigma^2), D), 
                        b=rep(mean(lambda/(eta - 2)), D), 
                        theta=rep(mean(lambda/(eta - 2)), D), lambda=rep(1, D))
@@ -222,3 +222,51 @@ for(r in 1:nreps) {
 }
 
 warnings()
+
+
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(0, 4, 4, 5, 5, 0), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(fit2.igauss.conj$seq.eb$alpha[, 1], type="l", xlab="iteration", main="a)",
+     ylab=expression(hat(alpha)[c]), ylim=range(fit2.igauss.conj$seq.eb$alpha))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$alpha)) {
+  lines(fit2.igauss.conj$seq.eb$alpha[, d], col=d)
+}
+plot(fit2.igauss.conj$seq.eb$theta[, 1], type="l", xlab="iteration", main="b)",
+     ylab=expression(hat(theta)[d]), ylim=range(fit2.igauss.conj$seq.eb$theta))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$theta)) {
+  lines(fit2.igauss.conj$seq.eb$theta[, d], col=d)
+}
+plot(fit2.igauss.conj$seq.eb$lambda[, 1], type="l", xlab="iteration", main="c)",
+     ylab=expression(hat(lambda)[d]), ylim=range(fit2.igauss.conj$seq.eb$lambda))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$lambda)) {
+  lines(fit2.igauss.conj$seq.eb$lambda[, d], col=d)
+}
+plot(fit2.igamma.conj$seq.eb$eta[, 1], type="l", xlab="iteration", main="d)",
+     ylab=expression(hat(eta)[d]), ylim=range(fit2.igamma.conj$seq.eb$eta))
+for(d in 2:ncol(fit2.igamma.conj$seq.eb$eta)) {
+  lines(fit2.igamma.conj$seq.eb$eta[, d], col=d)
+}
+plot(fit2.igamma.conj$seq.eb$lambda[, 1], type="l", xlab="iteration", main="e)",
+     ylab=expression(hat(lambda)[d]), ylim=range(fit2.igamma.conj$seq.eb$lambda))
+for(d in 2:ncol(fit2.igamma.conj$seq.eb$lambda)) {
+  lines(fit2.igamma.conj$seq.eb$lambda[, d], col=d)
+}
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
+
+
+
+plot(alpha, fit2.igauss.conj$seq.eb$alpha[fit2.igauss.conj$iter$eb, ])
+plot(lambda/(eta - 2), 
+     fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ])
+plot(lambda, fit2.igauss.conj$seq.eb$lambda[fit2.igauss.conj$iter$eb, ])
+
+plot(eta, fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ])
+plot(lambda, fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ])
+
+
+
+
+

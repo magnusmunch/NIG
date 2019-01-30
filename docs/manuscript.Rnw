@@ -155,7 +155,7 @@
 	We capture the uncertainty in the parameters through a Bayesian prior model. We assign a flat prior to the intercept terms $\beta_{0d}$ and integrate them out. The remaining parameters are endowed with the following priors:
 	\begin{subequations}\label{eq:prior}
 		\begin{align}
-		\beta_{jd} & \sim \mathcal{N}_p (0, \phi^2_{g(j)} \gamma_d^2 \sigma_d^2), \\
+		\beta_{jd} & \sim \mathcal{N}_p (0, \phi^2_{g(j)} \gamma_d^2 \sigma_d^2), \label{eq:betaprior}\\
 		\mathbf{u}_{d} & \sim \mathcal{N}_T (\mathbf{0}, \bm{\Xi}_d \sigma_d^2),
 		\end{align}
 	\end{subequations}
@@ -318,6 +318,8 @@
 	- regression on drug covariates very intuitive.
 	
 	- find more literature on inverse Gaussian prior for variances and modelling variances with covariates.
+	
+	Recently, \cite{moran_variance_2018} have argued that in high-dimensional regression problems, \text{a priori} dependence between the regression parameters and error variance may induce biased estimation. In (\ref{eq:betaprior}), we assume such an \textit{a priori} dependence. However, we contend that independent regression parameters and error variance are not desirable in our setting for two reasons: (a) the empirical Bayes estimation requires some notion of scale to combine the separate regressions, which may be done by inclusion of the error variance in the regression parameter prior model. (b) The variational Bayes approximation introduced in Section \ref{sec:variationalbayes} gives a posterior that is similar to the one we would obtain with a dependent regression parameters and error variance prior model. This renders a better approximate expectation in the empirical Bayes iterations.
 	
 	\bibliographystyle{author_short3} 
 	\bibliography{refs}
