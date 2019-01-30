@@ -1,25 +1,25 @@
+% document settings
 \documentclass[10pt,letterpaper]{beamer} %
 \usetheme{CambridgeUS}
 \usefonttheme{professionalfonts}
 
-%\usepackage{footnote}
-%\makesavenoteenv{figure}
-
-\usepackage{amsmath,verbatim,bm,caption,soul,graphicx}
+% loading packages
+\usepackage{amsmath,verbatim,bm,caption,soul,graphicx,url}
 \usepackage[plain]{algorithm}
 \usepackage{algorithmic}
 \usepackage[export]{adjustbox}
 \usepackage[american]{babel}
-\usepackage[backend=bibtex,style=verbose]{biblatex}
+\usepackage[backend=bibtex,citestyle=authoryear]{biblatex}
+\usepackage[outdir=./]{epstopdf}
+% \usepackage[outdir=../figs/]{epstopdf}
 
+% beamer settings
 \addtobeamertemplate{block begin}{\setlength\abovedisplayskip{0pt}}
 
 \setbeamertemplate{sidebar right}{}% or get rid of navigation entries there somehow
 \addtobeamertemplate{footline}{\hfill\usebeamertemplate***{navigation symbols}%
     \hspace*{0.1cm}\par\vskip 2pt}{}
-
 \setbeamerfont{caption}{size=\scriptsize}
-
 \makeatletter
 \setbeamertemplate{headline}{%
 	\begin{beamercolorbox}[ht=2.25ex,dp=1ex]{section in head/foot}
@@ -114,11 +114,12 @@
 \renewcommand{\]}{\right]}
 \renewcommand*{\thefootnote}{\fnsymbol{footnote}}
 
-\author[Magnus M\"unch]{Magnus M\"unch \\[3mm] \footnotesize{Joint work with Mark A. van de Wiel, Sylvia Richardson, and Gwena{\"e}l G. R. Leday}}
-\title[EB for drug efficacy prediction]{Emprical Bayes for drug efficacy prediction in cell lines}
-\institute[LU \& AUMC]{Leiden University and Amsterdam UMC}
-\date{\today} % Date, can be changed to a custom date
-\bibliography{refs}
+% content settings
+\author[Magnus M\"unch]{Magnus M. M\"unch \\[3mm] \footnotesize{Joint work with Mark A. van de Wiel, Sylvia Richardson, and Gwena{\"e}l G. R. Leday}}
+\title[EB for drug efficacy prediction]{Empirical Bayes for drug efficacy prediction in cell lines}
+\institute[LU, AUMC, \& MRC BSU]{Leiden University, Amsterdam UMC, and MRC Biostatistics Unit}
+\date{\today}
+\bibliography{refs} % unfortunately custom bibliography doesn't work with biblatex
 
 \begin{document}
 
@@ -140,6 +141,7 @@ read_chunk("code/figures.R")
     \begin{figure}
       \raisebox{-0.5\height}{\includegraphics[width=0.3\linewidth]{../figs/logo-universiteitleiden-cmyk.pdf}}
 		  \raisebox{-0.5\height}{\includegraphics[width=0.3\linewidth]{../figs/Amsterdam_UMC_UK_Logo_CMYK_U_150_dpi.jpg}}
+		  \raisebox{-0.5\height}{\includegraphics[width=0.4\linewidth,trim={0 0.5cm 14cm 0},clip]{../figs/MRC_BSU_Cambridge_colour_profprint_A4.eps}}
 	  \end{figure}
   \end{frame}
   
@@ -147,8 +149,8 @@ read_chunk("code/figures.R")
   \begin{frame}
     \frametitle{Motivation}
     \begin{figure}[h]
-      \centering
-			\includegraphics[width=1\linewidth]{../figs/{F2.large}.jpg}
+      {\centering \includegraphics[width=1\linewidth]{../figs/{F2.large}.jpg}}
+			{\scriptsize{Source:~\cite{goodspeed_tumor-derived_2016}}}
 		\end{figure}
   \end{frame}
   
@@ -187,11 +189,15 @@ curve(dnorm(x), -4, 4, main="", yaxt='n', xaxt="n", bty="n", ann=FALSE, cex=10, 
 axis(1, line=-6, cex=100, lwd=4)
 title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
 @
+		        \begin{figure}[h]
+              \centering
+			        \includegraphics[width=0.9\linewidth]{../figs/FDA_approval.png}
+		        \end{figure}
 		      \end{column}
 		      \begin{column}{0.5\linewidth}
 		        \begin{figure}[h]
-              \centering
-			        \includegraphics[width=1\linewidth]{../figs/300px-SMILES.png}
+              {\centering \includegraphics[width=1\linewidth]{../figs/300px-SMILES.png}}
+			        {\scriptsize{Source:~\cite{noauthor_simplified_2019}}}
 		        \end{figure}
 		      \end{column}
 		    \end{columns}
@@ -219,7 +225,7 @@ title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
 		\end{align*}
 		\textbf{Model parameters}
 		\begin{align*}
-		  \beta_{jd} & \sim \mathcal{N}_p (0, \gamma_d^2 \sigma_d^2), \\
+		  \beta_{jd} & \sim \mathcal{N} (0, \gamma_d^2 \sigma_d^2), \\
 		  \only<1>{\mathbf{u}_{d} & \sim \mathcal{N}_T (\mathbf{0}, \bm{\Xi}_d \sigma_d^2),}
 		\end{align*}
 	  \textbf{Error and prior variance}
@@ -238,22 +244,25 @@ title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
         \begin{itemize}
           \item Learn across drugs
           \item Be objective
-          \item Incorporate extra drug information $\mathbf{c}_d$
+          \item Incorporate drug information $\mathbf{c}_d$
         \end{itemize}
       \end{column}
       \begin{column}{0.5\linewidth}
-        \only<2>{\centering $\Rightarrow$ \textbf{Empirical Bayes} (EB) \\
-        Let $\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ \\
-        $\Downarrow$ \\
-        estimate $\bm{\alpha}$ and $\lambda_d$
-        }
+        
       \end{column}
     \end{columns}
+    \bigskip
+    \only<2>{
+      \textbf{Empirical Bayes} (EB) \\
+      Let $\theta_d = \E_{\gamma_d^2}(\gamma_d^2) = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ $\Rightarrow$ estimate $\bm{\alpha}$ and $\lambda_d$ \\
+      \bigskip
+      \textbf{Note:} smaller dimension of $\bm{\alpha}$ simplifies estimation of $\theta_d$
+    }
   \end{frame}
   
   \begin{frame}
     \frametitle{Empirical Bayes}
-    \textbf{Cannonical EB}: Maximise the marginal likelihood (MML)
+    \textbf{Canonical EB}: Maximise the marginal likelihood (MML)
     \begin{itemize}
       \item analytical MML
       \item Laplace approximation
@@ -263,6 +272,12 @@ title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
         \item \textbf<2>{Variational Bayes} (VB)
       \end{itemize}
     \end{itemize}
+    \only<1>{
+      \bigskip
+      $$
+      \text{ML}(\bm{\alpha})=\int_{\bm{\beta}} \mathcal{L} (\y | \bm{\beta}) \pi_{\bm{\alpha}}(\bm{\beta}) d \bm{\beta}
+      $$
+    }
     \only<2>{
     \begin{block}{Empirical Bayes EM}
       $$
@@ -331,7 +346,7 @@ colors <- sp::bpy.colors(4)[-c(1, 4)]
 curve(dinvgauss(x, 1, 1), 0, 5, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
 curve(dinvgauss(x, 5, 3), 0, 5, add=TRUE, col=colors[2], lwd=4, main="", yaxt="n", xaxt="n", bty="n", ann=FALSE)
 title(xlab=expression(gamma[d]^2), cex=10, cex.lab=3)
-legend("topright", legend=c(expression(lambda[d]~","~theta[d]~"small"), expression(lambda[d]~","~theta[d]~"large")), lty=1, col=colors, lwd=4, cex=3, box.col=NA)
+legend("topright", legend=c(expression(hat(lambda)[d]~","~hat(theta)[d]~"small"), expression(hat(lambda)[d]~","~hat(theta)[d]~"large")), lty=1, col=colors, lwd=4, cex=3, box.col=NA)
 @
       \end{column}
       \begin{column}{0.1\linewidth}
@@ -346,7 +361,7 @@ title(xlab=expression(beta[jd]^2~"|"~gamma[d]^2), cex=10, cex.lab=3)
 @
       \end{column}
     \end{columns}
-    \textbf{Posterior} parameters $\bm{\mu}_d$ and $\bm{\Sigma}_d$
+    \textbf{Posterior} $p(\bbeta_d | \y)$ parameters $\bm{\mu}_d$ and $\bm{\Sigma}_d$
     \begin{itemize}
       \item predict future cell line data
       \item feature selection (with caution)
@@ -370,19 +385,21 @@ title(xlab=expression(beta[jd]^2~"|"~gamma[d]^2), cex=10, cex.lab=3)
         $$
         \gamma_d^{2} \sim \Gamma^{-1} (\eta_d/2, \lambda_d/2) = \Gamma^{-1} (\eta_{\text{class}_d}/2, \lambda_{\text{class}_d}/2).
         $$
-      \item non-conjugate models $p(\beta_{jd}|\sigma_d^2,\gamma_d^2)=(\beta_{jd}|\gamma_d^2)$
+      \item non-conjugate models $p(\beta_{jd}|\sigma_d^2,\gamma_d^2)=p(\beta_{jd}|\gamma_d^2)$ \\
+        (conjugate model: \textit{a priori} dependence of $\beta_{jd}$ on $\sigma_d^2$)    
     \end{itemize}
   \end{frame}
   
-  \section{Simulations}
   \begin{frame}
     \frametitle{Setup}
     We use $n=100$, $p=100$, $D=100$, $\text{class}=4$, $\forall d: \lambda_d,\sigma_d^2=1$, $x_{ij} \overset{ind}{\sim} \mathcal{N}(0,1)$
-    and simulate from
+    and simulate $\gamma_d^2$ from
     \begin{enumerate}
       \item inv. Gaussian model (correct) with $\bm{\alpha} =\begin{bmatrix} 1 & 2 & 3 & 4 \end{bmatrix} \tr$ and $\theta_d =(\mathbf{c}_d \tr \bm{\alpha})^{-1}$
       \item inv. Gamma model (incorrect) with $\bm{\alpha} = \begin{bmatrix} 3 & 4 & 5 & 6 \end{bmatrix} \tr$ and $\eta_d =\mathbf{c}_d \tr \bm{\alpha}$
     \end{enumerate}
+    \bigskip
+    \textbf{Note:} results in same $\theta_d$
   \end{frame}
   
   \begin{frame}
@@ -415,14 +432,14 @@ title(xlab=expression(beta[jd]^2~"|"~gamma[d]^2), cex=10, cex.lab=3)
 @
   \end{frame}
   
-  \section{Future}
+  \section{Outlook}
   \begin{frame}
     \frametitle{Future work}
     Lots to do
     \begin{itemize}
-      \item implement tissue effects
       \item solve convergence issues
       \item more simulations
+      \item implement tissue effects
       \item investigate real data (GDSC and CCLE)
       \item write award-winning nature/science paper
     \end{itemize}
@@ -432,16 +449,21 @@ title(xlab=expression(beta[jd]^2~"|"~gamma[d]^2), cex=10, cex.lab=3)
     \frametitle{Thank you}
     \centering {\usebeamercolor[fg]{structure} \textbf{Material}} \\
     \textit{Paper:} Working progress... \\
-    \textit{R-package:} Working progress on https://github.com/magnusmunch/cambridge
+    \textit{R-package (devel):} \url{https://github.com/magnusmunch/cambridge}
     \bigskip
 
     \centering {\usebeamercolor[fg]{structure} \textbf{Website}} \\
-    \textit{Group:} https://www.bigstatistics.nl/ \\
-    \textit{Personal:} http://pub.math.leidenuniv.nl/~munchmm/
+    \textit{Group:} \url{https://www.bigstatistics.nl/} \\
+    \textit{Personal:} \url{http://pub.math.leidenuniv.nl/~munchmm/}
     \bigskip
 
     \centering {\usebeamercolor[fg]{structure} \textbf{Acknowledgements}} \\
     This research has received funding from the European Research Council under ERC Grant Agreement 320637
   \end{frame}
+  
+  \begin{frame}{Bibliography}
+    \frametitle{References}
+	  \printbibliography
+	\end{frame}
 
 \end{document}

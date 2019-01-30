@@ -3,8 +3,8 @@
 # ---- boxplot_igaussian_res1_prior_mean ----  
 res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
 set1 <- read.table("results/simulations_igaussian_set1.csv")
-labels1 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
-              "c. inv. \n Gamma", "nc. inv. \n Gamma")
+labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+              "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
 colors1 <- sp::bpy.colors(6)[-c(1, 6)]
 
 C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
@@ -47,8 +47,8 @@ par(opar)
 # ---- boxplot_igaussian_res1_mu_mse ----  
 res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
 set1 <- read.table("results/simulations_igaussian_set1.csv")
-labels1 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
-             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
 colors1 <- sp::bpy.colors(6)[-c(1, 6)]
 
 C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
@@ -83,8 +83,8 @@ par(opar)
 # ---- boxplot_igaussian_res2_prior_mean ----  
 res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
 set2 <- read.table("results/simulations_igaussian_set2.csv")
-labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
-             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+labels2 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
 colors2 <- sp::bpy.colors(6)[-c(1, 6)]
 
 C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
@@ -119,8 +119,8 @@ b2 <- boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
               ylab=expression(hat(E)(gamma[d]^2)), 
               subset=method!="2 nc. inv. \n Gaussian")
 r2 <- range(b2$stats, na.rm=TRUE)
-arrows(mean(1:set2$nclass + set2$nclass + 1), r2[2] - (r2[2] - r2[1])/5, 
-       mean(1:set2$nclass + set2$nclass + 1), r2[2])
+# arrows(mean(1:set2$nclass + set2$nclass + 1), r2[2] - (r2[2] - r2[1])/5, 
+#        mean(1:set2$nclass + set2$nclass + 1), r2[2])
 abline(h=prior.means, col=colors2, lty=2, lwd=1.5)
 # text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
 axis(1, at=at2, labels=labels2, tick=FALSE)
@@ -132,8 +132,8 @@ par(opar)
 # ---- boxplot_igaussian_res2_mu_mse ----  
 res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
 set2 <- read.table("results/simulations_igaussian_set2.csv")
-labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
-             "c. inv. \n Gamma", "nc. inv. \n Gamma")
+labels2 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
 colors2 <- sp::bpy.colors(6)[-c(1, 6)]
 
 C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
@@ -169,8 +169,6 @@ par(opar)
 # ---- lines_igaussian_res2_igauss_conj_convergence ----  
 fit2 <- read.table("results/simulations_igaussian_fit2.csv")
 set2 <- read.table("results/simulations_igaussian_set2.csv")
-labels2 <- c("c. inv. \n Gaussian", "nc. inv. \n Gaussian",
-             "c. inv. \n Gamma", "nc. inv. \n Gamma")
 colors2 <- sp::bpy.colors(6)[-c(1, 6)]
 
 temp1 <- sapply(paste("fit2$igauss.conj.theta.", 1:set2$D, sep=""),
