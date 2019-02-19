@@ -14,6 +14,7 @@ if(!("statmod" %in% installed.packages())) {
 ### libraries
 library(cambridge)
 library(statmod)
+library(GeneralizedHyperbolic)
 
 ################################# simulation 1 #################################
 # settings
@@ -132,7 +133,7 @@ C.inv.gamma <- as.numeric(C.inv.gauss %*% c(1:nclass))
 eta <- as.numeric(C.inv.gauss %*% alpha)
 lambda <- rep(1, D)
 sigma <- rep(1, D)
-SNR <- 3
+SNR <- 50
 
 # store settings in an object
 temp1 <- c(nreps=nreps, n=n, p=p, D=D, nclass=nclass, alpha=alpha, 
@@ -223,7 +224,7 @@ for(r in 1:nreps) {
 
 warnings()
 
-
+# ---- lines_igaussian_res2_conj_convergence ----
 opar <- par(no.readonly=TRUE)
 layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(0, 4, 4, 5, 5, 0), 2)), 
               byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
@@ -256,17 +257,60 @@ for(d in 2:ncol(fit2.igamma.conj$seq.eb$lambda)) {
 layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 par(opar)
 
-
-
-plot(alpha, fit2.igauss.conj$seq.eb$alpha[fit2.igauss.conj$iter$eb, ])
+# ---- scatter_igaussian_res2_conj_prior ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(4, 4, 5, 5, 6, 6), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(alpha, fit2.igauss.conj$seq.eb$alpha[fit2.igauss.conj$iter$eb, ], 
+     ylab=expression(hat(alpha)), xlab=expression(alpha), main="a)")
+plot(lambda, fit2.igauss.conj$seq.eb$lambda[fit2.igauss.conj$iter$eb, ],
+     ylab=expression(hat(lambda)), xlab=expression(lambda), main="b)")
 plot(lambda/(eta - 2), 
-     fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ])
-plot(lambda, fit2.igauss.conj$seq.eb$lambda[fit2.igauss.conj$iter$eb, ])
+     fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ],
+     ylab=expression(hat(E)(gamma[d]^2)), xlab=expression(E(gamma[d]^2)), 
+     main="c)")
+plot(eta, fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ], 
+     ylab=expression(hat(eta)), xlab=expression(eta), main="d)")
+plot(lambda, fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ],
+     ylab=expression(hat(lambda)), xlab=expression(lambda), main="e)")
+plot(lambda/(eta - 2), 
+     fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ]/
+       (fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ] - 2),
+     ylab=expression(hat(E)(gamma[d]^2)), xlab=expression(E(gamma[d]^2)), 
+     main="f)")
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
 
-plot(eta, fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ])
-plot(lambda, fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ])
-
-
-
-
-
+# ---- scatter_igaussian_res2_conj_post ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(4, 4, 5, 5, 6, 6), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(beta, fit2.igauss.conj$vb.post$mu, 
+     ylab=expression(hat(E)(bold(beta)[d]~"|"~bold(y))),
+     xlab=expression(bold(beta)[d]), main="a)")
+plot(gamma^2, sqrt(
+  fit2.igauss.conj$vb.post$delta/fit2.igauss.conj$seq.eb$lambda[
+    fit2.igauss.conj$iter$eb, ])*fit2.igauss.conj$seq.eb$theta[
+      fit2.igauss.conj$iter$eb, ]*sapply(sqrt(fit2.igauss.conj$seq.eb$lambda[
+        fit2.igauss.conj$iter$eb, ]*fit2.igauss.conj$vb.post$delta)/
+          fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ], 
+        ratio_besselK, nu=0.5*(p + 1)), 
+  ylab=expression(hat(E)(gamma[d]^2~"|"~bold(y))),
+  xlab=expression(gamma[d]^2), main="b)")
+plot(sigma^2, 2*fit2.igauss.conj$vb.post$zeta/(p + n - 1), 
+     ylab=expression(hat(E)(sigma[d]^2~"|"~bold(y))),
+     xlab=expression(sigma[d]^2), main="c)")
+plot(beta, fit2.igamma.conj$vb.post$mu, 
+     ylab=expression(hat(E)(bold(beta)[d]~"|"~bold(y))),
+     xlab=expression(bold(beta)[d]), main="d)")
+plot(gamma^2, fit2.igamma.conj$vb.post$delta/
+       (p + fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ] - 2), 
+     ylab=expression(hat(E)(gamma[d]^2~"|"~bold(y))),
+     xlab=expression(gamma[d]^2), main="e)")
+plot(sigma^2, 2*fit2.igamma.conj$vb.post$zeta/(p + n - 1), 
+     ylab=expression(hat(E)(sigma[d]^2~"|"~bold(y))),
+     xlab=expression(sigma[d]^2), main="f)")
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)

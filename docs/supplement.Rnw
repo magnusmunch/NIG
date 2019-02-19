@@ -1,5 +1,25 @@
+% load packages
+<<packages, include=FALSE, echo=FALSE>>=
+library(cambridge)
+@
+
+% set options
+<<settings, include=FALSE, echo=FALSE>>=
+opts_knit$set(root.dir="..", base.dir="../figs")
+opts_chunk$set(fig.align='center', fig.path="../figs/", 
+               echo=FALSE, cache=FALSE, message=FALSE)
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("code/figures.R")
+@
+
 \documentclass[a4paper,hidelinks]{article}
-\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,bbm,algorithm,algpseudocode,pgfplotstable,threeparttable, booktabs,mathtools,dsfont,parskip}
+\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,
+rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,
+bbm,algorithm,algpseudocode,pgfplotstable,threeparttable,booktabs,mathtools,
+dsfont,parskip}
 
 % vectors and matrices
 \newcommand{\bbeta}{\bm{\beta}}
@@ -95,18 +115,6 @@
 \author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
 \begin{document}
-
-% load packages and set options
-<<settings, include=FALSE, echo=FALSE>>=
-library(cambridge)
-opts_knit$set(base.dir="../figs")
-opts_chunk$set(fig.align='center', echo=FALSE, fig.path="../figs/", cache=FALSE)
-@
-
-% read figure code
-<<figures, include=FALSE>>=
-read_chunk("../code/figures.R")
-@
 
 	\maketitle
 	

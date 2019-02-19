@@ -5,5 +5,6 @@ exportPattern("^[[:alpha:]]+")
 importFrom(stats, constrOptim, density, uniroot)
 importFrom(gsl, bessel_lnKnu)
 importFrom(Rcpp, sourceCpp, evalCpp)
+importFrom(GeneralizedHyperbolic, rgig)
 
 useDynLib(cambridge, .registration=TRUE)

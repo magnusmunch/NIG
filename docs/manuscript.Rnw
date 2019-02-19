@@ -1,3 +1,20 @@
+% load packages
+<<packages, include=FALSE, echo=FALSE>>=
+library(cambridge)
+@
+
+% set options
+<<settings, include=FALSE, echo=FALSE>>=
+opts_knit$set(root.dir="..", base.dir="../figs")
+opts_chunk$set(fig.align='center', fig.path="../figs/", 
+               echo=FALSE, cache=FALSE, message=FALSE)
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("code/figures.R")
+@
+
 \documentclass[a4paper,hidelinks]{article}
 \usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,bbm,algorithm,algpseudocode,pgfplotstable,threeparttable, booktabs,mathtools,dsfont,parskip}
 
@@ -95,6 +112,7 @@
 \author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
 \begin{document}
+
 	\maketitle
 	
 	\noindent
@@ -120,7 +138,7 @@
 	
 	- feature information: prior experts, pathways, database summaries, previous experiments, type of feature (somatic mutations, copy number alterations, DNA methylation, and gene expression). 
 	
-	- drugs information: molecular target, drug class, etc (ask Oslo).
+	- drugs information: molecular target, drug class, etc (ask Oslo), pubchem, omnipath DB, pharmaco DB
 	
 	- current literature: review in \cite{azuaje_computational_2017}, reference Oslo, TANDEM \cite[]{aben_tandem:_2016}, DeltaNet \cite[]{noh_inferring_2016}, patient-derived tumor cell lines \cite[]{gao_high-throughput_2015}.
 	
