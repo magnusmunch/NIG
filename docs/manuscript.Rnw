@@ -7,7 +7,7 @@ library(cambridge)
 <<settings, include=FALSE, echo=FALSE>>=
 opts_knit$set(root.dir="..", base.dir="../figs")
 opts_chunk$set(fig.align='center', fig.path="../figs/", 
-               echo=FALSE, cache=FALSE, message=FALSE)
+               echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
 @
 
 % read figure code
@@ -16,7 +16,11 @@ read_chunk("code/figures.R")
 @
 
 \documentclass[a4paper,hidelinks]{article}
-\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,bbm,algorithm,algpseudocode,pgfplotstable,threeparttable, booktabs,mathtools,dsfont,parskip}
+\usepackage{url,bm,algorithm,algpseudocode,bbm,amsmath,amssymb,amsthm,
+amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,
+titlesec,multicol,verbatim,threeparttable,booktabs,dsfont,parskip,
+xr-hyper,hyperref,enumerate}
+\externaldocument[sm-]{supplement}
 
 % vectors and matrices
 \newcommand{\bbeta}{\bm{\beta}}
@@ -341,6 +345,12 @@ read_chunk("code/figures.R")
 	
 	\bibliographystyle{author_short3} 
 	\bibliography{refs}
+	
+	\section*{Session info}
+
+<<r session-info, eval=TRUE, echo=TRUE, tidy=TRUE>>=
+devtools::session_info()
+@
 
 	\titleformat{\section}{\normalfont\Large\bfseries}{\appendixname~\thesection.}{1em}{}
 	\begin{appendix}

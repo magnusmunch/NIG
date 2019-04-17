@@ -237,6 +237,86 @@ title(xlab="Drug effect", line=-3.3, cex=10, cex.lab=1.5)
   \end{frame}
   
   \begin{frame}
+    \frametitle{Inverse Gaussian distribution}
+<<dens_igaussian_igamma, fig.cap="Several densities of the inverse Gaussian and inverse Gamma families", out.width="85%", fig.asp=2/3>>=
+digauss <- function(x, theta, lambda, eta) {
+  sqrt(lambda/(x^3*2*pi))*exp(-lambda*(x - theta)^2/(2*theta^2*x))
+}
+
+digamma <- function(x, theta, lambda, eta) {
+  alpha <- eta/2
+  beta <- lambda/2
+  beta^alpha/gamma(alpha)*x^(-alpha - 1)*exp(-beta/x)
+}
+
+eta <- c(1, 2, 1, 1, 5)
+lambda <- c(1, 1, 2, 1/2, 2)
+theta <- c(1000, 1000, 1, 1, 1)
+
+labels <- c("inv. Gaussian", "inv. Gamma")
+col <- c(1, 2)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1), cex=1.2, lwd=2)
+layout(matrix(c(rep(c(1, 1, 2, 2, 3, 3), 2), rep(c(0, 4, 4, 5, 5, 0), 2)),
+                 nrow=4, ncol=6, byrow=TRUE))
+for(i in 1:length(eta)) {
+  modes <- c(theta[i]*(sqrt(1 + 9*theta[i]^2/
+                            (4*lambda[i]^2)) - 3*theta[i]/(2*lambda[i])),
+             lambda[i]/(eta[i] + 2))
+  ylim <- c(0, max(digauss(modes[1], theta[i], lambda[i], eta[i]),
+                   digamma(modes[2], theta[i], lambda[i], eta[i])))
+  curve(digauss(x, theta[i], lambda[i], eta[i]), 0.001, 5, n=1000,
+        ylim=ylim, ylab="Density", "x", col=col[1], 
+        main=bquote(eta==.(eta[i])*","~lambda==.(lambda[i])*","~theta==.(
+          theta[i])))
+  curve(digamma(x, theta[i], lambda[i], eta[i]), add=TRUE, 
+        col=col[2], n=1000)
+}
+legend("topright", legend=labels, lty=1, col=col, seg.len=1)
+par(opar)
+@
+  \end{frame}
+  
+  \begin{frame}
+    \frametitle{Normal inverse Gaussian model}
+<<dens_igaussian_marginalbeta, fig.cap="Marginal $\\beta_j$ prior for several choices of $\\gamma^2_d$ hyperpior, scaled to $\\V(\\beta_j)=1$.", out.width="80%", fig.asp=2/3>>=
+library(GeneralizedHyperbolic)
+# all scaled such that variance is one
+sigma <- 1
+theta <- 1/sigma^2
+lambda <- c(0.1, 2)
+lambda1 <- sqrt(2)
+col <- c(1:4)
+lty <- c(1:4)
+labels <- as.expression(c(bquote("IG, "~lambda==.(lambda[1])~", "~
+                                   theta==.(theta)),
+                          bquote("IG, "~lambda==.(lambda[2])~", "~
+                                   theta==.(theta)),
+                          "Point mass (ridge)", "Exponential (lasso)"))
+dprior <- function(x, lambda, theta, sigma) {
+  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
+}
+dlasso <- function(x, lambda1) {
+  0.5*lambda1*exp(-lambda1*abs(x))
+}
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1/1.3, 1), cex.lab=1.5, lwd=3)
+curve(dprior(x, lambda[1], theta, sigma), -3, 3, ylab=expression(p(beta[j])), 
+      xlab=expression(beta[j]), n=1000, 
+      col=col[1], lty=lty[1])
+curve(dprior(x, lambda[2], theta, sigma), add=TRUE, n=1000, 
+      col=col[2], lty=lty[2])
+curve(dnorm(x, 0, 1), add=TRUE, n=1000, col=col[3], lty=lty[3])
+curve(dlasso(x, lambda1), add=TRUE, n=1000, col=col[4], lty=lty[4])
+legend("topright", legend=labels, col=col, lty=lty, 
+       title="Hyperprior")
+par(opar)
+@
+  \end{frame}
+  
+  \begin{frame}
     \frametitle{Hyperparameters}
     \textbf{How to choose $\theta_d$ and $\lambda_d$?} We want to somehow:
     \begin{columns}

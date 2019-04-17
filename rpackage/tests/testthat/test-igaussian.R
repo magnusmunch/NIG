@@ -1,6 +1,125 @@
 context("inverse Gaussian model estimation")
 
 ################################## VB testing ##################################
+
+###################################
+##### have to finish this one #####
+###################################
+test_that("auxiliary variables calculation with intercept", {
+  n <- 20
+  p <- 100
+  D <- 1
+  
+  gamma <- rep(1, D)
+  sigma <- rep(1, D)
+  beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
+  x <- matrix(rnorm(n*p, 0, 1), nrow=n, ncol=p)
+  y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
+  lambda <- 0.1
+  theta <- 2
+  
+  y <- y[, 1]
+  c <- 1
+  a <- 1
+  svd.x <- svd(x)
+  v <- svd.x$v
+  u <- svd.x$u
+  d <- svd.x$d
+  
+  h <- colSums(u)
+  g <- as.numeric(t(y) %*% u)
+  s <- 1/(n - sum(h^2*d^2/(d^2 + c)))
+  
+  sumy <- sum(y)
+  aux1 <- sum(d^2*h^2/(d^2 + c))
+  aux2 <- sum(d^2*g^2/(d^2 + c))
+  aux3 <- sum(d^2*h*g/(d^2 + c))
+  aux4 <- sum(d^4*h^2/(d^2 + c)^2)
+  aux5 <- sum(d^4*g^2/(d^2 + c)^2)
+  aux6 <- sum(d^4*h*g/(d^2 + c)^2)
+  aux7 <- sum(d^2*h^2/(d^2 + c)^2)
+  
+  # trSigma (without intercept term)
+  trSigma1 <- sum(diag(solve(t(cbind(1, x)) %*% cbind(1, x) + 
+                               diag(c(0, rep(c, p))))/a)[-1])
+  trSigma2 <- (sum(1/(d^2 + c)) + s*aux7 + max(p - n, 0)/c)/a 
+  trSigma3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$trSigma
+  
+  # trXtXSigma
+  trXtXSigma1 <- sum(diag(t(cbind(1, x)) %*% cbind(1, x) %*% 
+                            solve(t(cbind(1, x)) %*% cbind(1, x) + 
+                                    diag(c(0, rep(c, p))))/a))
+  trXtXSigma2 <- (sum(d^2/(d^2 + c)) + s*(n - 2*aux1 + aux4))/a
+  trXtXSigma3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$trXtXSigma
+  
+  # mutmu (without intercept term)
+  mutmu1 <- as.numeric((t(y) %*% cbind(1, x) %*% solve(t(cbind(1, x)) %*% cbind(
+    1, x) + diag(c(0, rep(c, p)))))[, -1] %*% 
+      (solve(t(cbind(1, x)) %*% cbind(1, x) + diag(c(0, rep(c, p)))) %*% 
+         t(cbind(1, x)) %*% y)[-1, ])
+  mutmu2 <- s^2*(sumy^2 - 2*sumy*aux3 + aux3^2)*sum(h^2*d^2/(d^2 + c)^2) +
+    2*s*(aux3 - sumy)*sum(h*g*d^2/(d^2 + c)^2) + sum(g^2*d^2/(d^2 + c)^2)
+  mutmu3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$mutmu
+  
+  # mutxtxmu
+  mutXtXmu1 <- as.numeric(t(y) %*% cbind(1, x) %*% solve(t(cbind(1, x)) %*% cbind(
+    1, x) + diag(c(0, rep(c, p)))) %*% t(cbind(1, x)) %*% cbind(1, x) %*% 
+      solve(t(cbind(1, x)) %*% cbind(1, x) + diag(c(0, rep(c, p)))) %*% 
+      t(cbind(1, x)) %*% y)
+  mutXtXmu2 <- n*sumy^2*s^2 + sumy*s*aux3*(2 - 2*n*s) - 2*sumy^2*s^2*aux1 + 
+    s*aux3^2*(n*s - 2) + 4*sumy*s^2*aux1*aux3 - 2*s^2*aux1*aux3^2 +
+    sumy^2*s^2*aux4 - 2*sumy*s*aux6 - 2*sumy*s^2*aux3*aux4 + 2*s*aux3*aux6 + 
+    s^2*aux3^2*aux4 + aux5
+  mutXtXmu3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$mutXtXmu
+  
+  # ytXmu
+  ytXmu1 <- as.numeric(t(y) %*% cbind(1, x) %*% solve(t(cbind(1, x)) %*% cbind(
+    1, x) + diag(c(0, rep(c, p)))) %*% t(cbind(1, x)) %*% y)
+  ytXmu2 <- sumy^2*s - 2*sumy*s*aux3 + aux2 + s*aux3^2
+  ytXmu3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$ytXmu
+  
+  # logdetSigma
+  logdetSigma1 <- as.numeric(determinant(solve(t(cbind(1, x)) %*% cbind(1, x) + 
+                                                 diag(c(0, rep(c, p))))/a, log=TRUE)$modulus)
+  logdetSigma2 <- log(s) - (p + 1)*log(a) - sum(log(d^2 + c)) - max(p - n, 0)*log(c)
+  logdetSigma3 <- .aux.var.int(c, a, d, g, h, sumy, n, p)$logdetSigma
+  
+  # mu
+  mu1 <- as.numeric(solve(t(cbind(1, x)) %*% cbind(1, x) + diag(
+    c(0, rep(c, p)))) %*% t(cbind(1, x)) %*% y)
+  mu2 <- c(s*(sumy - aux3), s*(aux3 - sumy)*rowSums(v %*% (t(u)*d/(d^2 + c))) +
+             (v %*% (t(u)*d/(d^2 + c))) %*% y)
+  
+  # dSigma
+  dSigma1 <- diag(solve(t(cbind(1, x)) %*% cbind(1, x) + diag(c(0, rep(c, p)))))/a
+  dSigma2 <- c(s, colSums((t(svd(x, nv=max(n, p))$v)/
+                             sqrt(c(d, rep(0, max(p - n, 0)))^2 + c))^2) +
+                 s*rowSums(v %*% (t(u)*d/(d^2 + c)))^2)/a
+  
+  # Sigma
+  Sigma1 <- solve(t(cbind(1, x)) %*% cbind(1, x) + diag(c(0, rep(c, p))))/a
+  Sigma2 <- matrix(NA, nrow=p + 1, ncol=p + 1)
+  Sigma2[1, 1] <- s/a
+  Sigma2[1, 2:(p + 1)] <- Sigma2[2:(p + 1), 1] <- 
+    -s*as.numeric(h %*% (t(v)*(d/(d^2 + c))))/a
+  Sigma2[2:(p + 1), 2:(p + 1)] <- # first part is correct
+    (svd(x, nu=n, nv=max(p, n))$v %*% 
+       (t(svd(x, nu=n, nv=max(p, n))$v)/(c(d^2, rep(0, max(p - n, 0))) + c)) + 
+       s*t(h %*% (t(v)*d/(d^2 + c))) %*% 
+       (h %*% (t(v)*d/(d^2 + c))))/a
+  
+  all.equal(trSigma1, trSigma2, trSigma3)
+  all.equal(trXtXSigma1, trXtXSigma2, trXtXSigma3)
+  all.equal(mutmu1, mutmu2, mutmu3)
+  all.equal(mutXtXmu1, mutXtXmu2, mutXtXmu3)
+  all.equal(ytXmu1, ytXmu2, ytXmu3)
+  all.equal(logdetSigma1, logdetSigma2, logdetSigma3)
+  all.equal(mu1, mu2)
+  all.equal(dSigma1, dSigma2)
+  all.equal(Sigma1, Sigma2)
+})
+
+
 test_that("high dim. auxiliary variables calculation", {
   p <- 20; n <- 10; aold <- rchisq(1, 1); cold <- rchisq(1, 3)
   x <- matrix(rnorm(p*n), nrow=n, ncol=p); y <- matrix(rnorm(n))

@@ -10,7 +10,7 @@ Depends: R (>= 3.5.1)
 License: GPL (>= 2)
 Imports: Rcpp (>= 0.12.14), gsl, GeneralizedHyperbolic
 LinkingTo: Rcpp, RcppArmadillo
-Suggests: knitr, testthat
+Suggests: knitr, testthat, parallel
 VignetteBuilder: knitr
 URL: https://github.com/magnusmunch/cambridge/
 NeedsCompilation: yes

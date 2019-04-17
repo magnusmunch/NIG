@@ -17,6 +17,40 @@
   return(out)
 }
 
+# calculates the auxiliary variables in the VB step with intercept (not tested)
+.aux.var.int <- function(cold, aold, sv, uty, sumu, sumy, n, p) {
+  
+  s <- 1/(n - sum(sumu^2*sv^2/(sv^2 + cold)))
+  
+  aux1 <- sum(sv^2*sumu^2/(sv^2 + c))
+  aux2 <- sum(sv^2*uty^2/(sv^2 + c))
+  aux3 <- sum(sv^2*sumu*uty/(sv^2 + c))
+  aux4 <- sum(sv^4*sumu^2/(sv^2 + c)^2)
+  aux5 <- sum(sv^4*uty^2/(sv^2 + c)^2)
+  aux6 <- sum(sv^4*sumu*uty/(sv^2 + c)^2)
+  
+  # auxiliary variables involving mu and Sigma
+  trSigma <- (sum(1/(sv^2 + cold)) + s*sum(sv^2*sumu^2/(sv^2 + c)^2) + 
+                max(p - n, 0)/cold)/aold 
+  trXtXSigma <- (sum(sv^2/(sv^2 + cold)) + s*(n - 2*aux1 + aux4))/aold
+  mutmu <- s^2*(sumy^2 - 2*sumy*aux3 + aux3^2)*
+    sum(sumu^2*sv^2/(sv^2 + cold)^2) + 
+    2*s*(aux3 - sumy)*sum(sumu*uty*sv^2/(sv^2 + cold)^2) + 
+    sum(uty^2*sv^2/(sv^2 + cold)^2)
+  mutXtXmu <- n*sumy^2*s^2 + sumy*s*aux3*(2 - 2*n*s) - 2*sumy^2*s^2*aux1 + 
+    s*aux3^2*(n*s - 2) + 4*sumy*s^2*aux1*aux3 - 2*s^2*aux1*aux3^2 +
+    sumy^2*s^2*aux4 - 2*sumy*s*aux6 - 2*sumy*s^2*aux3*aux4 + 2*s*aux3*aux6 + 
+    s^2*aux3^2*aux4 + aux5
+  logdetSigma <- log(s) - (p + 1)*log(aold) - sum(log(sv^2 + cold)) - 
+    max(p - n, 0)*log(cold)
+  ytXmu <- sumy^2*s - 2*sumy*s*aux3 + aux2 + s*aux3^2
+  
+  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
+              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
+              ytXmu=ytXmu, s=s, aux3=aux3)
+  return(out)
+}
+
 # calculates the ELBO in the inverse Gaussian model (tested)
 .elbo.inv.gauss <- function(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
                             yty) {
@@ -75,6 +109,50 @@
     b <- unname(sqrt(lambda/(theta^2*delta))*
                   ratio_besselK(sqrt(lambda*delta/theta^2), 
                                      0.5*(p + eta)) + (p + eta)/delta)
+    
+    # needed in EB step
+    e <- (b - (p + eta)/delta)*delta*theta^2/lambda
+  } else {
+    b <- unname((p + eta)/delta)
+    e <- log(delta) - digamma(0.5*(p + eta)) - log(2)
+  }
+  zeta <- unname(0.5*(yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
+                        ifelse(conjugate, b, 0)*(aux$trSigma + aux$mutmu)))
+  a <- unname((df + 1)/(2*zeta))
+  c <- b/(a^(1 - conjugate))
+  
+  # calculate the elbo separately for the inverse Gaussian and Gamma models
+  if(hyperprior=="inv. Gaussian") {
+    elbo <- .elbo.inv.gauss(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
+                            yty)
+  } else {
+    elbo <- .elbo.inv.gamma(aux, zeta, delta, a, b, c, e, lambda, eta, df, p, 
+                            yty)
+  }
+  
+  
+  out <- c(delta=delta, zeta=zeta, a=a, b=b, e=e, elbo=unname(elbo$elbo), 
+           elbo.const=unname(elbo$elbo.const))
+  return(out)
+}
+
+# single VB update, drugs covariate model only with intercept (not tested)
+.single.vb.update.int <- function(aold, bold, eta, theta, lambda, sv, n, p, uty, 
+                                  yty, sumu, sumy, conjugate, hyperprior) {
+
+  # variables that change with conjugacy
+  cold <- bold/(aold^(1 - conjugate))
+  df <- n + conjugate*p
+  
+  # auxiliary variables involving mu and Sigma
+  aux <- .aux.var.int(cold, aold, sv, uty, sumu, sumy, n, p)
+  
+  # vb parameters
+  delta <- unname((bold/cold)*aux$mutmu + lambda)
+  if(hyperprior=="inv. Gaussian") {
+    b <- unname(sqrt(lambda/(theta^2*delta))*
+                  ratio_besselK(sqrt(lambda*delta/theta^2), 
+                                0.5*(p + eta)) + (p + eta)/delta)
     
     # needed in EB step
     e <- (b - (p + eta)/delta)*delta*theta^2/lambda
@@ -269,6 +347,109 @@
   return(out)
 }
 
+# VB iterations (not tested)
+est.vb <- function(x, y, theta, lambda, intercept=TRUE, init=NULL, 
+                   posterior=FALSE,
+                   control=list(epsilon.vb=1e-3, maxit.vb=100, trace=TRUE)) {
+  
+  n <- nrow(x)
+  p <- ncol(x)
+  D <- ncol(y)
+  
+  svd.x <- svd(x)
+  sv <- svd.x$d
+  v <- svd.x$v
+  uty <- t(svd.x$u) %*% y
+  yty <- colSums(y^2)
+  sumu <- colSums(svd.x$u)
+  sumy <- colSums(y)
+  
+  # set initial values if none given
+  if(is.null(init)) {
+    init$a <- rep(1, D)
+    init$b <- rep(1, D)
+  }
+  
+  if(intercept) {
+    old.vb <- sapply(c(1:D), function(d) {
+      .single.vb.update.int(init$a[d], init$b[d], 1, theta,
+                            lambda, sv, n, p, uty[, d], yty[d], sumu, sumy[d],
+                            TRUE, "inv. Gaussian")})
+  } else {
+    old.vb <- sapply(c(1:D), function(d) {
+      .single.vb.update(init$a[d], init$b[d], 1, theta,
+                        lambda, sv, n, p, uty[, d], yty[d], TRUE,
+                        "inv. Gaussian")})
+  }
+  
+  
+  # set all convergence check parameters
+  conv.vb <- FALSE
+  iter.vb <- 0
+  check.vb <- FALSE
+  while(!check.vb) {
+    
+    # increase iteration number by one
+    iter.vb <- iter.vb + 1
+    
+    # update the VB parameters and elbo
+    new.vb <- sapply(c(1:D), function(d) {
+      .single.vb.update.int(old.vb[3, d], old.vb[4, d],  1, theta, lambda, sv, 
+                            n, p, uty[, d], yty[d], sumu, sumy[d], TRUE, 
+                            "inv. Gaussian")})
+    
+    # check convergence of the VB iterations
+    conv.vb <- all(abs(new.vb - old.vb) <= control$epsilon.vb)
+    check.vb <- conv.vb | (iter.vb >= control$maxit.vb)
+    old.vb <- new.vb
+  }
+  
+  # bold is same as cold here
+  aux <- lapply(c(1:D), function(d) {
+    .aux.var.int(new.vb[4, d], new.vb[3, d], sv, uty[, d], sumu, 
+                 sumy[d], n, p)})
+  if(D==1) {
+    aux <- as.matrix(unlist(aux))
+  } else {
+    aux <- Reduce(function(s1, s2) {cbind(unlist(s1), unlist(s2))}, aux)
+  }
+  
+  # creating Sigma and mu 
+  mu <- sapply(c(1:D), function(d) {
+    mat <- svd.x$v %*% (t(svd.x$u)*sv/(sv^2 + new.vb[4, d]))
+    unname(c(aux[7, d]*(sumy[d] - aux[8, d]),
+             aux[7, d]*(aux[8, d] - sumy[d])*rowSums(mat) + mat %*% y[, d]))})
+  
+  if(posterior) {
+    Sigma <- sapply(c(1:D), function(d) {
+      mat <- sumu %*% (t(v)*sv/(sv^2 + new.vb[4, d]))
+      if(p > n) {
+        v <- svd(x, nu=nrow(x), nv=ncol(x))$v
+      } 
+      out <- matrix(NA, nrow=p + intercept, ncol=p + intercept)
+      out[1, 1] <- aux[7, d]/new.vb[3, d]
+      out[1, 2:(p + 1)] <- out[2:(p + 1), 1] <- -aux[7, d]*as.numeric(mat)/
+        new.vb[3, d]
+      out[2:(p + 1), 2:(p + 1)] <- (v %*% (t(v)/(c(sv^2, rep(0, max(p - n, 0))) 
+                                                 + c)) + aux[7, d]*t(mat) %*% 
+                                      mat)/new.vb[3, d]
+      return(out)}, simplify=FALSE)
+  } else {
+    Sigma <- sapply(c(1:D), function(d) {
+      unname(c(aux[7, d], colSums((t(v2)/sqrt(sv2^2 + new.vb[4, d]))^2) +
+                 aux[7, d]*rowSums(svd.x$v %*% 
+                                     (t(svd.x$u)*sv/(sv^2 + new.vb[4, d])))^2)/
+               new.vb[3, d])})
+  }
+  
+  # preparing the output
+  out <- list(vb.post=list(mu=mu, Sigma=Sigma, 
+                           delta=new.vb[1, ], zeta=new.vb[2, ]), 
+              conv=conv.vb, iter=iter.vb)
+  return(out)
+}
+
+
 # fit model without tissue effect and molecular feature groups (not tested)
 est.model <- function(x, y, C, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
                       conjugate, init=NULL,
@@ -442,6 +623,7 @@ est.model <- function(x, y, C, hyperprior=c("inv. Gaussian", "inv. Gamma"),
 
 # sample one gamma in the conjugate case
 .sample.gamma.conj <- function(beta, sigma, eta, lambda, theta, p) {
+  
   gamma <- sqrt(rgig(1, sum(beta^2)/sigma^2 + lambda, 
                      lambda/theta^2, -0.5*(p + eta)))
   return(gamma)
@@ -451,12 +633,14 @@ est.model <- function(x, y, C, hyperprior=c("inv. Gaussian", "inv. Gamma"),
 .sample.sigma.conj <- function(beta, gamma, yty, ytx, x, p, n) {
   alpha <- 0.5*(p + n + 1)
   beta <- 0.5*(yty + sum(beta^2)/gamma^2 + sum((x %*% beta)^2) - 2*ytx %*% beta)
-  gamma <- 1/sqrt(rgamma(1, alpha, beta))
+  gamma <- 1/sqrt(rgamma(1, alpha, scale=beta))
   return(gamma)
 }
 
-nsamp <- control$nsamp
-init <- list(beta=beta, sigma=sigma, gamma=gamma)
+# d <- 1
+# init <- cinit
+# eta <- eta[d]; lambda <- lambda[d]; theta <- theta[d]; nsamp <- control$nsamp
+# y <- y[, d]; yty <- yty[d]; ytx <- ytx[d, ]
 # full sample from the posterior
 .sample.post.conj <- function(eta, lambda, theta, nsamp, init, v, sv, svvt, y, 
                               yty, ytx, x, p, n) {
@@ -480,17 +664,20 @@ init <- list(beta=beta, sigma=sigma, gamma=gamma)
   return(out)
 }
 
-D <- 20
-n <- 20
-p <- 30
-x <- matrix(rnorm(n*p), nrow=n, ncol=p)
-y <- matrix(rnorm(n*D), ncol=D, nrow=n)
-eta <-rchisq(D, 1)
-theta <- rchisq(D, 1)
-lambda <- rchisq(D, 1)
-init <- list(beta=matrix(rnorm(p*D), nrow=p, ncol=D), 
-             gamma=rchisq(D, 1), sigma=rchisq(D, 1))
-control <- list(nsamp=1000, parallel=TRUE, ncores=2)
+# D <- 20
+# n <- 20
+# p <- 30
+# x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+# gamma <- rep(1, D)
+# sigma <- rep(1, D)
+# beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
+# y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
+# eta <-rchisq(D, 1)
+# theta <- rchisq(D, 1)
+# lambda <- rchisq(D, 1)
+# init <- list(beta=matrix(rnorm(p*D), nrow=p, ncol=D), 
+#              gamma=rchisq(D, 1), sigma=rchisq(D, 1))
+# control <- list(nsamp=1000, parallel=TRUE, ncores=1)
 gibbs.model <- function(x, y, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
                         conjugate, init=NULL,
                         control=list(nsamp, parallel=FALSE, ncores=1)) {
@@ -507,28 +694,43 @@ gibbs.model <- function(x, y, hyperprior=c("inv. Gaussian", "inv. Gamma"),
   yty <- colSums(y^2)
   ytx <- t(y) %*% x
   
-  # divide the equations over the cores
-  # if(parallel) {
-  #   coreid <- sort(rep(1:ncores, times=round(c(rep(
-  #     D %/% ncores + as.numeric((D %% ncores)!=0), times=D %% ncores),
-  #     rep(D %/% ncores, times=ncores - D %% ncores)))))
-  # }
+  if(hyperprior=="inv. Gaussian") {
+    eta <- rep(1, D)
+  }
   
-  out <- mclapply(c(1:D), function(d) {
-    cinit <- list(beta=init$beta[, d], gamma=init$gamma[d], sigma=init$sigma[d])
-    .sample.post.conj(eta[d], lambda[d], theta[d], control$nsamp, cinit, v, sv, 
-                      svvt, y[, d], yty[d], ytx[d, ], x, p, n)}, 
-    mc.cores=ncores)
+  if(conjugate) {
+    out <- mclapply(c(1:D), function(d) {
+      cinit <- list(beta=init$beta[, d], gamma=init$gamma[d], sigma=init$sigma[d])
+      .sample.post.conj(eta[d], lambda[d], theta[d], control$nsamp, cinit, v, sv, 
+                        svvt, y[, d], yty[d], ytx[d, ], x, p, n)}, 
+      mc.cores=ncores)  
+  } else {
   
+  }
+  
+  
+  beta <- aperm(sapply(out, function(s) {s$beta}, simplify="array"), c(1, 3, 2))
+  sigma <- t(sapply(out, function(s) {s$sigma}))
+  gamma <- t(sapply(out, function(s) {s$gamma}))
+  
+  return(list(beta=beta, sigma=sigma, gamma=gamma))
   
 }
 
-mclapply(starts, fx, mc.cores = numCores)
-
-
-
-library(parallel)
-
-
-
-
+# D <- 20
+# n <- 20
+# p <- 30
+# x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+# gamma <- rep(1, D)
+# sigma <- rep(1, D)
+# beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
+# y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
+# eta <-rchisq(D, 1)
+# theta <- rchisq(D, 1)
+# lambda <- rchisq(D, 1)
+# init <- list(beta=matrix(rnorm(p*D), nrow=p, ncol=D), 
+#              gamma=rchisq(D, 1), sigma=rchisq(D, 1))
+# control <- list(nsamp=1000, parallel=TRUE, ncores=1)
+# gibbs.model <- function(x, y, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
+#                         conjugate, init=NULL,
+#                         control=list(nsamp, parallel=FALSE, ncores=1)) 

@@ -200,7 +200,96 @@ for(d in 2:set2$D) {
 layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 par(opar)
 
+# ---- lines_igaussian_res2_conj_convergence ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(0, 4, 4, 5, 5, 0), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(fit2.igauss.conj$seq.eb$alpha[, 1], type="l", xlab="iteration", main="a)",
+     ylab=expression(hat(alpha)[c]), ylim=range(fit2.igauss.conj$seq.eb$alpha))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$alpha)) {
+  lines(fit2.igauss.conj$seq.eb$alpha[, d], col=d)
+}
+plot(fit2.igauss.conj$seq.eb$theta[, 1], type="l", xlab="iteration", main="b)",
+     ylab=expression(hat(theta)[d]), ylim=range(fit2.igauss.conj$seq.eb$theta))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$theta)) {
+  lines(fit2.igauss.conj$seq.eb$theta[, d], col=d)
+}
+plot(fit2.igauss.conj$seq.eb$lambda[, 1], type="l", xlab="iteration", main="c)",
+     ylab=expression(hat(lambda)[d]), ylim=range(fit2.igauss.conj$seq.eb$lambda))
+for(d in 2:ncol(fit2.igauss.conj$seq.eb$lambda)) {
+  lines(fit2.igauss.conj$seq.eb$lambda[, d], col=d)
+}
+plot(fit2.igamma.conj$seq.eb$eta[, 1], type="l", xlab="iteration", main="d)",
+     ylab=expression(hat(eta)[d]), ylim=range(fit2.igamma.conj$seq.eb$eta))
+for(d in 2:ncol(fit2.igamma.conj$seq.eb$eta)) {
+  lines(fit2.igamma.conj$seq.eb$eta[, d], col=d)
+}
+plot(fit2.igamma.conj$seq.eb$lambda[, 1], type="l", xlab="iteration", main="e)",
+     ylab=expression(hat(lambda)[d]), ylim=range(fit2.igamma.conj$seq.eb$lambda))
+for(d in 2:ncol(fit2.igamma.conj$seq.eb$lambda)) {
+  lines(fit2.igamma.conj$seq.eb$lambda[, d], col=d)
+}
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
 
+# ---- scatter_igaussian_res2_conj_prior ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(4, 4, 5, 5, 6, 6), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(alpha, fit2.igauss.conj$seq.eb$alpha[fit2.igauss.conj$iter$eb, ], 
+     ylab=expression(hat(alpha)), xlab=expression(alpha), main="a)")
+plot(lambda, fit2.igauss.conj$seq.eb$lambda[fit2.igauss.conj$iter$eb, ],
+     ylab=expression(hat(lambda)), xlab=expression(lambda), main="b)")
+plot(lambda/(eta - 2), 
+     fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ],
+     ylab=expression(hat(E)(gamma[d]^2)), xlab=expression(E(gamma[d]^2)), 
+     main="c)")
+plot(eta, fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ], 
+     ylab=expression(hat(eta)), xlab=expression(eta), main="d)")
+plot(lambda, fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ],
+     ylab=expression(hat(lambda)), xlab=expression(lambda), main="e)")
+plot(lambda/(eta - 2), 
+     fit2.igamma.conj$seq.eb$lambda[fit2.igamma.conj$iter$eb, ]/
+       (fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ] - 2),
+     ylab=expression(hat(E)(gamma[d]^2)), xlab=expression(E(gamma[d]^2)), 
+     main="f)")
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
+
+# ---- scatter_igaussian_res2_conj_post ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(4, 4, 5, 5, 6, 6), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(cex=1.3, mar=opar$mar*c(1/2, 1.1, 1/2, 1/2))
+plot(beta, fit2.igauss.conj$vb.post$mu, 
+     ylab=expression(hat(E)(bold(beta)[d]~"|"~bold(y))),
+     xlab=expression(bold(beta)[d]), main="a)")
+plot(gamma^2, sqrt(
+  fit2.igauss.conj$vb.post$delta/fit2.igauss.conj$seq.eb$lambda[
+    fit2.igauss.conj$iter$eb, ])*fit2.igauss.conj$seq.eb$theta[
+      fit2.igauss.conj$iter$eb, ]*sapply(sqrt(fit2.igauss.conj$seq.eb$lambda[
+        fit2.igauss.conj$iter$eb, ]*fit2.igauss.conj$vb.post$delta)/
+          fit2.igauss.conj$seq.eb$theta[fit2.igauss.conj$iter$eb, ], 
+        ratio_besselK, nu=0.5*(p + 1)), 
+  ylab=expression(hat(E)(gamma[d]^2~"|"~bold(y))),
+  xlab=expression(gamma[d]^2), main="b)")
+plot(sigma^2, 2*fit2.igauss.conj$vb.post$zeta/(p + n - 1), 
+     ylab=expression(hat(E)(sigma[d]^2~"|"~bold(y))),
+     xlab=expression(sigma[d]^2), main="c)")
+plot(beta, fit2.igamma.conj$vb.post$mu, 
+     ylab=expression(hat(E)(bold(beta)[d]~"|"~bold(y))),
+     xlab=expression(bold(beta)[d]), main="d)")
+plot(gamma^2, fit2.igamma.conj$vb.post$delta/
+       (p + fit2.igamma.conj$seq.eb$eta[fit2.igamma.conj$iter$eb, ] - 2), 
+     ylab=expression(hat(E)(gamma[d]^2~"|"~bold(y))),
+     xlab=expression(gamma[d]^2), main="e)")
+plot(sigma^2, 2*fit2.igamma.conj$vb.post$zeta/(p + n - 1), 
+     ylab=expression(hat(E)(sigma[d]^2~"|"~bold(y))),
+     xlab=expression(sigma[d]^2), main="f)")
+layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
+par(opar)
 
 
 
