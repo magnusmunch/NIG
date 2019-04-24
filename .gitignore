@@ -28,6 +28,7 @@
 *.pdf
 *.png
 *.Rcheck
+*.Rdata
 *.Rproj.user
 *.run.xml
 *.snm
