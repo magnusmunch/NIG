@@ -1,5 +1,76 @@
-################################## supplement ##################################
+################################# main document ################################
 # ---- figures ----
+# ---- boxplots_igaussian_res4 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res4.csv")
+
+plot.data1 <- res[, substr(colnames(res), 1, 4)=="cram"]
+
+methods <- c("inv. Gaussian", "inv. Gamma")
+labels <- c("inv. Gaussian", "inv. Gamma")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(c(1, 1, 2, 2, 3, 3), 2), nrow=2, ncol=6, byrow=TRUE))
+boxplot(as.numeric(plot.data1[1, ]), col=col, outline=FALSE, main="(a)",
+        ylab="Cramér-von Mises criterion")
+boxplot(plot.data2, names=labels, col=col, outline=FALSE, main="(b)",
+        ylab=expression("Corr"(hat(V)(beta),hat(V)(beta["MCMC"]))))
+boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)",
+        ylab=expression("MSD"(hat(V)(beta),hat(V)(beta["MCMC"]))))
+par(opar)
+
+hist(samp.igamma[, 1], breaks=30)
+hist(samp.igauss[, 1], breaks=30)
+plot(best[, 1], best[, 2])
+
+cor(c(0, beta), best[, 1])
+cor(c(0, beta), best[, 2])
+mean((c(0, beta) - best[, 1])^2)
+mean((c(0, beta) - best[, 2])^2)
+
+# ---- boxplots_igaussian_res3 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res3.csv")
+
+plot.data1 <- res[, substr(colnames(res), 1, 4)=="cram"]
+plot.data2 <- res[, substr(colnames(res), 1, 7)=="corbvar"]
+plot.data3 <- res[, substr(colnames(res), 1, 7)=="msebvar"]
+methods <- c("ADVI", "VB")
+labels <- c("ADVI", "VB")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(c(1, 1, 2, 2, 3, 3), 2), nrow=2, ncol=6, byrow=TRUE))
+boxplot(plot.data1, names=labels, col=col, outline=FALSE, main="(a)",
+        ylab="Cramér-von Mises criterion")
+boxplot(plot.data2, names=labels, col=col, outline=FALSE, main="(b)",
+        ylab=expression("Corr"(hat(V)(beta),hat(V)(beta["MCMC"]))))
+boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)",
+        ylab=expression("MSD"(hat(V)(beta),hat(V)(beta["MCMC"]))))
+par(opar)
+
+# ---- boxplots_igaussian_res3_best ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res3.csv")
+
+plot.data1 <- res[, substr(colnames(res), 1, 7)=="corbest"]
+plot.data2 <- res[, substr(colnames(res), 1, 7)=="msebest"]
+methods <- c("ADVI", "VB", "glmnet", "MAP")
+labels <- c("ADVI", "VB", "glmnet", "MAP")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(c(1, 1, 2, 2), 2), nrow=2, ncol=4, byrow=TRUE))
+boxplot(plot.data1, names=labels, col=col, outline=FALSE, main="(a)",
+        ylab=expression("Corr"(hat(beta),hat(beta["MCMC"]))))
+boxplot(plot.data2, names=labels, col=col, outline=FALSE, main="(b)",
+        ylab=expression("MSD"(hat(beta),hat(beta["MCMC"]))))
+par(opar)
+
 # ---- boxplot_igaussian_res1_prior_mean ----  
 res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
 set1 <- read.table("results/simulations_igaussian_set1.csv")
@@ -42,42 +113,6 @@ axis(1, at=at2, labels=labels1, tick=FALSE)
 legend("topright", legend=c(paste("class", 1:set1$nclass), "true value"), 
        lty=c(rep(NA, 4), 2), col=c(colors1, 1), seg.len=rep(1, 5), 
        border=c(rep(1, 4), NA), fill=c(colors1, NA), merge=TRUE)
-par(opar)
-
-# ---- boxplot_igaussian_res1_mu_mse ----  
-res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
-set1 <- read.table("results/simulations_igaussian_set1.csv")
-labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
-             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
-colors1 <- sp::bpy.colors(6)[-c(1, 6)]
-
-C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
-                   function(s) {eval(parse(text=s))}), 
-            ncol=set1$nclass, nrow=set1$D)
-temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
-                    method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
-                    prior.means=c((res1[, grepl("igauss.conj_mu", colnames(
-                      res1))] %*% C)/(set1$D/set1$nclass), 
-                      (res1[, grepl("igauss.non.conj_mu", colnames(res1))]
-                       %*% C)/(set1$D/set1$nclass), 
-                      (res1[, grepl("igamma.conj_mu", colnames(res1))]
-                       %*% C)/(set1$D/set1$nclass),
-                      (res1[, grepl("igamma.non.conj_mu", colnames(res1))]
-                       %*% C)/(set1$D/set1$nclass)))
-
-opar <- par(no.readonly=TRUE)
-at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
-           2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
-at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
-         mean(1:set1$nclass + 2*set1$nclass + 2),
-         mean(1:set1$nclass + 3*set1$nclass + 3))
-par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
-boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
-        at=at1, col=colors1, names=NA, xaxt="n",
-        ylab=expression("MSE" (hat(beta))))
-axis(1, at=at2, labels=labels1, tick=FALSE)
-legend("topleft", legend=paste("class", 1:set1$nclass), col=colors1, 
-       seg.len=rep(1, 4), border=rep(1, 4), fill=colors1)
 par(opar)
 
 # ---- boxplot_igaussian_res2_prior_mean ----  
@@ -127,6 +162,77 @@ axis(1, at=at2, labels=labels2, tick=FALSE)
 legend("topright", legend=c(paste("class", 1:set2$nclass), "true value"), 
        lty=c(rep(NA, 4), 2), col=c(colors2, 1), seg.len=rep(1, 5), 
        border=c(rep(1, 4), NA), fill=c(colors2, NA), merge=TRUE)
+par(opar)
+
+################################## supplement ##################################
+# ---- hist_igaussian_res3_beta_post ---- 
+methods <- c("MCMC", "ADVI", "VB")
+labels <- c(methods, expression(hat(E)(beta[0]~"|"~bold(y))))
+col <- 2:(length(methods) + 1)
+which.beta <- c(1, sample(1:(p + 1), 5))
+
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(rep(c(4:6), each=2), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+for(j in 1:length(which.beta)) {
+  h1 <- hist(samp.mcmc[, which.beta[j]], plot=FALSE, breaks=30)
+  h2 <- hist(samp.advi[, which.beta[j]], plot=FALSE, breaks=30)
+  ylim <- c(0, max(dnorm(best.vb[which.beta[j], ], 
+                         mean=best.vb[which.beta[j], ], 
+                         sd=sqrt(bvar.vb[which.beta[j], ])), 
+                   h1$density, h2$density))
+  plot(h1, freq=FALSE, 
+       main=substitute(beta[i], list(i=which.beta[j] - 1)), 
+       xlab=expression(beta),
+       ylim=ylim, col=rgb(1, 0, 0, 0.5))
+  plot(h2, freq=FALSE, add=TRUE, col=rgb(0, 1, 0, 0.5))
+  curve(dnorm(x, mean=best.vb[which.beta[j], ], 
+              sd=sqrt(bvar.vb[which.beta[j], ])), add=TRUE, col=col[3], lwd=2)
+  abline(v=best.mcmc[which.beta[j], ], col=col[1], lty=2, lwd=2)
+  abline(v=best.advi[which.beta[j], ], col=col[2], lty=2, lwd=2)
+  abline(v=best.vb[which.beta[j], ], col=col[3], lty=2, lwd=2)
+}
+legend("topright", legend=labels, 
+       lty=c(rep(NA, length(methods)), 2), col=c(col, 1), 
+       seg.len=1, border=c(rep(1, length(methods)), NA), 
+       fill=c(col, NA), merge=TRUE)
+par(opar)
+
+# ---- boxplot_igaussian_res1_mu_mse ----  
+res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
+set1 <- read.table("results/simulations_igaussian_set1.csv")
+labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
+colors1 <- sp::bpy.colors(6)[-c(1, 6)]
+
+C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
+                   function(s) {eval(parse(text=s))}), 
+            ncol=set1$nclass, nrow=set1$D)
+temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
+                    method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
+                    prior.means=c((res1[, grepl("igauss.conj_mu", colnames(
+                      res1))] %*% C)/(set1$D/set1$nclass), 
+                      (res1[, grepl("igauss.non.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass), 
+                      (res1[, grepl("igamma.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass),
+                      (res1[, grepl("igamma.non.conj_mu", colnames(res1))]
+                       %*% C)/(set1$D/set1$nclass)))
+
+opar <- par(no.readonly=TRUE)
+at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
+           2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
+at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
+         mean(1:set1$nclass + 2*set1$nclass + 2),
+         mean(1:set1$nclass + 3*set1$nclass + 3))
+par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+        at=at1, col=colors1, names=NA, xaxt="n",
+        ylab=expression("MSE" (hat(beta))))
+axis(1, at=at2, labels=labels1, tick=FALSE)
+legend("topleft", legend=paste("class", 1:set1$nclass), col=colors1, 
+       seg.len=rep(1, 4), border=rep(1, 4), fill=colors1)
 par(opar)
 
 # ---- boxplot_igaussian_res2_mu_mse ----  
@@ -292,8 +398,56 @@ layout(matrix(1, 1, 1), widths=1, heights=1, respect=TRUE)
 par(opar)
 
 
+# ---- scatter_igaussian_res3_beta_vs_best ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(c(0, 4, 4, 5, 5, 0), 2)), 
+              byrow=TRUE, nrow=4, ncol=6), widths=1, heights=1, respect=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+plot(rbind(0, beta), best.glmnet, ylab=expression(hat(beta)), 
+     xlab=expression(beta),
+     main=paste0("glmnet, MSE=", 
+                 round(mean((best.glmnet - rbind(0, beta))^2), 4)))
+abline(a=0, b=1, col=2, lty=2)
+plot(rbind(0, beta), best.mcmc, ylab=expression(hat(beta)), 
+     xlab=expression(beta),
+     main=paste0("MCMC, MSE=", 
+                 round(mean((best.mcmc - rbind(0, beta))^2), 4)))
+abline(a=0, b=1, col=2, lty=2)
+plot(rbind(0, beta), best.vb, ylab=expression(hat(beta)), 
+     xlab=expression(beta),
+     main=paste0("VB, MSE=", 
+                 round(mean((best.vb - rbind(0, beta))^2), 4)))
+abline(a=0, b=1, col=2, lty=2)
+plot(rbind(0, beta), best.advi, ylab=expression(hat(beta)), 
+     xlab=expression(beta),
+     main=paste0("ADVI, MSE=", 
+                 round(mean((best.advi - rbind(0, beta))^2), 4)))
+abline(a=0, b=1, col=2, lty=2)
+plot(rbind(0, beta), best.map, ylab=expression(hat(beta)), 
+     xlab=expression(beta),
+     main=paste0("MAP, MSE=", 
+                 round(mean((best.map - rbind(0, beta))^2), 4)))
+abline(a=0, b=1, col=2, lty=2)
+par(opar)
 
-
+# ---- scatter_igaussian_res3_mcmc_vs_best ----
+opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)),
+              byrow=TRUE, nrow=4, ncol=4), widths=1, heights=1, respect=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+plot(best.mcmc, best.vb, ylab=expression(hat(E)(beta["VB"]~"|"~bold(y))),
+     xlab=expression(hat(E)(beta["MCMC"]~"|"~bold(y))))
+abline(a=0, b=1, col=2, lty=2)
+plot(best.mcmc, best.advi, ylab=expression(hat(beta)["ADVI"]),
+     xlab=expression(hat(beta)["MCMC"]))
+abline(a=0, b=1, col=2, lty=2)
+plot(bvar.mcmc, bvar.vb, ylab=expression(hat(V)(beta["VB"]~"|"~bold(y))),
+     xlab=expression(hat(V)(beta["MCMC"]~"|"~bold(y))))
+abline(a=0, b=1, col=2, lty=2)
+plot(bvar.mcmc, bvar.advi, ylab=expression(hat(V)(beta["ADVI"]~"|"~bold(y))),
+     xlab=expression(hat(V)(beta["MCMC"]~"|"~bold(y))))
+abline(a=0, b=1, col=2, lty=2)
+par(opar)
 
 
 
