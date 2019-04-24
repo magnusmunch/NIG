@@ -112,7 +112,9 @@ dsfont,parskip,xr}
 \pgfplotsset{compat=1.16}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
 \setlength{\textwidth}{15cm}
-\title{Supplementary material to: Drug efficacy prediction in cell lines}
+\title{Supplementary material to: Empirical Bayes estimation of the normal
+inverse Gaussian prior in 
+simultaneous-equation models}
 \date{\today}
 \author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
 \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, 
@@ -135,7 +137,56 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	
 	\section{Variational Bayes derivations}\label{sec:vbderivations}
 	In the following all expectations are with respect to the variational posterior $Q$.
-	\subsection{Evidence lower bound}
+	\begin{align*}
+	\log q_{\B} (\B) & \propto \E_{\mathbf{U}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\bgamma^2, \bsigma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
+	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\mathbf{u}_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E_{\gamma^2_d, \sigma^2_d} \( \frac{\beta_{jd}^2}{\gamma_d^2 \sigma_d^2} \), \\
+	q_{\B} (\B) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_p (\bmu_d, \bSigma_d), \\
+	& \text{ with } \bSigma_d = \E(\sigma_d^{-2})^{-1} [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1}, \\
+	& \text{ and } \bmu_d = [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1} \X \tr [\y_d - \Z \cdot \E(\mathbf{u}_d)].
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\U}(\U) & \propto \E_{\mathbf{B}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2} [\log \pi (\U | \mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2)] \\
+	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\bbeta_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \E_{\bm{\Xi}_d, \sigma_d^2}\( \frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \), \\
+	q_{\U}(\U) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_T (\mathbf{m}_d, \Sm_d), \\
+	& \text{ with } \Sm_d = \E(\sigma_d^{-2})^{-1} [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1}, \\
+	& \text{ and } \mathbf{m}_d = [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1} \Z \tr [\y_d - \X \cdot \E(\bbeta_d)].
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bgamma^{2}}(\bgamma^{2}) & \propto \E_{\B, \bsigma^2} [\log \pi (\B | \bgamma^{2}, \sigma^2)] + \log \pi (\bgamma^{2}) \\
+	& \propto -\frac{p}{2} \sum_{d=1}^D \log \gamma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E \( \frac{\beta_{jd}^2}{\sigma^{2}_d}\) \gamma_d^{-2} - \frac{3}{2} \sum_{d=1}^D \log \gamma_d^{2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{\lambda}{2 \theta^2} \sum_{d=1}^D (\gamma_d^2 - \theta)^2 \gamma_d^{-2} \\
+	& \propto \sum_{d=1}^D \left\{ \( -\frac{p + 1}{2} - 1\) \log \gamma_d^{2} - \frac{\lambda}{2\theta^2} \gamma_d^2 - \frac{1}{2}\[ \lambda + \E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^{2}}\] \gamma_d^{-2} \right\}, \\
+	q_{\bgamma^{2}}(\bgamma^{2}) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG} \(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_{d} \), \\
+	& \text{with } \delta_{d} =\E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} + \lambda.
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bsigma^{2}}(\bsigma^{2}) & \propto \E_{\B,\mathbf{U}} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\B, \bgamma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
+	& \,\,\,\,\,\,\,\,\,\, + \E_{\mathbf{U}, \bm{\Xi}_1, \dots, \bm{\Xi}_D} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bsigma^{2}) \\
+	& \propto -\frac{n}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \sigma_d^{2} - \frac{p}{2} \sum_{d=1}^D \log \sigma_d^{-2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \E( \gamma_d^{-2}) \frac{\E ( \beta_{jd}^2)}{\phi_{g(j)}^{2}} \sigma_d^{-2} - \frac{T}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \E(\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}) \sigma_d^{-2} \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{3}{2} \sum_{d=1}^D \log \sigma^2_d \\
+	& = -\sum_{d=1}^{D} \(\frac{n + p + T + 3}{2} \) \log \sigma_d^{2} - \sum_{d=1}^{D} \frac{1}{2}\Bigg\{ \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \\
+	& \,\,\,\,\,\,\,\,\,\, + \E(\gamma_d^{-2})\sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^2} + \E(\mathbf{u}_{d} \tr \bm{\Xi}_d^{-1} \mathbf{u}_d) \Bigg\} \sigma_d^{-2}, \\
+	q_{\bsigma^{2}}(\bsigma^{2}) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + T + 1}{2}, \zeta_{d} \), \\
+	& \text{ with } \zeta_{d} = \frac{\y_d \tr \y_d}{2} - \y_d \tr [\X \E(\bbeta_d) + \Z \E(\mathbf{u}_d)] + \E(\bbeta_d \tr) \X \tr \Z \E (\mathbf{u}_d) \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\trace [\X \tr \X \V(\bbeta_d)]}{2} + \frac{\E(\bbeta_d \tr) \X \tr \X \E(\bbeta_d)}{2} + \frac{\trace [\Z \tr \Z \V(\mathbf{u}_d)]}{2} \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\E(\mathbf{u}_d \tr) \Z \tr \Z \E(\mathbf{u}_d)}{2} + \frac{\E(\gamma_d^{-2})}{2} \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} \\
+	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,+ \frac{\E(\mathbf{u}_d \tr) \E(\bm{\Xi}_d^{-1}) \E(\mathbf{u}_d)}{2} + \frac{\trace [\E(\bm{\Xi}_d^{-1}) \V(\mathbf{u}_d)]}{2},
+	\end{align*}
+	
+	\begin{align*}
+	\log q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \propto \E_{\mathbf{U}, \bm{\sigma}^2} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bm{\Xi}_1, \dots, \bm{\Xi}_D) \\
+	& \propto -\frac{1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \E \(\frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \) \\
+	& \,\,\,\,\,\,\,\,\,\, - \frac{k + T + 1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace (\bm{\Omega} \bm{\Xi}_d^{-1}) \\
+	& = -\frac{\tau + T + 2}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace \left\{ \[\E(\sigma_d^{-2}) \E( \mathbf{u}_d \mathbf{u}_d \tr) + \bm{\Omega}\] \bm{\Xi}_d^{-1} \right\}, \\
+	q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \overset{D}{\propto} \prod_{d=1}^D \mathcal{W}_T^{-1} (\bm{\Psi}_d, \nu + 1),  \\ 
+	& \text{ with } \bm{\Psi}_d =\E(\sigma^{-2}_d) \[\V(\mathbf{u}_d) + \E(\mathbf{u}_d) \E( \mathbf{u}_d \tr) \] + \bm{\Omega}.
+	\end{align*}
+	
+	\section{Evidence lower bound}\label{sec:evidencelowerbound}
 	We monitor convergence through the evidence lower bound (ELBO). To compute the evidence lower bound after updating the EB parameters from $\eta_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}$ to $\eta_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$, we compute $\text{ELBO}^{(l + 1)} = \sum_{d=1}^D \text{ELBO}_d^{(l + 1)}$, with, in the inverse Gaussian case:
 	\begin{align*}
 	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
@@ -155,8 +206,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   Note that the computation of $e_d^{(l)}$ differs between the inverse Gaussian and Gamma models. Furthermore, to compute the ELBO after a VB update we simply let $\eta_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}=\eta_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$. 
   
   In practice, there are different options to assess convergence. We may monitor the parameters themselves, the ELBO, or a combination of the two. We may also iterate for an \textit{a priori} fixed number of times. We may also choose to use a different convergence criterium for the EB and VB iterations. Currently we fix the number of EB iterations to 20, while we do 2 VB iterations per EB iteration.
-	
-	\section{Evidence lower bound}
+
 	We monitor convergence through the evidence lower bound (ELBO). To compute the evidence lower bound after updating the EB parameters from $\eta_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}$ to $\eta_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$, we compute $\text{ELBO}^{(l + 1)} = \sum_{d=1}^D \text{ELBO}_d^{(l + 1)}$, with, in the inverse Gaussian case:
 	\begin{align*}
 	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
@@ -177,7 +227,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   
   In practice, there are different options to assess convergence. We may monitor the parameters themselves, the ELBO, or a combination of the two. We may also iterate for an \textit{a priori} fixed number of times. We may also choose to use a different convergence criterium for the EB and VB iterations. Currently we fix the number of EB iterations to 20, while we do 2 VB iterations per EB iteration.
   
-  \subsection{Efficient computation}
+  \section{Efficient computation}
   The empirical Bayes updates require the following quantities: $\zeta_d$, $a_d$, $\delta_d$, $\trace (\bm{\Sigma}_d)$, $\trace (\X \tr \X \bm{\Sigma}_d)$, $\bm{\mu}_d \tr \bm{\mu}_d$, and $\bm{\mu}_d \tr \X \tr \X \bm{\mu}_d$. In addition, we need $\log|\bm{\Sigma}|$ and $\mathbf{y}_d \tr \X \bm{\mu}_d$ to monitor the ELBO. The first three quantities are obtained by scalar operations of $\mathcal{O}(n)$. Let $c_d^{(h)}=b_d^{(h)}$ in the conjugate setting and $c_d^{(h)}=b_d^{(h)}/a_d^{(h)}$ in the non-conjugate setting. Then, beforementioned quantities are easily calculated using the SVD $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$:
   \begin{align*}
   \trace (\bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \[\sum_{i=1}^n (v_i^2 + c_d^{(h)})^{-1} + \max (p - n, 0)\cdot (c_d^{(h)})^{-1}\], \\
@@ -189,21 +239,85 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \end{align*}
   where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
   
-  \section{Inverse Gamma model}
+  \section{Ratios of modified Bessel functions}\label{sec:ratiosmodifiedbessels}
+  Ratios of modified Bessel functions of the second kind 
+  $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large
+  $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be
+  large, this causes numerical issues in the calculation of various quantities.
+  We alleviate the numerical issues through the following.
+  
+  We let $n_1=p/2$ and $n_2=(p-1)/2$ and use the well-known recursive relation:
+  $$
+  K_{\alpha}(x) = K_{\alpha - 2}(x) + \frac{2(\alpha - 1)}{2} K_{\alpha- 1}(x),
+  $$
+  to rewrite the ratio:
+  \begin{align*}
+    \frac{K_{\frac{p - 1}{2}}(x)}{K_{\frac{p + 1}{2}}(x)} = 
+    \begin{cases}
+      \Big( \dots \Big( \( 1 + \frac{2 \cdot 1 - 1}{x} \)^{-1} + 
+      \frac{2 \cdot 2-1}{x}\Big)^{-1} + \dots + 
+      \frac{2 \cdot n_1 - 1}{x}\Big)^{-1}, & \text{for } p \text{ even}, \\
+      \Big( \dots \Big( \( \frac{K_0(x)}{K_1(x)} + \frac{2}{x} \cdot 1 \)^{-1} +
+      \frac{2}{x} \cdot 2 \Big)^{-1} + \dots + \frac{2}{x} \cdot n_2 \Big)^{-1},
+      & \text{for } p \text{ odd}.
+    \end{cases}
+  \end{align*} 
+  The ratio $K_0(x)/K_1(x)$ is well-behaved, such that the ratio may be computed
+  without numerical issues.
+  
+  \section{Gibbs sampler}\label{sec:gibbssampler}
+  MCMC samples from the posterior corresponding to model 
+  (\ref{md-eq:priormodel}) may be generated for each equation independently. 
+  For clarity, we therefore omit the index $d$ in the following. MCMC samples 
+  may be generated by iteratively sampling the following conditional
+  distributions:
+  \begin{align}
+    \bm{\beta} | \gamma^2, \sigma^2, \y & \sim \mathcal{N}_p 
+    (\bm{\mu}, \bm{\Sigma}), \label{eq:betasample} \\
+    \gamma^2 | \bm{\beta}, \sigma^2, \y & \sim \mathcal{GIG}
+    \(-\frac{p+1}{2}, \lambda \theta^{-2}, \delta\), \nonumber \\
+    \sigma^2 | \bm{\beta}, \gamma^2, \y & \sim \Gamma^{-1} 
+    \(\frac{n + p + 1}{2}, \zeta\), \nonumber
+  \end{align}
+  with
+  \begin{subequations}\label{eq:gibbsparameters}
+    \begin{align}
+      \bm{\Sigma} & = \sigma^2 (\X \tr \X + \gamma^{-2} \I)^{-1}, \\
+      \bm{\mu} & = (\X \tr \X + \gamma^{-2} \I)^{-1} \X \tr \y, \\
+      \delta & = \sigma^{-2} \bm{\beta} \tr \bm{\beta} + \lambda, \nonumber \\ 
+      \zeta & = \frac{1}{2} \[\mathbf{y} \tr \mathbf{y} -
+      2 \mathbf{y} \tr \X \bm{\mu} + \trace ( \X \tr \X \bm{\Sigma}) + 
+      (\bm{\mu}) \tr \X \tr \X \bm{\mu}  + 
+      \gamma^{-2} \trace ( \bm{\Sigma}) + 
+      \gamma^{-2} (\bm{\mu}) \tr \bm{\mu}\]. \nonumber
+    \end{align}
+  \end{subequations}
+  In high dimensional space, the $p times p$ matrix inversions in 
+  (\ref{eq:gibbsparameters}) are   
+  significant computational bottlenecks. \cite{bhattacharya_fast_2016} describe a
+  method to sample from (\ref{eq:betasample}) without explicit calculation
+  of this inverse, thereby offering a siginifcant speed-up compared to naive
+  sampling.
+  
+  \section{Inverse Gamma model}\label{sec:inversegamma}
   In addition to the inverse Gaussian model, we investigate a generalisation of 
   the models in \cite{kpogbezan_empirical_2017} and \cite{leday_gene_2017}, 
   where we draw the $\gamma_d^2$ from an inverse Gamma distribution:
-	$$
-	\gamma_d^2 \sim \Gamma^{-1}(\eta_d/2, \lambda_d/2),
-	$$
+	\begin{equation}\label{eq:invgammaprior}
+	  \gamma_d^2 \sim \Gamma^{-1}(\eta_d/2, \lambda_d/2)=
+	  \mathcal{GIG}(-\eta_d/2, 0, \lambda_d),
+	\end{equation}
 	with shape $\eta_d/2$ and scale $\lambda/2$. For the sake of comparability, we
-	have rescaled the inverse Gamma parameters and reparametrised both 
-	distributions as generalized inverse Gaussians:
-	\begin{align*}
-  \gamma_d^2 & \sim \mathcal{GIG}(-1/2, \lambda_d \theta_d^{-2}, \lambda_d), \\
-  \gamma_d^2 & \sim \mathcal{GIG}(-\eta_d/2, 0, \lambda_d).
-  \end{align*}
-	The two models coincide if $\theta_d \to \infty$ and $\eta_d = 1$.
+	have rescaled the inverse Gamma parameters and reparametrised as a generalized
+	inverse Gaussian. This allows for an easier comparison to the inverse 
+	Gaussian hyperprior:
+	\begin{equation}\label{eq:invgaussianprior}
+	  \mathcal{IG}(\theta_d, \lambda_d) =
+	  \mathcal{GIG}(-1/2, \lambda_d \theta_d^{-2}, \lambda_d).
+  \end{equation}
+	From (\ref{eq:invgammaprior}) and (\ref{eq:invgaussianprior}) it is 
+	that the two models coincide if 
+	$\theta_d \to \infty$ and $\eta_d = 1$.
 	
 	\begin{align*}
   q(\bm{\beta}_d) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
@@ -229,7 +343,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \end{align}
   Note that in the inverse Gamma model, the computation of (\ref{eq:auxvar1}) simplifies to $b_d^{(h)}=(p+\eta_d)/\delta_d^{(h)}$.
 	
-	<<dens_igaussian_igamma, fig.cap="Several densities of the inverse Gaussian and inverse Gamma families", out.width="100%", fig.asp=2/3>>=
+<<dens_igaussian_igamma, fig.cap="Several densities of the inverse Gaussian and inverse Gamma families", out.width="100%", fig.asp=2/3>>=
 digauss <- function(x, theta, lambda, eta) {
   sqrt(lambda/(x^3*2*pi))*exp(-lambda*(x - theta)^2/(2*theta^2*x))
 }
@@ -313,17 +427,10 @@ par(opar)
   \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
   & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{b_d^{(h+1)} - c_d^{(h+1)} a_d^{(h+1)}}{1 - a_d^{(h+1)}} \trace ( \bm{\Sigma}_d^{(h+1)}) + \frac{b_d^{(h+1)} - c_d^{(h+1)} a_d^{(h+1)}}{1 - a_d^{(h+1)}} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg].
   \end{align*}
-  Here, we set
-  \begin{align}
-  a_d^{(h)} & =\E_{Q^{(h)}}(\sigma_d^{-2})=(df+1)/(2 \zeta_d^{(h)}), \nonumber \\
-  b_d^{(h)} & = \E_{Q^{(h)}}(\gamma_d^{-2}) = \sqrt{\frac{\lambda_d}{\theta_d^2 \delta_d^{(h)}}} \frac{K_{\frac{p + \eta_d -2}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)}{K_{\frac{p+\eta_d}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)} + \frac{p+\eta_d^{(h)}}{\delta_d^{(h)}}, \label{eq:auxvar1} \\
-  c_d^{(h)} & = \begin{cases*}
-  b_d^{(h)} & in the conjugate setting \\
-  b_d^{(h)}/a_d^{(h)} & in the non-conjugate setting .
-  \end{cases*} \nonumber
-  \end{align}
-  Note that in the inverse Gamma model, the computation of (\ref{eq:auxvar1}) simplifies to $b_d^{(h)}=(p+\eta_d)/\delta_d^{(h)}$.
-  
+  Here, we set $a_d^{(h)}$, $b_d^{(h)}$, and $c_d^{(h)}$ as in 
+  (\ref{eq:auxvar1})
+  Note that in the inverse Gamma model, the computation of (\ref{eq:auxvar1})
+  simplifies to $b_d^{(h)}=(p+\eta_d)/\delta_d^{(h)}$.
   
   \section{Starting values}
   \subsection{Method 1}
@@ -351,23 +458,6 @@ par(opar)
   $$
   \hat{\zeta} = \frac{D(n + p + 1)}{2 \sum_{d=1}^D[(\hat{\sigma}_d^2)^{-1}]}.
   $$
-  
-  \section{Ratios of modified Bessel functions}
-  Ratios of modified Bessel functions of the second kind $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be large, this causes numerical issues in the calculation of various quantities. We alleviate the numerical issues through the following.
-  
-  We let $n_1=p/2$ and $n_2=(p-1)/2$ and use the well-known recursive relation:
-  $$
-  K_{\alpha}(x) = K_{\alpha - 2}(x) + \frac{2(\alpha - 1)}{2} K_{\alpha- 1}(x),
-  $$
-  to rewrite the ratio:
-  \begin{align*}
-  \frac{K_{\frac{p - 1}{2}}(x)}{K_{\frac{p + 1}{2}}(x)} = 
-  \begin{cases}
-  \Big( \dots \Big( \( 1 + \frac{2 \cdot 1 - 1}{x} \)^{-1} + \frac{2 \cdot 2-1}{x}\Big)^{-1} + \dots + \frac{2 \cdot n_1 - 1}{x}\Big)^{-1}, & \text{for } p \text{ even}, \\
-  \Big( \dots \Big( \( \frac{K_0(x)}{K_1(x)} + \frac{2}{x} \cdot 1 \)^{-1} + \frac{2}{x} \cdot 2 \Big)^{-1} + \dots + \frac{2}{x} \cdot n_2 \Big)^{-1}, & \text{for } p \text{ odd}.
-  \end{cases}
-  \end{align*} 
-  The ratio $K_0(x)/K_1(x)$ is well-behaved, such that the ratio may be computed without numerical issues.
 	
   \bibliographystyle{author_short3}  
 	\bibliography{refs}

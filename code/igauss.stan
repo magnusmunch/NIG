@@ -2,7 +2,7 @@ functions {
   // inverse Gaussian log probability density function
   real igauss_lpdf(real x, real theta, real lambda) {
     return -log(2*pi())/2 + log(lambda)/2 - 3*log(x)/2
-           - lambda*square(x - theta)/(2*theta^2*x);
+           - lambda*square(x - theta)/(2*square(theta)*x);
   }
   // Jeffrey's log probability density (up to constant)
   real jeffreys_lpdf(real x) {

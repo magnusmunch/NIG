@@ -383,6 +383,22 @@ par(opar)
   \end{frame}
   
   \begin{frame}
+    \frametitle{EB Estimating equations}
+    After VB approximation:
+    \begin{align*}
+    \bm{\alpha} & = \[ \mathbf{C} \tr \diag 
+    (\lambda_d e_d^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \diag 
+    (\lambda_d) \mathbf{1}_{D \times 1}, \\
+    \lambda_d & = \[ b_d^{(l)} + e_d^{(l)} (\mathbf{c}_d \tr \bm{\alpha})^2 - 
+    2\mathbf{c}_d \tr \bm{\alpha} \]^{-1},
+  \end{align*}
+  where $e_d^{(l)} = \E_{Q^{(l)}}(\gamma_d^2)$ \\
+  
+  solve by \textbf{IRLS} of outcomes $(e_d^{(l)})^{-1}$ on predictors 
+  $\mathbf{c}_d$ with weights $\lambda_d e_d^{(l)}$.
+  \end{frame}
+  
+  \begin{frame}
     \frametitle{Full algorithm}
     \begin{columns}
       \begin{column}{0.5\linewidth}
