@@ -1,36 +1,36 @@
 ################################# main document ################################
 # ---- figures ----
-# ---- boxplots_igaussian_res4 ----  
+# ---- boxplots_igaussian_res4_post ----  
 library(sp)
 res <- read.table("results/simulations_igaussian_res4.csv")
 
 plot.data1 <- res[, substr(colnames(res), 1, 4)=="cram"]
+plot.data2 <- res[, substr(colnames(res), 1, 7)=="corbest"]
+plot.data3 <- res[, substr(colnames(res), 1, 7)=="msebest"]
+plot.data4 <- res[, substr(colnames(res), 1, 5)=="cover"]
 
-methods <- c("inv. Gaussian", "inv. Gamma")
-labels <- c("inv. Gaussian", "inv. Gamma")
+methods <- c("NIG", "Student's t")
+labels <- c("NIG", "Student's t")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(rep(c(1, 1, 2, 2, 3, 3), 2), nrow=2, ncol=6, byrow=TRUE))
-boxplot(as.numeric(plot.data1[1, ]), col=col, outline=FALSE, main="(a)",
-        ylab="Cramér-von Mises criterion")
-boxplot(plot.data2, names=labels, col=col, outline=FALSE, main="(b)",
-        ylab=expression("Corr"(hat(V)(beta),hat(V)(beta["MCMC"]))))
-boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)",
-        ylab=expression("MSD"(hat(V)(beta),hat(V)(beta["MCMC"]))))
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+# layout(matrix(c(rep(c(1, 1, 2, 2), 2), rep(c(3, 3, 4, 4), 2)), 
+#               nrow=4, ncol=4, byrow=TRUE))
+layout(matrix(rep(c(1, 1, 2, 2, 3, 3, 4, 4), 2),
+              nrow=2, ncol=8, byrow=TRUE))
+boxplot(plot.data1, outline=FALSE, main="(a)",
+        ylab="Cramér-von Mises criterion", las=2, names=labels)
+boxplot(plot.data2, outline=FALSE, main="(b)", las=2,
+        ylab=expression("Corr"(hat(beta), beta)), names=labels)
+boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)", las=2,
+        ylab=expression("MSD"(hat(beta), beta)))
+boxplot(plot.data4, names=labels, col=col, outline=FALSE, main="(d)", las=2,
+        ylab="95% coverage")
+abline(h=0.95)
 par(opar)
 
-hist(samp.igamma[, 1], breaks=30)
-hist(samp.igauss[, 1], breaks=30)
-plot(best[, 1], best[, 2])
-
-cor(c(0, beta), best[, 1])
-cor(c(0, beta), best[, 2])
-mean((c(0, beta) - best[, 1])^2)
-mean((c(0, beta) - best[, 2])^2)
-
-# ---- boxplots_igaussian_res3 ----  
+# ---- boxplots_igaussian_res3_vb ----  
 library(sp)
 res <- read.table("results/simulations_igaussian_res3.csv")
 
