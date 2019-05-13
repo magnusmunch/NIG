@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 
 ### installation of packages
-# if(!("devtools" %in% installed.packages())) {
-#   install.packages("devtools")
-# }
-# library(devtools)
-# install_github("magnusmunch/cambridge/rpackage", local=FALSE,
-#                auth_token=Sys.getenv("GITHUB_PAT"))
-
+if(!("devtools" %in% installed.packages())) {
+  install.packages("devtools")
+}
+library(devtools)
+install_github("magnusmunch/cambridge/rpackage", local=FALSE,
+               auth_token=Sys.getenv("GITHUB_PAT"))
+~/Library/R/3.4.2/library
 ### parallelisation
 parallel <- FALSE
 
