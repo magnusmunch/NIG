@@ -27,9 +27,9 @@ parameters {
 }
 
 transformed parameters {
-  real sigma = sqrt(sigmasq);
-  real gamma = sqrt(gammasq);
-  real betavar = sigma*gamma;
+  real<lower=0> sigma = sqrt(sigmasq);
+  real<lower=0> gamma = sqrt(gammasq);
+  real<lower=0> betavar = sigma*gamma;
   vector[n] mu;
   mu = beta0 + x*beta;
 }

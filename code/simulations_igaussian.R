@@ -343,6 +343,7 @@ res <- foreach(k=c(1:nreps), .errorhandling="pass") %dopar% {
   out <- list(cram, corbvar, msebvar, corbest, msebest, samp)
 }
 if(parallel) {stopCluster(cluster)}
+save(res, file="results/simulations_igaussian_res3.Rdata")
 
 which.excl <- 80
 fit <- res[[1]][[6]]
@@ -373,23 +374,28 @@ rho <- 0.5
 Sigma <- matrix(rho, ncol=p, nrow=p); diag(Sigma) <- 1
 gamma <- rep(1, D)
 sigma <- rep(1, D)
-lambda <- 0.5
-theta <- 1
-eta <- lambda/theta + 2
+thetac <- 1
+thetaz <- ratio_besselK(1/3, 1) + 2/3
+lambdac <- 1/3
+lambdaz <- (36*ratio_besselK(1/3, 1)^2 + 249*ratio_besselK(1/3, 1) + 150)/
+  (ratio_besselK(1/3, 1) + 6)^2
+eta <- 7/3
 
 # store settings in an object
 set <- data.frame(nreps=nreps, n=n, p=p, D=D, gamma=t(as.matrix(gamma)), 
-                  sigma=t(as.matrix(sigma)), 
-                  lambda=lambda, theta=theta, eta=eta)
+                  sigma=t(as.matrix(sigma)), t(as.matrix(tau)),
+                  lambdac=lambdac, thetac=thetac,
+                  lambdaz=lambdaz, thetaz=thetaz, eta=eta)
 rownames(set) <- paste0("set", 1:nrow(set))
 
 # objects to store simulation results
-methods <- c("MCMC", "ADVI", "VB", "MAP", "glmnet")
-params <- c("beta0", "beta", "sigma", "gamma")
+methods <- c("nig", "studentst", "nigig")
+params <- c("beta0", "beta", "sigma", "gamma", "tau")
 
 # set initial values and control parameters
-stan.igauss <- stan_model("code/igauss.stan")
-stan.igamma <- stan_model("code/igamma.stan")
+stan.nig <- stan_model("code/igauss.stan")
+stan.nigig <- stan_model("code/nigig.stan")
+stan.studentst <- stan_model("code/igamma.stan")
 nsamples <- 1000
 nwarmup <- 1000
 
@@ -410,64 +416,274 @@ res <- foreach(k=c(1:nreps), .errorhandling="pass") %dopar% {
   x <- rmvnorm(n, rep(0, p), sigma=Sigma)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
 
-  fit.igauss <- sapply(1:D, function(d) {
-    sampling(stan.igauss, data=list(n=n, p=p, y=y[, d], x=x, theta=theta, 
-                                    lambda=lambda), chains=1, warmup=nwarmup,
+  fit.nig <- sapply(1:D, function(d) {
+    sampling(stan.nig, data=list(n=n, p=p, y=y[, d], x=x, theta=thetac, 
+                                 lambda=lambdac), chains=1, warmup=nwarmup,
              iter=nsamples + nwarmup, cores=1, refresh=0, 
              control=list(adapt_delta=0.8, max_treedepth=12))})
-  fit.igamma <- sapply(1:D, function(d) {
-    sampling(stan.igamma, data=list(n=n, p=p, y=y[, d], x=x, eta=eta, 
-                                    lambda=lambda), chains=1, warmup=nwarmup,
-             iter=nsamples + nwarmup, cores=1, refresh=0, 
+  fit.nigig <- sapply(1:D, function(d) {
+    sampling(stan.nigig, data=list(n=n, p=p, y=y[, d], x=x, thetac=thetac, 
+                                   lambdac=lambdac, thetaz=thetaz, lambdaz), 
+             chains=1, warmup=nwarmup, iter=nsamples + nwarmup, cores=1, 
+             refresh=0, control=list(adapt_delta=0.8, max_treedepth=12))})
+  fit.studentst <- sapply(1:D, function(d) {
+    sampling(stan.studentst, data=list(n=n, p=p, y=y[, d], x=x, eta=eta, 
+                                       lambda=lambdac), chains=1, 
+             warmup=nwarmup, iter=nsamples + nwarmup, cores=1, refresh=0, 
              control=list(adapt_delta=0.8, max_treedepth=12))})
   
-  best <- data.frame(igauss=sapply(fit.igauss, function(s) {
+  
+  best <- data.frame(nig=sapply(fit.nig, function(s) {
     c(get_posterior_mean(s, pars="beta0"),
       get_posterior_mean(s, pars="beta"))}),
-    igamma=sapply(fit.igamma, function(s) {
+    nigig=sapply(fit.nigig, function(s) {
+      c(get_posterior_mean(s, pars="beta0"),
+        get_posterior_mean(s, pars="beta"))}),
+    studentst=sapply(fit.studentst, function(s) {
       c(get_posterior_mean(s, pars="beta0"),
         get_posterior_mean(s, pars="beta"))}))
-
-  summary(fit.igauss[[1]])$summary[1:(p + 1), 3]^2
-  summary(fit.igamma[[1]])$summary[1:(p + 1), 3]^2
   
-  bvar <- cbind(igauss=sapply(fit.igauss, function(s) {
-    summary(s)$summary[1:(p + 1), 3]^2}),
-  igamma=sapply(fit.igamma, function(s) {
-    summary(s)$summary[1:(p + 1), 3]^2}))
+  samp.nig <- cbind(as.matrix(fit.nig[[1]], "beta0"), 
+                    as.matrix(fit.nig[[1]], "beta"))
+  samp.nigig <- cbind(as.matrix(fit.nigig[[1]], "beta0"), 
+                      as.matrix(fit.nigig[[1]], "beta"))
+  samp.studentst <- cbind(as.matrix(fit.studentst[[1]], "beta0"), 
+                          as.matrix(fit.studentst[[1]], "beta"))
+  cov.true <- sigma^2*solve(t(x) %*% x + gamma^(-2)*diag(p))
+  mean.true <- cov.true %*% t(x) %*% y/sigma^2
+  samp.true <- cbind(0, rmvnorm(nsamples, mean.true, cov.true))
+  samp <- data.frame(nig=samp.nig, nigig=samp.nigig, studentst=samp.studentst)
+
+  cram <- c(nig=cramer.test(samp.nig, samp.true, just.statistic=TRUE)$statistic,
+            nigig=cramer.test(samp.nigig, samp.true, 
+                              just.statistic=TRUE)$statistic,
+            studentst=cramer.test(samp.studentst, samp.true, 
+                                  just.statistic=TRUE)$statistic)
+
+  corbest <- c(nig=cor(c(0, beta), best[, 1]),
+               nigig=cor(c(0, beta), best[, 2]),
+               studentst=cor(c(0, beta), best[, 3]))
+
+  msebest <- c(nig=mean((c(0, beta) - best[, 1])^2),
+               nigig=mean((c(0, beta) - best[, 2])^2),
+               studentst=mean((c(0, beta) - best[, 3])^2))
   
-  samp.igauss <- cbind(as.matrix(fit.igauss[[1]], "beta0"), 
-                       as.matrix(fit.igauss[[1]], "beta"))
-  samp.igamma <- cbind(as.matrix(fit.igamma[[1]], "beta0"), 
-                       as.matrix(fit.igamma[[1]], "beta"))
-  samp <- data.frame(igauss=samp.igauss, igamma=samp.igamma)
+  ci.nig <- summary(fit.nig[[1]], pars=c("beta0", "beta"))$summary[, c(4, 8)]
+  ci.nigig <- summary(fit.nigig[[1]], 
+                      pars=c("beta0", "beta"))$summary[, c(4, 8)]
+  ci.studentst <- summary(fit.studentst[[1]], 
+                          pars=c("beta0", "beta"))$summary[, c(4, 8)]
+  
+  cover <- c(nig=mean(sapply(1:(p + 1), function(j) {
+    (ci.nig[j, 1] < c(0, beta)[j]) & (c(0, beta)[j] < ci.nig[j, 2])})),
+    nigig=mean(sapply(1:(p + 1), function(j) {
+      (ci.nigig[j, 1] < c(0, beta)[j]) & (c(0, beta)[j] < ci.nigig[j, 2])})),
+    studentst=mean(sapply(1:(p + 1), function(j) {
+      (ci.studentst[j, 1] < c(0, beta)[j]) & 
+        (c(0, beta)[j] < ci.studentst[j, 2])})))
 
-  cram <- cramer.test(samp.igauss, samp.igamma, just.statistic=TRUE)$statistic
-  corbvar <- cor(bvar[, 1], bvar[, 2])
-
-  corbest <- c(igauss=cor(c(0, beta), best[, 1]),
-               igamma=cor(c(0, beta), best[, 2]))
-
-  msebest <- c(igauss=mean((c(0, beta) - best[, 1])^2),
-               igamma=mean((c(0, beta) - best[, 2])^2))
-
-  out <- list(cram=cram, corbvar=corbvar, 
-              corbest=corbest, msebest=msebest, samp)
+  out <- list(cram=cram, corbest=corbest, msebest=msebest, cover, samp)
 }
 if(parallel) {stopCluster(cluster)}
+save(res, file="results/simulations_igaussian_res4.Rdata")
 
 fit <- res[[1]][[5]]
 dimnames(fit) <- list(paste0("sample", 1:nsamples), 
                       c(paste0(paste0("beta", 0:p), ".igauss"),
                         paste0(paste0("beta", 0:p), ".igamma")))
 res <- data.frame(cram=t(sapply(res, function(s) {s[[1]]})),
-                  corbvar=t(sapply(res, function(s) {s[[2]]})),
-                  corbest=t(sapply(res, function(s) {s[[3]]})),
-                  msebest=t(sapply(res, function(s) {s[[4]]})))
+                  corbest=t(sapply(res, function(s) {s[[2]]})),
+                  msebest=t(sapply(res, function(s) {s[[3]]})),
+                  cover=t(sapply(res, function(s) {s[[4]]})))
 rownames(res) <- paste0("rep", (1:nreps))
 write.table(fit, file="results/simulations_igaussian_fit4.csv")
 write.table(res, file="results/simulations_igaussian_res4.csv")
 write.table(set, file="results/simulations_igaussian_set4.csv")
+
+
+### spike and slab model
+rspikeandslab <- function(n, nu, kappa, sigma, gamma) {
+  z <- rbinom(n, 1, nu/(nu + kappa))
+  beta <- rnorm(n, 0, sigma*gamma*z)
+  return(beta)
+}
+
+
+.samp.z <- function(z, w, x, y, theta, sigma, p) {
+  sorder <- sample(1:p)
+  for(i in sorder) {
+    z0 <- replace(z, i, 0)
+    z1 <- replace(z, i, 1)
+    x1 <- x[, z1==1]
+    svd.x1 <- svd(x1)
+    sv1 <- svd.x1$d
+    uty1 <- as.numeric(t(svd.x1$u) %*% y)
+    if(sum(z0)==0) {
+      R <- exp(0.5*sum(log(sv1^2 + 1/theta)) - 
+                 0.5*sum(sv1^2*uty1/(sv1^2 + 1/theta))/sigma^2 - p/2*log(theta))  
+    } else {
+      x0 <- x[, z0==1]
+      svd.x0 <- svd(x0)
+      sv0 <- svd.x0$d
+      uty0 <- as.numeric(t(svd.x0$u) %*% y)
+      R <- exp(0.5*sum(log(sv1^2 + 1/theta)) - 0.5*sum(log(sv0^2 + 1/theta)) -
+                 0.5*sum(sv1^2*uty1/(sv1^2 + 1/theta))/sigma^2 + 
+                 0.5*sum(sv0^2*uty0/(sv0^2 + 1/theta))/sigma^2)  
+    }
+    z[i] <- rbinom(1, 1, 1/(1 + R*(1 - w)/w))
+  }
+  return(z)
+}
+
+.samp.w <- function(z, nu, kappa, p) {
+  w <- rbeta(1, nu + sum(z), kappa + p - sum(z))
+  return(w)
+}
+
+svvt=t(v)*sv
+zp=sum(z)
+x=x[, z==1]
+.samp.beta <- function(theta, sigma, v, sv, svvt, x, y, n, zp, p) {
+  
+  if(zp > p) {
+    uvec <- rnorm(p, 0, sqrt(theta)*sigma)
+    dvec <- rnorm(n, 0, 1)
+    beta <- uvec + as.numeric(t(t(v)*(sv/(sv^2 + 1/theta))) %*% 
+                                (sigma*y - sigma*svvt %*% uvec + dvec))  
+  } else {
+    mat <- solve(t(x) %*% x + diag(zp)/theta)
+    beta <- as.numeric(rmvnorm(1, mat %*% t(x) %*% y, sigma^2*mat))
+  }
+  
+  return(beta)
+}
+
+theta=1; sigma=1; nu=1; kappa=1; init=NULL
+control=list(nsamp=100)
+gibbs.spikeandslab <- function(x, y, theta, sigma, nu, kappa, init=NULL,
+                               control=list(nsamp=1000)) {
+  
+  
+  n <- nrow(x)
+  p <- ncol(x)
+  
+  if(is.null(init$beta)) {
+    beta <- rnorm(p)
+  } else {
+    beta <- init$beta
+  }
+  if(is.null(init$z)) {
+    z <- rep(1, p)  
+  } else {
+    z <- init$z
+  }
+  if(is.null(init$w)) {
+    w <- 0.5
+  } else {
+    w <- init$w
+  }
+  
+  out <- list(beta=matrix(NA, nrow=p, ncol=control$nsamp), 
+              z=matrix(NA, nrow=p, ncol=control$nsamp), 
+              w=numeric(control$nsamp))
+  for(m in 1:control$nsamp) {
+    z <- .samp.z(z, w, x, y, theta, sigma, p)
+    w <- .samp.w(z, nu, kappa, p)
+    
+    # if the effective dimension of z is smaller than p, sampling is direct
+    if(sum(z) > p) {
+      svd.x <- svd(x[, z==1])
+      v <- svd.x$v
+      sv <- svd.x$d
+    } else {
+      v <- sv <- NULL
+    }
+    beta <- rep(0, p)
+    if(sum(z) > 0) {
+      beta[z==1] <- .samp.beta(theta, sigma, v, sv, t(v)*sv, x[, z==1], y, n, 
+                               sum(z), p)  
+    }
+    out$beta[, m] <- beta
+    out$z[, m] <- z
+    out$w[m] <- w
+  }
+  
+  return(out)
+}
+
+
+set.seed(123)
+n <- 100
+p <- 20
+x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+beta <- rnorm(p, sd=10)
+y <- rnorm(n, as.numeric(x %*% beta), 1)
+
+test <- gibbs.spikeandslab(x, y, theta=10, sigma=1, nu=1, kappa=10, 
+                           control=list(nsamp=1000))
+plot(abs(beta), rowMeans(test$z))
+
+
+### nigig model
+fchisq <- function(x, lambdac, lambdaz, thetac, thetaz) {
+  sqrt(lambdac*lambdaz/((2*pi)^2*x^3))*exp(lambdac/thetac + lambdaz/thetaz)*
+    2*besselK(2*sqrt(lambdac/(2*thetac^2) + lambdaz/(2*x))*
+                sqrt(lambdac/2 + lambdaz*x/(2*thetaz^2)), 0)
+}
+
+fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
+  if(expon.scaled) {
+    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) - 
+          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
+  } else {
+    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
+      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)  
+  }
+  
+}
+
+fvint <- function(x, a, b) {
+  1/sqrt(x)*besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0) 
+}
+
+
+dnigig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
+  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
+    sapply(x, function(s) {
+      integrate(fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma, 
+                beta=s, expon.scaled=expon.scaled)$value})
+}
+
+vnigig <- function(lambda, a, b, sigma) {
+  exp(b)*sigma^2*lambda/(pi*sqrt(a))*
+    integrate(fvint, 0, Inf, a=a, b=b)$value
+}
+
+vnigig <- function(thetaz, thetac, lambdac, sigma) {
+  sigma^2*thetaz*thetac*(ratio_besselK(lambdac/thetac, 1) + 2*thetac/lambdac)
+}
+
+set.seed(123)
+n <- 100
+p <- 20
+x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+beta <- rnorm(p, 0, 1)
+y <- rbinom(n, 1, 1/(1 + exp(-x %*% beta)))
+lambda <- 1
+a <- 1
+b <- 1
+sigma <- 1
+curve(dnigig(x, lambda=lambda, a=a, b=b, sigma=sigma, expon.scaled=TRUE), 
+      -10, 10, n=1000)
+vnigig(lambda, a, b, sigma)
+
+
+lambdac=10; lambdaz=4; thetac=3; thetaz=2
+curve(fchisq(x, lambdac=lambdac, lambdaz=lambdaz, thetac=thetac,
+             thetaz=thetaz), 0.001, 10)
+integrate(fchisq, 0, Inf, lambdac=lambdac, lambdaz=lambdaz, 
+          thetac=thetac, thetaz=thetaz)
+
 
 
 
