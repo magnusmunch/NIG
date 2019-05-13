@@ -1,5 +1,5 @@
 # sample one beta in the conjugate case
-.sample.beta.conj <- function(gamma, sigma, v, sv, svvt, y) {
+.sample.beta.conj <- function(gamma, sigma, v, sv, svvt, y, n, p) {
   uvec <- rnorm(p, 0, gamma*sigma)
   dvec <- rnorm(n, 0, 1)
   beta <- uvec + as.numeric(t(t(v)*(sv/(sv^2 + 1/gamma^2))) %*% 
@@ -36,7 +36,7 @@
   # run the Gibbs sampler
   for(m in 1:nsamp) {
     gamma <- .sample.gamma.conj(beta, sigma, eta, lambda, theta, p)
-    beta <- .sample.beta.conj(gamma, sigma, v, sv, svvt, y)
+    beta <- .sample.beta.conj(gamma, sigma, v, sv, svvt, y, n, p)
     sigma <- .sample.sigma.conj(beta, gamma, yty, ytx, x, p, n)
     out$beta[, m] <- beta
     out$sigma[m] <- sigma

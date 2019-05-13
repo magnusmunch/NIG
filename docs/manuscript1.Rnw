@@ -135,7 +135,12 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	\noindent\textbf{Keywords}: ...
 	
 	\section{Introduction}
-	- Motivation
+	- Motivation:
+	simultaneous regressions in: network reconstruction, eQTL mapping 
+	\cite[]{kpogbezan_incorporating_2019}, drug target discovery 
+	\cite[]{noh_inferring_2016}.
+	
+	- Introduce data example
 
 	- Co-data introduction
 	
@@ -197,8 +202,9 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   $\gamma^2_d$ in (\ref{eq:priormodel}) was introduced in 
   \cite{barndorff-nielsen_hyperbolic_1978} and is, since 
   \cite{barndorff-nielsen_normal_1997}, routinely applied in mathematical 
-  finance (see, e.g., \cite{kalemanova_normal_2007}). In Figure 
-  \ref{fig:dens_igaussian_marginalbeta}, the NIG 
+  finance (see, e.g., \cite{kalemanova_normal_2007}). See SM Section 
+  \ref{sm-sec:nigprior} for more details on this prior.
+  In Figure \ref{fig:dens_igaussian_marginalbeta}, the NIG 
   prior distribution marginalised over $\gamma_d^2$ is depicted together with 
   three other common prior choices,
   Student's $t$ (see Section \ref{sec:inversegammamodel} for more details on 
@@ -398,8 +404,121 @@ legend("topright", legend=labels, col=col, lty=lty,
   (\ref{eq:priormodel}) in \texttt{stan} code may be found on 
   \url{https://github.com/magnusmunch/cambridge}. 
   
+  \section{General model}
+  In addition to the outcome co-data $\mathbf{c}_d$, we may have feature co-data
+  $\mathbf{z}_j$ available. Examples of this in omics settings are pathway 
+  memberships or previously obtained $p$-values for the features. In
+  that case, we extend model (\ref{eq:priormodel}) to:
+  \begin{subequations}\label{eq:generalmodel}
+    \begin{align}
+      y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} 
+      (\x_i \tr \bm{\beta}_d, \sigma_d^2), \nonumber \\
+      \beta_{jd} | \tau_j^2, \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} 
+      (0, \sigma_d^2 \gamma_d^2 \tau_j^2), \\
+      \gamma_d^2 & \sim \mathcal{IG}\(\theta_d^c, \lambda^c_d\), \\
+      \tau_j^2 & \sim \mathcal{IG}\(\theta_j^z, \lambda^z_j\), \\
+      \sigma_d^2 & \sim 1/\sigma_d^3, \nonumber
+    \end{align}
+  \end{subequations}
+  where we now have an extra variance component $\tau_j$ that is 
+  \textit{a priori} inverse Gaussian distributed with mean dependent on the 
+  feature co-data $\mathbf{z}_j$. Equivalently, we may set 
+  $\eta_{jd}^2=\tau_j^2 \gamma_d^2/(\theta_j^z \theta_d^c)$ and write 
+  (\ref{eq:generalmodel}) as:
+  \begin{align*}
+    \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
+    \(0, \frac{\lambda_{jd}}{\chi_{jd}}\eta_{jd}^2\sigma_d^2\), \\
+    \eta_{jd}^2 & \overset{D}{=}\pi^{-1}\sqrt{\chi_{jd}}\exp(\psi_{jd}) 
+    \eta_{jd}^{-3/2} \cdot K_{0} \(\sqrt{\psi_{jd}^2 + \chi_{jd} (\eta_{jd}^2 
+    + \eta_{jd}^{-2} - 2)} \),
+  \end{align*}
+  where $\lambda_{jd}=\lambda_j^z\lambda_d^c$, 
+  $\chi_{jd}=\lambda_j^z\lambda_d^c/(\theta_j^z \theta_d^c)$, and
+  $\psi_{jd}=\lambda_j^z/\theta_j^z + \lambda_d^c/ \theta_d^c$. A third way
+  of writing the model is:
+  \begin{subequations}\label{eq:generalprior}
+    \begin{align}
+      \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
+      \(0, \eta_{jd}^2 \sigma_d^2\), \\
+      \eta_{jd}^2 | \xi_{d}^2 & \sim \mathcal{IG} 
+      (\theta_j^z \xi_d^2, \lambda_j^z \xi_d^2 ), \\
+      \xi_d^2 & \sim \mathcal{GIG} (1, \lambda_d^c/(\theta_d^c)^2, \lambda_d^c).
+    \end{align}
+  \end{subequations}
+  From (\ref{eq:generalprior}) we find the marginal variance and kurtosis for 
+  $\beta_{jd}$ (conditional on $\sigma_d^2$):
+  \begin{align}
+    \V(\beta_{jd} | \sigma_d^2) & =\sigma_d^2 \theta_j^z \theta_d^c 
+    \[\frac{K_0(\lambda_d^c/\theta_d^c)}{K_1(\lambda_d^c/\theta_d^c)} + 
+    \frac{2\theta_d^c}{\lambda_d^c}\],\nonumber \\
+    \mathcal{K}(\beta_{jd} | \sigma_d^2) & = 3 \(\frac{\theta_j^z}{\lambda_j^z}
+    + 1\) \theta_d^c \[r_d - r_d^{-1} + 8\(\frac{\theta_d^c}{\lambda_d^c}\)^2
+    K_0 (\lambda_d^c/\theta_d^c) + \frac{4 \theta_d^c}{\lambda_d^c}r_d 
+    K_0 (\lambda_d^c/\theta_d^c) + 1/\theta_d^c\], \label{eq:kurtnigig}
+  \end{align}
+  with $r_d = K_0(\lambda_d^c/\theta_d^c)/K_1(\lambda_d^c/\theta_d^c)$. If 
+  we fix the prior expectation $\E(\gamma_d^2)=\theta_d^c$ and let the prior 
+  variance 
+  $\V(\gamma_d^2)$ go to zero, we have $\V(\beta_{jd} | \sigma_d^2) \rightarrow
+  \sigma_d^2 \theta_j^z \theta_d^c$ and $\mathcal{K}(\beta_{jd} | \sigma_d^2)
+  \rightarrow 3(\theta_j^z/\lambda_j^z + 1)$. From (\ref{eq:kurtnigig}) we see
+  that we can keep the variance constant by fixing $\theta_j^z$, $\theta_d^c$,
+  and $\lambda_d^c$, while we increasing the kurtosis by decrearing 
+  $\lambda_j^z$. This makes the model (\ref{eq:generalmodel}), which we 
+  refer to by the NIGIG model hereafter, a flexible model.
+  
+  The formulation as in (\ref{eq:generalmodel}) results in an additional 
+  variational distribution for the $\tau_j$:
+  $$
+  q(\tau_j^2) \overset{D}{=} \mathcal{GIG}\(-\frac{D+1}{2}, \lambda^z_j 
+  (\theta_j^z)^{-2}, \delta_j^z\).
+  $$
+  The variational parameters are now updated by:
+  \begin{align*}
+    \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} 
+    \[\X \tr \X + b_d^{(h)} \diag (c_j^{(h)})\]^{-1}, \\
+    \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + b_d^{(h)} \diag(c_j^{(h)})\]^{-1} 
+    \X \tr \y_d, \\
+    (\delta^c_d)^{(h+1)} & = a_d^{(h)} \left\{(\bmu^{(h+1)}_d) \tr 
+    \diag (c_j^{(h)}) \bmu^{(h+1)}_d + \trace \[ \diag (c_j^{(h)}) 
+    \bSigma_d^{(h+1)}\] \right\} + \lambda^c_d, \\ 
+    (\delta^z_j)^{(h+1)} & = \sum_{d=1}^D a_d^{(h)} b_d^{(h)} 
+    \[(\bmu^{(h+1)}_d) \tr \bmu^{(h+1)}_d + \trace (\bSigma_d^{(h+1)}) \] + 
+    \lambda^z_j, \\ 
+    \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
+    2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + 
+    \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + 
+    (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
+    & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
+    b_d^{(h+1)} \trace \[ \diag (c_j^{(h)}) \bm{\Sigma}_d^{(h+1)}\] + 
+    b_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \diag (c_j^{(h)}) 
+    \bm{\mu}_d^{(h+1)}\bigg],
+  \end{align*}
+  until convergence, where
+  $$
+  c_j^{(h)} = \E_{Q^{(h)}}(\tau_j^{-2}) = \sqrt{\frac{\lambda^z_j}
+  {(\theta_j^z)^2 (\delta^z_j)^{(h)}}} 
+  \frac{K_{\frac{D - 1}{2}} 
+  \( \sqrt{\lambda^z_j (\delta^z_j)^{(h)}}/\theta_j^z \)}
+  {K_{\frac{D+1}{2}} \( \sqrt{\lambda^z_j (\delta_j^z)^{(h)}}/\theta_j^z \)} +
+  \frac{D+1}{(\delta_j^z)^{(h)}}
+  $$
+  If we set $\theta_d^c=(\mathbf{c}_d \tr \bm{\alpha}^c)^{-1}$ and
+  $\theta_j^z=(\mathbf{z}_j \tr \bm{\alpha}^z)^{-1}$, we have an additional
+  empirical Bayes step that consists of an iteratively 
+  reweighted least squares regression of responses $(f_j^{(l)})^{-1}$ on
+  predictors $\mathbf{z}_j$ with weights $\lambda_j^z f_j^{(l)}$, where 
+  \begin{align*}
+  f_j^{(l)} & = \E_{Q^{(h)}}(\tau_j) = [c_j^{(l)} - 
+  (D + 1)/(\delta_j^z)^{(l)}] \cdot (\delta_j^z)^{(l)} [\mathbf{z}_j \tr 
+  (\bm{\alpha}^z)^{(l)} ]^{-2} / (\lambda_j^z)^{(l)}, \\
+  \lambda_j^z & = \[ c_j^{(l)} + f_j^{(l)} 
+  (\mathbf{z}_j \tr \bm{\alpha}^z)^2 - 
+    2\mathbf{z}_j \tr \bm{\alpha}^z \]^{-1}.
+  \end{align*}
+
   \section{Simulations}
-  \subsection{Comparison of NIG to normal inverse Gamma model}
+  \subsection{Comparison of NIG and Student's \texorpdfstring{$t$}{t} priors}
   \label{sec:inversegammamodel}
   A common default prior for latent variance components is the inverse Gamma
   prior:
@@ -418,12 +537,61 @@ legend("topright", legend=labels, col=col, lty=lty,
   with degrees of freedom $\eta_d$ and scale $\sigma_d \sqrt{\lambda_d/\eta_d}$.
   See SM Section \ref{sm-sec:inversegamma} for more details on this prior. 
   We compare the 
-  posteriors of the proposed NIG prior to the scaled Student's $t$-distribution
-  prior in a simulated setting. We generate draws from these posteriors using 
-  an MCMC sampler implemented in \texttt{rstan}. The aim of this simulation 
-  study is 
-  to investigate the performance of the NIG prior model, so we set $D=1$ and 
-  drop the $d$ indices in the following.
+  posteriors of the proposed NIG prior and the scaled Student's $t$-distribution
+  prior in a simulated setting. 
+  
+  We compare the two posterior distributions to the true posterior for a 
+  number of measures. Divergence between the distributions
+  is quantified through a multivariate extension of the Cram{\'e}r-von Mises
+  criterion \cite[]{baringhaus_new_2004}, where smaller values of the criterion
+  indicate more similar distributions. We also assess 95\% coverage of the 
+  posterior credible intervals. The accuracy of the 
+  point estimates of $\beta_j$ in the form of posterior means is assessed by
+  the mean squared distance (MSD) and correlation between the point estimates 
+  and the true $\beta_j$. 
+  
+  The aim of this simulation study is to investigate the performance of the NIG 
+  prior model, so we set $D=1$ and drop the $d$ indices in the following. 
+  We studied two settings: one dense and one sparse. In the dense setting, 
+  we simulated $n=100$ features $\x_i$ from a $p=200$ dimensional Gaussian 
+  distribution with zero mean vector, variances equal to one, and all 
+  covariances set to $\rho=0.5$. The outcomes were generated through $y_i = 
+  \x_i\tr \bbeta + \epsilon_i$, with the $\epsilon_i$ from the standard normal 
+  distribution. 
+  Likewise, we generated the model parameters $\beta_j$ from a standard normal
+  distribution. For estimation, we set our hyperparameters $\lambda=0.5$, 
+  $\theta=1$, and $\eta=2.5$. such that the marginal $\beta_j$ variances
+  of the NIG and Student's $t$ priors match. For both priors, we generated 
+  1000 draws (after 1000 burnin) from the posteriors using an MCMC sampler 
+  implemented in \texttt{rstan}. 
+  
+  In the sparse setting, the observed data generating process is the same. The
+  model parameters are are simulated from a spike-and-slab prior with a 
+  Laplace slab:
+  \begin{align*}
+    w & \sim \text{Beta}(\nu, \kappa), \\
+    z_j | w & \sim \text{Binom}(w), \\
+    \beta_j | z_j & \sim z_j\text{Laplace}
+    \(\sqrt{\frac{\nu + \kappa}{2\nu}} \sigma \gamma\) + (1 - z_j)\delta_0,
+  \end{align*}
+  where $\delta_0$ denotes the Dirac mass at zero. The Laplace scale is chosen
+  such that the we have marginal prior variance $\V(\beta_j)=1$. The sparsity 
+  level is determined by the proportion of zero $\beta_j$, 
+  $s=1 - \nu/(\nu + \kappa)$. Note that the resulting marginal prior for
+  $\beta_j$ is:
+  $$
+  \beta_j \sim (s - 1)\text{Laplace}\(\sqrt{\frac{\nu + \kappa}{2\nu}} 
+  \sigma \gamma\) + s\delta_0.
+  $$
+  We use two settings, $s=0.5$ and $s=0.9$. The 
+  hyperparameters for estimation are set the same as in the dense setting.
+  To mitigate the effect of random variation, we
+  repeated the simulations 100 times and report the results in Figures 
+  \ref{fig:boxplots_igaussian_res4_post} and [! ref to figure here]
+<<boxplots_igaussian_res4_post, fig.cap="Comparison of the NIG and Student's t priors through (a) Cramér-von Mises criterion between the model and true posteriors, (b) correlation and (c) MSD between the posterior means and true parameters, and (d) 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=2/5>>=
+@
+  
+  [! describe results here]
   
   \subsection{Variational Bayes approximation}
   To investigate the accuracy of our variational Bayes approximation we compare 
@@ -441,12 +609,10 @@ legend("topright", legend=labels, col=col, lty=lty,
   convergence problems, so we do not include it in the comparisons.
   
   To assess the performance of the variational approximations we evaluate 
-  several measures. Divergence between the MCMC and variational posterior
-  is quantified through a multivariate extension of the Cram{\'e}r-von Mises
-  criterion \cite[]{baringhaus_new_2004}, where smaller values of the criterion
-  indicate more similar distributions. In addition, we calculate the correlation
-  and mean squared distance (MSD) between the posterior variances of
-  the MCMC posterior and variational posterior. \texttt{rstan} allows the user 
+  several measures. We measure divergence between the MCMC and variational 
+  posterior with the Cram{\'e}r-von Mises criterion. We compute the 
+  correlation and MSD between the MCMC and variational posterior variances. 
+  \texttt{rstan} allows the user 
   to maximise the posterior to obtain the maximum \textit{a posteriori} (MAP)
   estimates of the model parameters. We include these MAP estimates together
   with the ridge estimates obtained from the \texttt{glmnet} \texttt{R} package
@@ -454,19 +620,14 @@ legend("topright", legend=labels, col=col, lty=lty,
   estimates.
   
   The interest of this simulation lies in the variational Bayes approximation, 
-  so we restrict ourselves to the univariate setting (i.e., $D=1$) and drop any
-  $d$ indices from notation in the following. We simulated
-  $n=100$ features $\x_i$ from a $p=200$ dimensional Gaussian distribution with
-  zero mean vector, variances equal to one, and all covariances set to 
-  $\rho=0.5$. The outcomes are generated through $y_i = \x_i\tr \bbeta + 
-  \epsilon_i$, with the $\epsilon_i$ from the standard normal distribution. 
-  Likewise, we generate the model parameters $\beta_j$ from a standard normal
-  distribution. For estimation, we set our hyperparameters $\lambda=0.1$ and 
+  so we restrict ourselves to the univariate setting (i.e., $D=1$). The
+  simulation setup is the same as in Section \ref{sec:inversegammamodel}.
+  The hyperparameters are set as follows: $\lambda=0.1$ and 
   $\theta=2$. We choose the penalty parameter in \texttt{glmnet} by assuming a 
   known error variance and matching the marginal prior variance of the NIG and
   ridge models, which results in the penalty parameter 
-  $1/(n\sigma^2\theta)=1/200$.To mitigate the effect of random variation, we
-  repeat the simulation 100 times and report the results in Figures 
+  $1/(n\sigma^2\theta)=1/200$. We
+  repeated the simulation 100 times and report the results in Figures 
   \ref{fig:boxplots_igaussian_res3_vb}-
   \ref{fig:boxplots_igaussian_res3_best}.
   
@@ -475,6 +636,8 @@ legend("topright", legend=labels, col=col, lty=lty,
   
 <<boxplots_igaussian_res3_best, fig.cap="(a) Correlation and (b) MSD between the $\\beta_j$ point estimates of MCMC and ADVI, VB, glmnet, and MAP.", out.width="80%", fig.asp=3/5>>=
 @
+  
+  [! describe results here]
   
   \section{Empirical Bayes estimation}
   We simulate from a correctly specified model given in \ref{eq:priormodel}. We 
@@ -516,6 +679,7 @@ legend("topright", legend=labels, col=col, lty=lty,
   (ii) reparametrise, and (iii) fix $\forall d: \lambda_d=\lambda$.
   
   \section{Application}
+  - Possible: network reconstruction, medical surveys, drug response prediction
   
   \section{Discussion}
   - inverse Gaussian more convenient than inverse Gamma, because EB is closed-
