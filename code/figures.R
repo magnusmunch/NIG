@@ -9,8 +9,8 @@ plot.data2 <- res[, substr(colnames(res), 1, 7)=="corbest"]
 plot.data3 <- res[, substr(colnames(res), 1, 7)=="msebest"]
 plot.data4 <- res[, substr(colnames(res), 1, 5)=="cover"]
 
-methods <- c("NIG", "Student's t")
-labels <- c("NIG", "Student's t")
+methods <- c("NIG", "NIGIG", "Student's t")
+labels <- c("NIG", "NIGIG", "Student's t")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
@@ -20,9 +20,9 @@ par(mar=opar$mar*c(1, 1.1, 1, 1))
 layout(matrix(rep(c(1, 1, 2, 2, 3, 3, 4, 4), 2),
               nrow=2, ncol=8, byrow=TRUE))
 boxplot(plot.data1, outline=FALSE, main="(a)",
-        ylab="Cramér-von Mises criterion", las=2, names=labels)
+        ylab="Cramér-von Mises criterion", las=2, names=labels, col=col)
 boxplot(plot.data2, outline=FALSE, main="(b)", las=2,
-        ylab=expression("Corr"(hat(beta), beta)), names=labels)
+        ylab=expression("Corr"(hat(beta), beta)), names=labels, col=col)
 boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)", las=2,
         ylab=expression("MSD"(hat(beta), beta)))
 boxplot(plot.data4, names=labels, col=col, outline=FALSE, main="(d)", las=2,
