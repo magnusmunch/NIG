@@ -1,3 +1,40 @@
+# calculates the auxiliary variables in general model in the VB step (tested)
+.aux.var.gen <- function(cold, aold, sv, uty, n, p) {
+  
+  hinv <- 1/(bold*cold)
+  HinvXt <- t(x)*hinv
+  XHinvXt <- mat <- x %*% HinvXt
+  diag(mat) <- diag(mat) + 1
+  invmat <- solve(mat)
+  XHinvXtinvmat <- XHinvXt %*% invmat
+  XHinvXtinvmatXHinvXt <- XHinvXtinvmat %*% invmat
+  
+  n <- 10
+  p <- 20
+  y <- rnorm(n)
+  x <- matrix(rnorm(n*p), ncol=p, nrow=n)
+  H <- diag(rchisq(p, 1))
+  t(y) %*% x %*% H %*% t(x) %*% y
+  sum((H %*% t(x) %*% y)*t(x) %*% y)
+  sum(diag(x %*% H %*% t(x)))
+  sum((x %*% H)*x)
+  
+  # auxiliary variables involving mu and Sigma
+  trdiagcSigma <- p/(aold*bold) - sum((t(x) %*% invmat)*HinvXt)
+  trXtXSigma
+  mutdiagcmu <- crossprod(y, crossprod(
+    XHinvXt - 2*XHinvXtinvmatXHinvXt + XHinvXtinvmat %*% 
+      XHinvXtinvmatXHinvXt, y))/bold
+  mutXtXmu
+  logdetSigma
+  ytXmu
+  
+  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
+              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
+              ytXmu=ytXmu)
+  return(out)
+}
+
 # calculates the auxiliary variables in the VB step (tested)
 .aux.var <- function(cold, aold, sv, uty, n, p) {
   
