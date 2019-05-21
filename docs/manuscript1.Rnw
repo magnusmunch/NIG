@@ -422,50 +422,9 @@ legend("topright", legend=labels, col=col, lty=lty,
   \end{subequations}
   where we now have an extra variance component $\tau_j$ that is 
   \textit{a priori} inverse Gaussian distributed with mean dependent on the 
-  feature co-data $\mathbf{z}_j$. Equivalently, we may set 
-  $\eta_{jd}^2=\tau_j^2 \gamma_d^2/(\theta_j^z \theta_d^c)$ and write 
-  (\ref{eq:generalmodel}) as:
-  \begin{align*}
-    \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
-    \(0, \frac{\lambda_{jd}}{\chi_{jd}}\eta_{jd}^2\sigma_d^2\), \\
-    \eta_{jd}^2 & \overset{D}{=}\pi^{-1}\sqrt{\chi_{jd}}\exp(\psi_{jd}) 
-    \eta_{jd}^{-3/2} \cdot K_{0} \(\sqrt{\psi_{jd}^2 + \chi_{jd} (\eta_{jd}^2 
-    + \eta_{jd}^{-2} - 2)} \),
-  \end{align*}
-  where $\lambda_{jd}=\lambda_j^z\lambda_d^c$, 
-  $\chi_{jd}=\lambda_j^z\lambda_d^c/(\theta_j^z \theta_d^c)$, and
-  $\psi_{jd}=\lambda_j^z/\theta_j^z + \lambda_d^c/ \theta_d^c$. A third way
-  of writing the model is:
-  \begin{subequations}\label{eq:generalprior}
-    \begin{align}
-      \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
-      \(0, \eta_{jd}^2 \sigma_d^2\), \\
-      \eta_{jd}^2 | \xi_{d}^2 & \sim \mathcal{IG} 
-      (\theta_j^z \xi_d^2, \lambda_j^z \xi_d^2 ), \\
-      \xi_d^2 & \sim \mathcal{GIG} (1, \lambda_d^c/(\theta_d^c)^2, \lambda_d^c).
-    \end{align}
-  \end{subequations}
-  From (\ref{eq:generalprior}) we find the marginal variance and kurtosis for 
-  $\beta_{jd}$ (conditional on $\sigma_d^2$):
-  \begin{align}
-    \V(\beta_{jd} | \sigma_d^2) & =\sigma_d^2 \theta_j^z \theta_d^c 
-    \[\frac{K_0(\lambda_d^c/\theta_d^c)}{K_1(\lambda_d^c/\theta_d^c)} + 
-    \frac{2\theta_d^c}{\lambda_d^c}\],\nonumber \\
-    \mathcal{K}(\beta_{jd} | \sigma_d^2) & = 3 \(\frac{\theta_j^z}{\lambda_j^z}
-    + 1\) \theta_d^c \[r_d - r_d^{-1} + 8\(\frac{\theta_d^c}{\lambda_d^c}\)^2
-    K_0 (\lambda_d^c/\theta_d^c) + \frac{4 \theta_d^c}{\lambda_d^c}r_d 
-    K_0 (\lambda_d^c/\theta_d^c) + 1/\theta_d^c\], \label{eq:kurtnigig}
-  \end{align}
-  with $r_d = K_0(\lambda_d^c/\theta_d^c)/K_1(\lambda_d^c/\theta_d^c)$. If 
-  we fix the prior expectation $\E(\gamma_d^2)=\theta_d^c$ and let the prior 
-  variance 
-  $\V(\gamma_d^2)$ go to zero, we have $\V(\beta_{jd} | \sigma_d^2) \rightarrow
-  \sigma_d^2 \theta_j^z \theta_d^c$ and $\mathcal{K}(\beta_{jd} | \sigma_d^2)
-  \rightarrow 3(\theta_j^z/\lambda_j^z + 1)$. From (\ref{eq:kurtnigig}) we see
-  that we can keep the variance constant by fixing $\theta_j^z$, $\theta_d^c$,
-  and $\lambda_d^c$, while we increasing the kurtosis by decrearing 
-  $\lambda_j^z$. This makes the model (\ref{eq:generalmodel}), which we 
-  refer to by the NIGIG model hereafter, a flexible model.
+  feature co-data $\mathbf{z}_j$. We will refer to this model as the normal
+  inverse Gaussian-inverse Gaussian (NIGIG) model. See SM Section 
+  \ref{sm-sec:nigigprior} for more details on this prior.
   
   The formulation as in (\ref{eq:generalmodel}) results in an additional 
   variational distribution for the $\tau_j$:
@@ -518,7 +477,8 @@ legend("topright", legend=labels, col=col, lty=lty,
   \end{align*}
 
   \section{Simulations}
-  \subsection{Comparison of NIG and Student's \texorpdfstring{$t$}{t} priors}
+  \subsection{Comparison of NIG, NIGIG and Student's \texorpdfstring{$t$}{t} 
+  priors}
   \label{sec:inversegammamodel}
   A common default prior for latent variance components is the inverse Gamma
   prior:
@@ -537,10 +497,10 @@ legend("topright", legend=labels, col=col, lty=lty,
   with degrees of freedom $\eta_d$ and scale $\sigma_d \sqrt{\lambda_d/\eta_d}$.
   See SM Section \ref{sm-sec:inversegamma} for more details on this prior. 
   We compare the 
-  posteriors of the proposed NIG prior and the scaled Student's $t$-distribution
-  prior in a simulated setting. 
+  posteriors of the proposed NIG and NIGIG priors to the scaled Student's 
+  $t$-distribution prior in a simulated setting. 
   
-  We compare the two posterior distributions to the true posterior for a 
+  We compare the three posterior distributions to the true posterior for a 
   number of measures. Divergence between the distributions
   is quantified through a multivariate extension of the Cram{\'e}r-von Mises
   criterion \cite[]{baringhaus_new_2004}, where smaller values of the criterion
@@ -559,39 +519,62 @@ legend("topright", legend=labels, col=col, lty=lty,
   \x_i\tr \bbeta + \epsilon_i$, with the $\epsilon_i$ from the standard normal 
   distribution. 
   Likewise, we generated the model parameters $\beta_j$ from a standard normal
-  distribution. For estimation, we set our hyperparameters $\lambda=0.5$, 
-  $\theta=1$, and $\eta=2.5$. such that the marginal $\beta_j$ variances
-  of the NIG and Student's $t$ priors match. For both priors, we generated 
-  1000 draws (after 1000 burnin) from the posteriors using an MCMC sampler 
-  implemented in \texttt{rstan}. 
+  distribution. 
+  
+  We choose the hyperparameters such that we get all combinations of marginal
+  prior variances and kurtoses $\V(\beta_{jd} | \sigma_d^2) \in 
+  \{ 1/2, 1, 2 \}$ and $\mathcal{K}(\beta_{jd} | \sigma_d^2) \in 
+  \{ 4, 10 \}$. This leads to the settings in Table \ref{tab:hyper_set1}. For 
+  all priors, we generated 1000 draws (after 1000 burnin) from the 
+  posteriors using an MCMC sampler implemented in \texttt{rstan}. We repeated
+  the simulations 100 times and report 
+  results in Figures \ref{fig:boxplots_igaussian_res4_post1} and 
+  \ref{fig:boxplots_igaussian_res4_post2}. 
+<<hyper_set1>>= 
+set <- read.table("results/simulations_igaussian_set4.csv")
+kableExtra::kable_styling(
+  knitr::kable(set[, c("lambdac", "thetac", "lambdaz", "thetaz",
+                       "eta", "lambda", "vars", "kurts")], 
+               col.names=c("$\\lambda^c$", "$\\theta^c$", "$\\lambda^z$",
+                           "$\\theta^z$", "$\\eta$", "$\\lambda$", 
+                           "$\\V(\\beta_{jd} | \\sigma_d^2)$",
+                           "$\\mathcal{K}(\\beta_{jd} | \\sigma_d^2)$"), 
+               caption="Hyperparameter settings", 
+               "latex", booktabs=TRUE, escape=FALSE, digits=2),
+  latex_options=c("HOLD_position"))
+@
+  
+  <<boxplots_igaussian_res4_post1, fig.cap="Comparison of the NIG, NIGIG, and Student's t priors in (a)-(d) simulation setting 1, (e)-(h) setting 2, and (i)-(l) setting 3, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+
+<<boxplots_igaussian_res4_post2, fig.cap="Comparison of the NIG, NIGIG, and Student's t priors in (a)-(d) simulation setting 4, (e)-(h) setting 5, and (i)-(l) setting 6, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+  
+  [! describe results here]
   
   In the sparse setting, the observed data generating process is the same. The
   model parameters are are simulated from a spike-and-slab prior with a 
-  Laplace slab:
+  Gaussian slab:
   \begin{align*}
     w & \sim \text{Beta}(\nu, \kappa), \\
     z_j | w & \sim \text{Binom}(w), \\
-    \beta_j | z_j & \sim z_j\text{Laplace}
-    \(\sqrt{\frac{\nu + \kappa}{2\nu}} \sigma \gamma\) + (1 - z_j)\delta_0,
+    \beta_j | z_j & \sim z_j \mathcal{N} \( 0, 1\) +
+    (1 - z_j)\delta_0,
   \end{align*}
-  where $\delta_0$ denotes the Dirac mass at zero. The Laplace scale is chosen
+  where $\delta_0$ denotes the Dirac mass at zero. The slab is chosen
   such that the we have marginal prior variance $\V(\beta_j)=1$. The sparsity 
   level is determined by the proportion of zero $\beta_j$, 
   $s=1 - \nu/(\nu + \kappa)$. Note that the resulting marginal prior for
   $\beta_j$ is:
   $$
-  \beta_j \sim (s - 1)\text{Laplace}\(\sqrt{\frac{\nu + \kappa}{2\nu}} 
-  \sigma \gamma\) + s\delta_0.
+  \beta_j \sim (s - 1)\mathcal{N} \( 0, 1\) + s\delta_0.
   $$
   We use two settings, $s=0.5$ and $s=0.9$. The 
-  hyperparameters for estimation are set the same as in the dense setting.
+  hyperparameters for estimation are set the same as in the dense setting, 
+  resulting in a total of 12 different simulation settings.
   To mitigate the effect of random variation, we
   repeated the simulations 100 times and report the results in Figures 
-  \ref{fig:boxplots_igaussian_res4_post} and [! ref to figure here]
-<<boxplots_igaussian_res4_post, fig.cap="Comparison of the NIG and Student's t priors through (a) Cramér-von Mises criterion between the model and true posteriors, (b) correlation and (c) MSD between the posterior means and true parameters, and (d) 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=2/5>>=
-@
-  
-  [! describe results here]
+  [! ref to figure here]
   
   \subsection{Variational Bayes approximation}
   To investigate the accuracy of our variational Bayes approximation we compare 
@@ -681,6 +664,10 @@ legend("topright", legend=labels, col=col, lty=lty,
   \section{Application}
   - Possible: network reconstruction, medical surveys, drug response prediction
   
+  - metabolomics data: oxidative stress als uitkomst van de andere metabolieten
+  min organic acids omdat ze downstream zijn. oxidateve stress onderverdelen in
+  high and low als uitkomst co-data en de andere metabolieten onderverdelen
+  als predictor co-data.
   \section{Discussion}
   - inverse Gaussian more convenient than inverse Gamma, because EB is closed-
   form

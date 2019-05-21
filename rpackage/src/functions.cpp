@@ -8,7 +8,7 @@ using namespace Rcpp;
 
 // computes ratio besselK(x, nu - 1)/besselK(x, nu) (tested)
 // [[Rcpp::export]]
-NumericVector ratio_besselK(arma::vec x, arma::vec nu) {
+NumericVector cpp_ratio_besselK(arma::vec x, arma::vec nu) {
 
   // initialize variables
   int n = x.size();
