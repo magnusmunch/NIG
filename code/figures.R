@@ -1,33 +1,67 @@
 ################################# main document ################################
 # ---- figures ----
-# ---- boxplots_igaussian_res4_post ----  
+# ---- boxplots_igaussian_res4_post1 ----  
 library(sp)
 res <- read.table("results/simulations_igaussian_res4.csv")
+set <- read.table("results/simulations_igaussian_set4.csv")
 
-plot.data1 <- res[, substr(colnames(res), 1, 4)=="cram"]
-plot.data2 <- res[, substr(colnames(res), 1, 7)=="corbest"]
-plot.data3 <- res[, substr(colnames(res), 1, 7)=="msebest"]
-plot.data4 <- res[, substr(colnames(res), 1, 5)=="cover"]
+plot.data <- sapply(1:nrow(set), function(s) {
+    list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
+         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
+         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")],
+         res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
+    simplify=FALSE)
 
 methods <- c("NIG", "NIGIG", "Student's t")
-labels <- c("NIG", "NIGIG", "Student's t")
+labels1 <- c("NIG", "NIGIG", "Student's t")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)), "95% coverage")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.1, 1, 1))
-# layout(matrix(c(rep(c(1, 1, 2, 2), 2), rep(c(3, 3, 4, 4), 2)), 
-#               nrow=4, ncol=4, byrow=TRUE))
-layout(matrix(rep(c(1, 1, 2, 2, 3, 3, 4, 4), 2),
-              nrow=2, ncol=8, byrow=TRUE))
-boxplot(plot.data1, outline=FALSE, main="(a)",
-        ylab="Cramér-von Mises criterion", las=2, names=labels, col=col)
-boxplot(plot.data2, outline=FALSE, main="(b)", las=2,
-        ylab=expression("Corr"(hat(beta), beta)), names=labels, col=col)
-boxplot(plot.data3, names=labels, col=col, outline=FALSE, main="(c)", las=2,
-        ylab=expression("MSD"(hat(beta), beta)))
-boxplot(plot.data4, names=labels, col=col, outline=FALSE, main="(d)", las=2,
-        ylab="95% coverage")
-abline(h=0.95)
+layout(matrix(c(rep(rep(c(1:4), each=2), 2),
+                rep(rep(c(5:8), each=2), 2),
+                rep(rep(c(9:12), each=2), 2)), nrow=6, ncol=8, byrow=TRUE))
+for(r in 1:3) {
+  for(m in 1:4) {
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 1)*4 + m], ")"),
+            ylab=labels2[m], las=2, names=labels1, col=col, outline=FALSE)
+    if(m==4) {abline(h=0.95)}
+  }
+}
+par(opar)
+
+# ---- boxplots_igaussian_res4_post2 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res4.csv")
+set <- read.table("results/simulations_igaussian_set4.csv")
+
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")],
+       res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
+  simplify=FALSE)
+
+methods <- c("NIG", "NIGIG", "Student's t")
+labels1 <- c("NIG", "NIGIG", "Student's t")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)), "95% coverage")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(c(rep(rep(c(1:4), each=2), 2),
+                rep(rep(c(5:8), each=2), 2),
+                rep(rep(c(9:12), each=2), 2)), nrow=6, ncol=8, byrow=TRUE))
+for(r in 4:6) {
+  for(m in 1:4) {
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 4)*6 + m], ")"),
+            ylab=labels2[m], las=2, names=labels1, col=col, outline=FALSE)
+    if(m==4) {abline(h=0.95)}
+  }
+}
 par(opar)
 
 # ---- boxplots_igaussian_res3_vb ----  
