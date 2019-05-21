@@ -1,3 +1,24 @@
+# single VB update in general model (not tested)
+.single.vb.gen.update <- function(aold, bold, cold, thetac, thetaz, lambdac,
+                                  lambdaz, x, ytx, p, D) {
+  
+  # auxiliary variables involving mu and Sigma
+  aux <- sapply(1:D, function(d) {
+    .aux.var.gen(aold[d], bold[d], cold, x, ytx[d, ])})
+    
+  # vb parameters
+  deltac <- sapply(1:D, function(d) {
+    aold[d]*(aux[[d]]$mutdiagcmu + aux[[d]]$trdiagcSigma) + lambdac[d]})
+  dz.nolambda <- sum(sapply(1:D, function(d) {
+    aold[d]*bold[d]*(aux[[d]]$mutmu + aux[[d]]$trSigma)}) + lambda)
+        
+  b <- sqrt(lambdac/deltac)/thetac^2*
+    ratio_besselK(sqrt(lambdac*deltac)/thetac, 0.5*(p + 1)) + (p + 1)/deltac
+        
+  out <- c(deltac=deltac, deltaz=deltaz, zeta=zeta, a=a, b=b, c=c, e=e, f=f)
+  return(out)
+}
+
 # single VB update (tested)
 .single.vb.update <- function(aold, bold, eta, theta, lambda, sv, n, p, uty, 
                               yty, conjugate, hyperprior) {

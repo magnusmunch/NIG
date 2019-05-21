@@ -1,37 +1,41 @@
+# computes ratio besselK(x, nu - 1)/besselK(x, nu) (tested)
+ratio_besselK <- function(x, nu) {
+  res <- nu - floor(nu)
+  val <- besselK(x, res - 1, expon.scaled=TRUE)/
+    besselK(x, res, expon.scaled=TRUE)
+  for(i in 0:(floor(nu) - 1)) {
+    val <- 1/(val + 2*(res + i)/x)
+  }
+  return(val)
+}
+
 # calculates the auxiliary variables in general model in the VB step (tested)
-.aux.var.gen <- function(cold, aold, sv, uty, n, p) {
+.aux.var.gen <- function(aold, bold, cold, x, ytx) {
   
   hinv <- 1/(bold*cold)
   HinvXt <- t(x)*hinv
-  XHinvXt <- mat <- x %*% HinvXt
-  diag(mat) <- diag(mat) + 1
-  invmat <- solve(mat)
-  XHinvXtinvmat <- XHinvXt %*% invmat
-  XHinvXtinvmatXHinvXt <- XHinvXtinvmat %*% invmat
-  
-  n <- 10
-  p <- 20
-  y <- rnorm(n)
-  x <- matrix(rnorm(n*p), ncol=p, nrow=n)
-  H <- diag(rchisq(p, 1))
-  t(y) %*% x %*% H %*% t(x) %*% y
-  sum((H %*% t(x) %*% y)*t(x) %*% y)
-  sum(diag(x %*% H %*% t(x)))
-  sum((x %*% H)*x)
+  XHinvXt <- x %*% HinvXt
   
   # auxiliary variables involving mu and Sigma
-  trdiagcSigma <- p/(aold*bold) - sum((t(x) %*% invmat)*HinvXt)
-  trXtXSigma
-  mutdiagcmu <- crossprod(y, crossprod(
-    XHinvXt - 2*XHinvXtinvmatXHinvXt + XHinvXtinvmat %*% 
-      XHinvXtinvmatXHinvXt, y))/bold
-  mutXtXmu
-  logdetSigma
-  ytXmu
+  dSigma <- XHinvXt
+  diag(dSigma) <- diag(dSigma) + 1
+  dSigma <- HinvXt %*% solve(dSigma)
+  mu <- mudiagcmu <- trXtXSigma <- mutXtXmu <- ytXmu <- 
+    HinvXt - trSigma %*% XHinvXt
+  mutmu <- ytXmu <- mutmu %*% y
+  mutmu <- mutmu^2
+  mutdiagcmu <- sum(mutmu*cold)
+  mutmu <- sum(mutmu)
+  ytXmu <- colSums(ytx*ytXmu)
+  trSigma <- hinv - rowSums(trSigma*HinvXt)
+  trdiagcSigma <- sum(trSigma*cold)/aold
+  trSigma <- sum(trSigma)/aold
+  trXtXSigma <- sum(trXtXSigma*t(x))/aold
+  mutXtXmu <- sum((ytx %*% mutXtXmu)^2)
   
-  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
-              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
-              ytXmu=ytXmu)
+  out <- list(mutdiagcmu=mutdiagcmu, trdiagcSigma=trdiagcSigma, mutmu=mutmu,
+              trSigma=trSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma, 
+              mutXtXmu=mutXtXmu)
   return(out)
 }
 
