@@ -143,16 +143,51 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	\end{align*}
   
 	\section{NIGIG prior}\label{sec:nigigprior}
-	For a fixed error variance $\sigma_d^2$, we have a marginal prior variance 
-	and kurtosis:
-	\begin{align*}
-	  \V(\beta_{jd} | \sigma_d^2) & = \sigma_d^2 \theta_d^c \theta_j^z  
-    \(r_d + \frac{2\theta_d^c}{\lambda_d^c}\), \\
-	  \mathcal{K}(\beta_{jd} | \sigma_d^2) & = \(\frac{3\theta_j^z}{\lambda_j^z} +
-	  3\) \frac{4 \theta_d^c (r_d + 2\theta_d^c/\lambda_d^c) + 1}{
-	  \lambda_d^c(r_d + 2\theta_d^c/\lambda_d^c)^2},
-	\end{align*}
+	Equivalently, we may set 
+  $\eta_{jd}^2=\tau_j^2 \gamma_d^2/(\theta_j^z \theta_d^c)$ and write 
+  MD equation (\ref{md-eq:generalmodel}) as:
+  \begin{align*}
+    \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
+    \(0, \frac{\lambda_{jd}}{\chi_{jd}}\eta_{jd}^2\sigma_d^2\), \\
+    \eta_{jd}^2 & \overset{D}{=}\pi^{-1}\sqrt{\chi_{jd}}\exp(\psi_{jd}) 
+    \eta_{jd}^{-3/2} \cdot K_{0} \(\sqrt{\psi_{jd}^2 + \chi_{jd} (\eta_{jd}^2 
+    + \eta_{jd}^{-2} - 2)} \),
+  \end{align*}
+  where $\lambda_{jd}=\lambda_j^z\lambda_d^c$, 
+  $\chi_{jd}=\lambda_j^z\lambda_d^c/(\theta_j^z \theta_d^c)$, and
+  $\psi_{jd}=\lambda_j^z/\theta_j^z + \lambda_d^c/ \theta_d^c$. A third way
+  of writing the model is:
+  \begin{subequations}\label{eq:generalprior}
+    \begin{align}
+      \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
+      \(0, \eta_{jd}^2 \sigma_d^2\), \\
+      \eta_{jd}^2 | \xi_{d}^2 & \sim \mathcal{IG} 
+      (\theta_j^z \xi_d^2, \lambda_j^z \xi_d^2 ), \\
+      \xi_d^2 & \sim \mathcal{GIG} (1, \lambda_d^c/(\theta_d^c)^2, \lambda_d^c).
+    \end{align}
+  \end{subequations}
+	From (\ref{eq:generalprior}), for a fixed error variance
+	$\sigma_d^2$, we find the marginal prior variance and kurtosis:
+	\begin{subequations}\label{eq:varkurtnigig}
+	  \begin{align}
+	    \V(\beta_{jd} | \sigma_d^2) & = \sigma_d^2 \theta_d^c \theta_j^z  
+      \(r_d + \frac{2\theta_d^c}{\lambda_d^c}\), \\
+	    \mathcal{K}(\beta_{jd} | \sigma_d^2) & = \(\frac{3\theta_j^z}
+	    {\lambda_j^z} + 3\) \frac{4 \theta_d^c (r_d + 2\theta_d^c/\lambda_d^c) +
+	    1}{\lambda_d^c(r_d + 2\theta_d^c/\lambda_d^c)^2},
+	  \end{align}
+	\end{subequations}
 	with $r_d = K_0(\lambda_d^c/\theta_d^c)/K_1(\lambda_d^c/\theta_d^c)$.
+	If 
+  we fix the prior expectation $\E(\gamma_d^2)=\theta_d^c$ and let the prior 
+  variance 
+  $\V(\gamma_d^2)$ go to zero, we have $\V(\beta_{jd} | \sigma_d^2) \rightarrow
+  \sigma_d^2 \theta_j^z \theta_d^c$ and $\mathcal{K}(\beta_{jd} | \sigma_d^2)
+  \rightarrow 3(\theta_j^z/\lambda_j^z + 1)$. From (\ref{eq:varkurtnigig}) we see
+  that we can keep the variance constant by fixing $\theta_j^z$, $\theta_d^c$,
+  and $\lambda_d^c$, while we increasing the kurtosis by decrearing 
+  $\lambda_j^z$. This makes the model MD equations (\ref{md-eq:generalmodel}) a
+  flexible model.
 	
 	\section{Student's \texorpdfstring{$t$}{t} prior}\label{sec:studentstprior}
 	For a fixed error variance $\sigma_d^2$, we have a marginal prior variance 

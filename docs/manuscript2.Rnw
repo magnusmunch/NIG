@@ -1,0 +1,382 @@
+% load packages
+<<packages, include=FALSE, echo=FALSE>>=
+library(cambridge)
+@
+
+% set options
+<<settings, include=FALSE, echo=FALSE>>=
+opts_knit$set(root.dir="..", base.dir="../figs")
+opts_chunk$set(fig.align='center', fig.path="../figs/", 
+               echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("code/figures.R")
+@
+
+\documentclass[a4paper,hidelinks]{article}
+\usepackage{url,bm,algorithm,algpseudocode,bbm,amsmath,amssymb,amsthm,
+amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,appendix,
+titlesec,multicol,verbatim,threeparttable,booktabs,dsfont,parskip,
+xr-hyper,hyperref,enumerate}
+\externaldocument[sm-]{supplement}
+
+% vectors and matrices
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bepsilon}{\bm{\epsilon}}
+\newcommand{\bomega}{\bm{\omega}}
+\newcommand{\bOmega}{\bm{\Omega}}
+\newcommand{\bSigma}{\bm{\Sigma}}
+\newcommand{\bkappa}{\bm{\kappa}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bmu}{\bm{\mu}}
+\newcommand{\bpsi}{\bm{\psi}}
+\newcommand{\blambda}{\bm{\lambda}}
+\newcommand{\bLambda}{\bm{\Lambda}}
+\newcommand{\bPsi}{\bm{\Psi}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\bgamma}{\bm{\gamma}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\Z}{\mathbf{Z}}
+\newcommand{\W}{\mathbf{W}}
+\renewcommand{\O}{\mathbf{O}}
+\newcommand{\B}{\mathbf{B}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\U}{\mathbf{U}}
+\newcommand{\Em}{\mathbf{E}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\Vm}{\mathbf{V}}
+\newcommand{\rv}{\mathbf{r}}
+\newcommand{\A}{\mathbf{A}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\Sm}{\mathbf{S}}
+\newcommand{\0}{\bm{0}}
+\newcommand{\tx}{\tilde{\mathbf{x}}}
+\newcommand{\hy}{\hat{y}}
+\newcommand{\tm}{\tilde{m}}
+\newcommand{\tkappa}{\tilde{\kappa}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\C}{\mathbf{C}}
+\renewcommand{\v}{\mathbf{v}}
+\newcommand{\g}{\mathbf{g}}
+\newcommand{\s}{\mathbf{s}}
+\renewcommand{\c}{\mathbf{c}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\rvec}{\mathbf{r}}
+\newcommand{\Lm}{\mathbf{L}}
+
+% functions and operators
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\G}{\mathcal{G}}
+\renewcommand{\P}{\mathcal{P}}
+\newcommand{\argmax}{\text{argmax} \,}
+\newcommand{\expit}{\text{expit}}
+\newcommand{\erfc}{\text{erfc}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\Cov}{\mathbb{C}\text{ov}}
+\newcommand{\tr}{^{\text{T}}}
+\newcommand{\diag}{\text{diag}}
+\newcommand{\KL}{D_{\text{KL}}}
+\newcommand{\trace}{\text{tr}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% distributions
+\newcommand{\N}{\text{N}}
+\newcommand{\TG}{\text{TG}}
+\newcommand{\Bi}{\text{Binom}}
+\newcommand{\PG}{\text{PG}}
+\newcommand{\Mu}{\text{Multi}}
+\newcommand{\GIG}{\text{GIG}}
+\newcommand{\IGauss}{\text{IGauss}}
+\newcommand{\Un}{\text{U}}
+
+% syntax and readability
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+\renewcommand{\[}{\left[}
+\renewcommand{\]}{\right]}
+
+% settings
+\graphicspath{{/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/graphs/}}
+\setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
+\setlength{\textwidth}{15cm}
+\title{Drug efficacy prediction in cell lines}
+\date{\today}
+\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
+
+\begin{document}
+
+	\maketitle
+	
+	\noindent
+	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health research institute, VU University Medical Center, PO Box 7057, 1007 MB
+	Amsterdam, The Netherlands\\
+	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
+	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, United Kingdom \\
+	
+	\begin{abstract}
+		{...}
+	\end{abstract}
+	
+	\noindent\textbf{Keywords}: 
+	
+	\noindent\textbf{Software available from}:
+	
+	\section{Introduction}
+	- motivation: drug response prediction from different omics data types is promising both for precision medicine and drug target discovery and relates to actual tumor response \cite[]{iorio_landscape_2016}. 
+		
+	- problem: prediction of drug efficacy in cell lines is difficult (DREAM 7 challenge in \cite{costello_community_2014}).	
+
+	- example data: introduction (GDSC, CCLE, NCI-60)
+	
+	- feature information: prior experts, pathways, database summaries, previous experiments, type of feature (somatic mutations, copy number alterations, DNA methylation, and gene expression). 
+	
+	- drugs information: molecular target, drug class, etc (ask Oslo), pubchem, omnipath DB, pharmaco DB
+	
+	- current literature: review in \cite{azuaje_computational_2017}, reference Oslo, TANDEM \cite[]{aben_tandem:_2016}, DeltaNet \cite[]{noh_inferring_2016}, patient-derived tumor cell lines \cite[]{gao_high-throughput_2015}.
+	
+	- our solution: adaptive borrowing of information through empirical Bayes, guided by external feature and drug information.
+	
+	\section{Model}
+	\subsection{Simultaneous equations model}\label{sec:SEM}
+	- Gwen can deal with different number of features per equation, might solve missing drug-feature combination problem? Doesn't solve missing response-feature combination problem.
+	
+	- check literature for: a) conjugate version, b) similar models: "prior variance decomposition", "structured Bayesian regression"
+	
+	We have continuous efficacy measures $y_{id}$ for cell lines $i=1,\dots, n$, from tissues $t=1, \dots, T$, on drugs $d=1,\dots,D$. Throughout this paper we assume the $y_{id}$ to be centred per drug and let $\y_d = \begin{bmatrix} y_{1d} & \dots & y_{nd} \end{bmatrix} \tr$. We predict efficacy with molecular features $x_{ij}$, $j=1,\dots, p$, collected in $\x_i = \begin{bmatrix} x_{i1} & \dots & x_{ip} \end{bmatrix} \tr$. We have an \textit{a priori} partitioning of the omics features into $g=1, \dots, G$ non-overlapping groups, which might be informative for the problem at hand For convenience, we let $g(j)$ denote the group index of molecular feature $j$. Furthermore, we have characteristics of the drugs available in the form of `co-data' $\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D \end{bmatrix} \tr$. We code the tissue from which the cell lines were taken as a $T$ binary dummy variables 
+	$$
+	z_{it} = \begin{cases}
+	1 & \text{if } \text{tissue}_i = t, \\
+	0 & \text{otherwise},
+	\end{cases}
+	$$
+	collected in $\mathbf{z}_i = \begin{bmatrix} z_{i1} & \dots & z_{iT} \end{bmatrix} \tr$.
+	
+	We assume that cell lines from the same tissue are related and model this relation through random effects $u_{td}$. We let the molecular feature effects $\beta_{jd}$ vary over the drugs and model drug efficacy as a linear combination of these two effects:
+	\begin{subequations}\label{eq:linearmodel}
+		\begin{align}
+		y_{id} & = \beta_{0d} + \sum_{j=1}^p x_{ij} \beta_{jd} + \sum_{t=1}^T z_{it} u_{td} + \epsilon_{id} \\
+		& = \beta_{0d} + \x_i \tr \bbeta_d + \mathbf{z}_i \tr \mathbf{u}_d + \epsilon_{id},\\
+		\text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
+		\end{align}
+	\end{subequations}
+	where $p$-dimensional $\bbeta_d$ and $T$-dimensional $\bm{u}_d$ are the drug-specific omics feature and tissue effect vectors, respectively. Note that (\ref{eq:linearmodel}) gives rise to a system of $d=1, \dots, D$ linear simultaneous equations.
+	
+	\subsection{Bayesian prior model}
+	We capture the uncertainty in the parameters through a Bayesian prior model. We assign a flat prior to the intercept terms $\beta_{0d}$ and integrate them out. The remaining parameters are endowed with the following priors:
+	\begin{subequations}\label{eq:prior}
+		\begin{align}
+		\beta_{jd} & \sim \mathcal{N}_p (0, \phi^2_{g(j)} \gamma_d^2 \sigma_d^2), \label{eq:betaprior}\\
+		\mathbf{u}_{d} & \sim \mathcal{N}_T (\mathbf{0}, \bm{\Xi}_d \sigma_d^2),
+		\end{align}
+	\end{subequations}
+	and hyper-priors:
+	\begin{subequations}\label{eq:hyperprior}
+		\begin{align}
+			\sigma_d^{2} & \sim 1/\sigma_d^{3} \\
+			\gamma_d^{2} & \sim \mathcal{IG}(\theta_d, \lambda), \\
+			\bm{\Xi}_d & \sim \mathcal{W}^{-1}_T(\bm{\Omega}, \nu),
+		\end{align}
+	\end{subequations}
+	where $\mathcal{IG}(\theta, \lambda)$ is an inverse Gaussian distribution with mean $\theta$ and shape $\lambda$, and $\mathcal{W}^{-1}_T(\bm{\Omega}, \nu)$ is an inverse Wishart distribution with $T \times T$-dimensional positive definite (PD) scale matrix $\bm{\Omega}$ and degrees of freedom $\nu$. Note that for $\nu > T + 1$, this inverse Wishart prior implies an expected prior covariance matrix $(\nu - T - 1)^{-1} \bm{\Omega}$ for the tissue effects, common to all drugs. Likewise, the molecular feature effects are related through the common hyper-prior for the $\gamma_d^2$.
+	
+	- Jeffrey's prior for variance $1/\sigma^{3/2}$ (a priori independent data mean and variance) or $1/\sigma^3$ (joint prior, but only mean and variance, not variance and betas).
+
+	A few remarks on the choice of priors are justified here: many authors endow error variance components with vague gamma priors. \cite{gelman_prior_2006}, among others, advises against this practice. The degree of `vagueness' has a large influence on the posterior, while degree of `vagueness' is a difficult parameter to set. This influence is especially pronounced if the likelihood is relatively flat, as may be reasonably expected in the large $p$, small $n$ setting we are in. We therefore model the error variance with Jeffrey's prior \cite[]{jeffreys_invariant_1946}. 
+	
+	Furthermore, we choose to model the $\gamma^2_d$ by an inverse Gaussian distribution, as has been suggested in \cite{fabrizi_specification_2016} and \cite{caron_sparse_2008}, because it allows to model the mean $\theta_d$ as a function of the drug covariates $\mathbf{c}_d$, as explained in Section \ref{sec:empiricalbayes}. 
+	
+	- IG hyperprior used in finance \cite[]{barndorff-nielsen_normal_1997}, where it is called the NIG prior.
+	
+	\section{Estimation}
+	\subsection{Variational Bayes}\label{sec:variationalbayes}
+	The posterior corresponding to the model described in (\ref{eq:linearmodel}), (\ref{eq:prior}), and (\ref{eq:hyperprior}) is not available in closed form. We therefore approximate the posterior by variational Bayes, where we force the posterior density $Q$ to factorise as:
+	\begin{align}\label{eq:variationalposterior}
+	p(\B,\mathbf{U},\mathbf{\sigma}^2, \bgamma^2,\bm{\Xi}_1, \dots, \bm{\Xi}_D) \approx Q(\cdot) = q(\B) \cdot q(\mathbf{U}) \cdot q(\mathbf{\sigma}^2) \cdot q(\bgamma^2) \cdot q(\bm{\Xi}_1, \dots, \bm{\Xi}_D),
+	\end{align}
+	where $\B = \begin{bmatrix} \bbeta_1 & \cdots & \bbeta_D \end{bmatrix}$ and $\U = \begin{bmatrix} \mathbf{u}_1 & \cdots & \mathbf{u}_D \end{bmatrix}$, are of dimensions $p \times D$ and $T \times D$, respectively. Under the factorisation in (\ref{eq:variationalposterior}), the marginal variational posteriors that minimise the Kullback-Leibler divergence of the true posterior to the variational Bayes approximation \cite[]{neal_view_1998}, are given by:
+	\begin{subequations}\label{eq:variationalposterior2}
+		\begin{align}
+		q_{\B} (\B) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_p (\bmu_d, \bSigma_d), \\
+		q_{\U}(\U) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_T (\mathbf{m}_d, \Sm_d), \\
+		q_{\bgamma^{2}}(\bgamma^{2}) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG} \(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_{d} \), \\
+		q_{\bsigma^{2}}(\bsigma^{2}) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + T + 1}{2}, \zeta_{d} \), \\
+		q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \overset{D}{\propto} \prod_{d=1}^D \mathcal{W}_T^{-1} (\bm{\Psi}_d, \nu + 1).
+		\end{align}
+	\end{subequations}
+	Here $\mathcal{GIG}(\cdot)$ and $\Gamma^{-1}(\cdot)$ denote the generalized inverse Gaussian and inverse gamma distributions, respectively. The full derivations may be found in Appendix \ref{app:derivations}.	
+	
+	The parameters in (\ref{eq:variationalposterior2}) contain cyclic dependencies. We therefore iterate the following estimating equations until convergence to a local optimum:
+	\begin{align*}
+	\bSigma_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \left\{\X \tr \X + a_d^{(h)} \cdot \diag (\phi_{g(j)}^{-2}) \right\}^{-1}, \\
+	\bm{\mu}_d^{(h+1)} & = \left\{\X \tr \X + a_d^{(h)} \cdot \diag (\phi_{g(j)}^{-2}) \right\}^{-1} \X \tr ( \y_d - \Z \mathbf{m}_d^{(h)}), \\
+	\Sm_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \[ \Z \tr \Z + (\nu + 1) \cdot (\bm{\Psi}_d^{(h)})^{-1} \]^{-1}, \\
+	\mathbf{m}_d^{(h+1)} & = \[ \Z \tr \Z + (\nu + 1) \cdot (\bm{\Psi}_d^{(h)})^{-1} \]^{-1} \Z \tr (\y_d - \X \bm{\mu}_d^{(h)}), \\
+	\bm{\Psi}_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \[ \Sm_d^{(h+1)} + \mathbf{m}_d^{(h+1)} (\mathbf{m}_d^{(h+1)}) \tr \] + \bm{\Omega}, \\
+	\delta_d^{(h+1)} & =  \frac{n+p+T+1}{2\zeta_d^{(h)}} \sum_{j=1}^p \frac{(\mu_{jd}^{(h+1)})^2 + (\bSigma_d^{(h+1)})_{jj}}{\phi^2_{g(j)}} + \lambda, \\
+	\zeta_d^{(h+1)} & = \frac{1}{2} \y_d \tr \y_d - \y_d \tr (\X \bmu_d^{(h+1)} + \Z \mathbf{m}_d^{(h+1)}) + (\bmu_d^{(h+1)}) \tr \X \tr \Z \mathbf{m}_d^{(h+1)} + \frac{1}{2} \trace (\X \tr \X \bSigma_d^{(h+1)}) \\
+	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} (\bmu_d^{(h+1)}) \tr \X \tr \X \bmu_d^{(h+1)} + \frac{1}{2} \trace (\Z \tr \Z \Sm_d^{(h+1)}) + \frac{1}{2} (\mathbf{m}_d^{(h+1)}) \tr \Z \tr \Z \mathbf{m}_d^{(h+1)} \\
+	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} a_d^{(h)} \sum_{j=1}^p \frac{(\mu_{jd}^{(h+1)})^2 + (\bSigma_d^{(h+1)})_{jj}}{\phi^2_{g(j)}} + \frac{1}{2} (\nu + 1) \cdot \trace \[ (\bm{\Psi}_d^{(h+1)})^{-1} \Sm_d^{(h+1)} \] \\
+	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} (\nu + 1) \cdot (\mathbf{m}_d^{(h+1)}) \tr (\bm{\Psi}_d^{(h+1)})^{-1} \mathbf{m}_d^{(h+1)},
+	\end{align*}
+	where
+	$$
+	a_d^{(h)} = \sqrt{\frac{\lambda}{\theta^2_d \delta_d^{(h)}}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)}{K_{\frac{p+1}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)} + \frac{p+1}{\delta_d^{(h)}},
+	$$
+	and $K_{\alpha}(\cdot)$ is the modified Bessel function of the second kind.
+	
+	\subsection{Empirical Bayes}\label{sec:empiricalbayes}
+	A full Bayesian model requires the specification of hyper-parameters $\bm{\eta} = \begin{bmatrix} (\bm{\phi}^2) \tr & \bm{\theta} \tr & \lambda & \text{vec}(\bm{\Omega}) \tr & \nu \end{bmatrix} \tr$. These are abstract and hard to interpret parameters for which we generally lack expert knowledge. They do, however, have a significant influence on the shape of the posterior distribution. We therefore propose to estimate the unspecified hyper parameters $\bm{\eta}$ by empirical Bayes. Simply put, empirical Bayes fits the prior model to the data and is, as such, objective (up to model specification). 
+	
+	The canonical method for empirical Bayes is maximisation of the marginal likelihood with respect to the hyper parameters. In \cite{casella_empirical_2001} the marginal likelihood is maximised by an EM algorithm:
+	$$
+	\bm{\eta}^{(l+1)} = \underset{\bm{\eta}}{\argmax}\E_{\cdot | \Y} [\log p(\Y, \B, \U, \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bgamma^2, \bsigma^2) | \bm{\eta}^{(l)}],
+	$$
+	where the expectation is with respect to the posterior. In our case, this posterior is not available in closed form, which renders the expectation difficult. While \cite{casella_empirical_2001} suggests to approximate the expectation by a Monte Carlo sample, we propose to use the variational Bayes approximation developed in Section \ref{sec:variationalbayes}:
+	\begin{align}\label{eq:variationalbayes}
+	\bm{\eta}^{(l+1)} & = \underset{\bm{\eta}}{\argmax}\E_{Q^{(l)}} [\log p(\Y, \B, \U, \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bgamma^2, \bsigma^2)] \nonumber \\
+	& = \underset{\bm{\eta}}{\argmax} \E_{Q^{(l)}} [\log \pi (\B | \bgamma^2, \bsigma^2)] + \E_{Q^{(l)}} [\log \pi (\bgamma^2)] + \E_{Q^{(l)}} [\log \pi (\bm{\Xi}_1, \dots, \bm{\Xi}_D)].
+	\end{align}
+	where now the expectation is with respect to the converged variational posterior $Q^{(l)}$. Inspection of (\ref{eq:variationalbayes}) learns us that the problem may be decomposed into three separate optimisation problems.
+	
+	\subsubsection{Group-specific variance components}
+	The first sub-problem concerns the group-specific variance components of the molecular feature effects. In order to separate the overall variance of the molecular feature effects from the group-specific deviations, we impose $\prod_{g=1}^G (\phi_g^2)^{|\mathcal{G}_g|} = 1$. As a consequence, the overall level of shrinkage is determined by the $\gamma^2_d$, while the $\phi_g^2$ effectuate differential shrinkage of the groups. Because the $\phi_g^2$ are variance components, we additionally require $\phi^2_1, \dots, \phi^2_G> 0$, such that our first optimisation sub-problem becomes:
+	\begin{align*}
+	(\bm{\phi}^2)^{(l+1)} & = \underset{\bm{\phi}^2}{\argmax} \E_{Q^{(l)}} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
+	& = \underset{\bm{\phi}^2}{\argmax} -\frac{D}{2} \sum_{g=1}^G |\G_g| \log \phi_g^2 - \frac{1}{2} \sum_{g=1}^G b_g^{(l)} \phi_g^{-2} \\
+	& \text{subject to } \prod_{g=1}^G (\phi_g^2)^{|\G_g|} = 1 \text{ and } \phi^2_1, \dots, \phi^2_G> 0.
+	\end{align*}
+	where 
+	$$
+	b_g^{(l)}=\sum_{d=1}^D a_d^{(l)} \frac{n+p+T+1}{2\zeta_d^{(l)}} \sum_{j \in \mathcal{G}_g} \[ (\mu_{jd}^{(l)})^2 + (\bSigma_d^{(l)})_{jj} \].
+	$$
+	This is a convex optimisation problem and easily solved numerically.
+	
+	\subsubsection{Drug-specific variance components}
+	The second sub-problem concerns the prior for the drug-specific variance components $\gamma_d^2$. As explained in Section \ref{sec:SEM}, we may have `covariates' $\mathbf{c}_d$ on the drugs available. We conjecture that these covariates may be informative for the omics effect size and therefore model the prior mean of the $\gamma_d^2$ as a function of these covariates: $\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$. Then, the empirical Bayes estimation of $\bm{\alpha}$ effectively boils down to an inverse Gaussian regression of the $\gamma_d^{-2}$ on the $\mathbf{c}_d$ \cite[]{fries_optimal_1986,whitmore_regression_1983}. The problem may be formulated as:
+	\begin{align*}\label{eq:optproblem2}
+	\lambda^{(l+1)}, \bm{\alpha}^{(l+1)} & = \underset{\lambda,\bm{\alpha}}{\argmax} \E_{Q^{(l)}} [\log \pi (\bgamma^2)] \\
+	& = \underset{\lambda,\bm{\alpha}}{\argmax} \frac{D}{2} \log \lambda - \frac{\lambda}{2} \bm{\alpha} \tr \mathbf{C} \tr \diag [\E_{Q^{(l)}}(\gamma_d^2)] \mathbf{C} \bm{\alpha} + \lambda \bm{\alpha} \tr \mathbf{C} \tr \mathbf{1} - \frac{\lambda}{2} \sum_{d=1}^D \E_{Q^{(l)}}(\gamma_d^{-2}),
+	\end{align*}
+	where $\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D \end{bmatrix} \tr$. The solutions to this problem are:
+	\begin{align*}
+	\bm{\alpha}^{(l+1)} & = \left\{ \mathbf{C} \tr \Vm^{(l)} \mathbf{C} \right\}^{-1} \mathbf{C} \tr \mathbf{1}, \\
+	\lambda^{(l+1)} & = \[ \sum_{d=1}^D a_d^{(l)} - (\bm{\alpha}^{(l+1)}) \tr \mathbf{C} \tr \mathbf{1} \]^{-1} D,
+	\end{align*}
+	where 
+	$$
+	\Vm^{(l)} = \diag \[ \sqrt{\frac{\delta_d^{(l)}(\theta_d^{(l)})^2}{\lambda^{(l)}}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta^{(l)}_d \)}{K_{\frac{p + 1}{2}} \( \sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta^{(l)}_d \)} \].
+	$$
+	
+	- Think about parametrisation of $\mathbf{C}$. Idea: use overall mean and deviations from it in alpha, such that the starting value can be the mean and 0 for alpha. Or: use intercept and code the rest as dummy variables.
+	
+	\subsubsection{Tissue effect covariance}
+	The third sub-problem pertains to the tissue effect covariance prior. To avoid overfitting when freely estimating the $\frac{T(T+1)}{2}$ elements in $\bm{\Omega}$ and $\nu$, we parametrise them as $\bm{\Omega}=  \tau [(\tau - \rho) \I_T + \rho \mathbf{1}_{T \times T}]$ and $\nu = \tau + T + 1$, respectively. The justification for this parametrisation is three-fold: (a) it implies an easy to interpret prior covariance matrix with $\tau$ on its diagonal and $\rho$ on its off-diagonals, (b) it reduces the number of parameters to  estimate to just two, and (c) simplifies the positive definite constraint on  $\bm{\Omega}$. To ensure positive definiteness and a proper covariance matrix, we impose the constraints $\tau > \max\[\rho - T \rho,\rho, 0\]$ (see Appendix \ref{app:priortissuecovariance}). The resulting third sub-problem is a bit more involved than the first two:
+	\begin{align*}
+	\tau^{(l + 1)}, \rho^{(l+1)} & = \underset{\tau, \rho}{\argmax} \frac{D (T^2 + T)}{2} \log \tau + \frac{DT}{2} \tau \log \tau + \frac{D(T+1)}{2} \log \[ \tau - (T - 1) \rho\] \\
+	& \,\,\,\,\,\,\,\,\,\, + \frac{D}{2} \tau \log \[ \tau - (T - 1) \rho\] + \frac{D(T^2 - 1)}{2} \log(\tau - \rho) +\frac{D(T - 1)}{2} \tau  \log(\tau - \rho) \\
+	& \,\,\,\,\,\,\,\,\,\, - D \sum_{t=1}^T \log \Gamma \( \frac{\tau + t + 1}{2} \) - w_1^{(l)} \tau^2 + w_2^{(l)} \tau \rho + w_3^{(l)} \tau, \\
+	& \text{subject to } \tau > \max\[\rho - T \rho,\rho, 0\],
+	\end{align*}
+	where
+	\begin{align*}
+	w_1^{(l)} & =  \frac{\tau^{(l)} + T + 2}{2} \sum_{d=1}^D \trace \[ (\bm{\Psi}_d^{(l)})^{-1}\] > 0,\\
+	w_2^{(l)} & = \frac{\tau^{(l)} + T + 2}{2} \sum_{d=1}^D \left\{\trace \[ (\bm{\Psi}_d^{(l)})^{-1}\] - \trace \[\mathbf{1}_{T \times T} \cdot (\bm{\Psi}_d^{(l)})^{-1}\] \right\} < w_1^{(l)},\\
+	w_3^{(l)} & = \frac{1}{2} \[D \sum_{t=1}^T \psi\(\frac{\tau^{(l)} + t + 2}{2}\) - \sum_{d=1}^D \log |\bm{\Psi}_d^{(l)}| \].
+	\end{align*}
+	
+	- use mathematica to check convexity
+	
+	- we use the ELBO for VB convergence and parameters for EB convergence
+	
+	- we might be lenient for VB convergence. The extreme case would be 1 VB iteration per EB iteration (corresponds to tolerance of infinity).
+	
+	\section{Simulations}
+	
+	- Hamming distance to assess variable selection
+	
+	\section{Data application}
+	We predict IC50 of the drugs. Other choices of efficacy measures are possible, but a discussion on the pros and cons of these different choices is not the aim of this paper. In any case, the presented methods may be used with any continuous efficay measure. 
+	
+	- check GSK open target EBI or ask Chris Wallace about it. Database that links targets to drugs and diseases. Might be useful for drugs co-data.
+	
+	- check NCI-60
+	
+	- check CTRP study
+	
+	- check data in PharamcoGx R-package
+	
+	- how to transform the data and deal with missingness (ask Oslo and read papers published on GDSC and CCLE repositories) 
+	
+	- create drug covariates from SMILES formulas with R-package rcdk.
+	
+	- try non-negative matrix factorisation/independent component analysis on binary fingerprints to get principal components that characterise the different drugs.  
+	
+	- check whether compounds are PAINS \cite[]{baell_new_2010} or not. PAINS indicates whether compound is frequent false hitter.
+	
+	- start with gene expression (one $g(j)$)
+	
+	\subsection{GDSC}
+	After iteratively removing the cell line or drug with the highest proportion of missings until there are no more missing values, we end up with  IC50 estimates for 495 cell lines on 167 drugs.
+	
+	\subsection{CCLE}
+	
+	\section{Discussion}
+	- use copula's and marginal posteriors to find multivariate posteriors for contrast testing.
+	
+	- empirical Bayes gives extra information via estimation of the hyper-parameters, such as informativeness of the drug information (via model for the $\gamma_d$) and relatedness of the tissues (via $\bm{\Omega}$ and $\nu$)
+	
+	- regression on drug covariates very intuitive.
+	
+	- find more literature on inverse Gaussian prior for variances and modelling variances with covariates.
+	
+	Recently, \cite{moran_variance_2018} have argued that in high-dimensional regression problems, \text{a priori} dependence between the regression parameters and error variance may induce biased estimation. In (\ref{eq:betaprior}), we assume such an \textit{a priori} dependence. However, we contend that independent regression parameters and error variance are not desirable in our setting for two reasons: (a) the empirical Bayes estimation requires some notion of scale to combine the separate regressions, which may be done by inclusion of the error variance in the regression parameter prior model. (b) The variational Bayes approximation introduced in Section \ref{sec:variationalbayes} gives a posterior that is similar to the one we would obtain with a dependent regression parameters and error variance prior model. This renders a better approximate expectation in the empirical Bayes iterations.
+	
+	\bibliographystyle{author_short3} 
+	\bibliography{refs}
+	
+	\section*{Session info}
+
+<<r session-info, eval=TRUE, echo=TRUE, tidy=TRUE>>=
+devtools::session_info()
+@
+
+	\titleformat{\section}{\normalfont\Large\bfseries}{\appendixname~\thesection.}{1em}{}
+	\begin{appendix}
+		\section{Prior tissue covariance constraints}\label{app:priortissuecovariance}
+		We parametrise the prior covariance as a matrix with $\tau$ on the diagonal and $\rho$ on its off-diagonals. To that end we set $\nu = \tau + T + 1$ and the $T \times T$-dimensional matrix
+		$$
+		\bm{\Omega} = \tau \begin{bmatrix}
+		\tau &  & \rho \\
+		& \ddots &  \\
+		\rho & & \tau
+		\end{bmatrix},
+		$$
+		such that $\E_{\pi(\mathbf{\Xi}_d)} (\mathbf{\Xi}_d) = (\nu - T - 1)^{-1} \bm{\Omega}$ is of the desired form. To ensure a non-degenerate prior distribution we require $\tau > 0$ and $\bm{\Omega}$ PD. We use $\tau > 0$ to note that a PD $\bm{\Omega}$ implies positive roots $\lambda$ of the characteristic polynomial:
+		\begin{align*}
+		\left| \begin{bmatrix}
+		\tau &  & \rho \\
+		& \ddots &  \\
+		\rho & & \tau
+		\end{bmatrix} -\lambda \I_T \right| = (\tau - \lambda - \rho)^{T-1}[\tau - \lambda - (1-T)\rho] = 0.
+		\end{align*}
+		For $T > 1$, the solutions are:
+		$$
+		(\lambda = \tau - \rho) \lor (\lambda = T \rho - \rho + \tau),
+		$$
+		which are positive if the following condition holds: $\tau > \max(\rho,\rho - T \rho)$. We combine this with $\tau > 0$, to arrive at the full proper prior constraint: $\tau > \max(0,\rho,\rho - T \rho)$. 
+		
+	\end{appendix}
+
+\end{document}
