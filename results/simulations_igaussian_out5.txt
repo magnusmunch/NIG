@@ -31,10 +31,10 @@ from URL https://api.github.com/repos/magnusmunch/cambridge/zipball/master
 Installing cambridge
 '/usr/lib/R/bin/R' --no-site-file --no-environ --no-save --no-restore --quiet  \
   CMD build  \
-  '/mnt/data/tmp/RtmpIv3Fp9/devtools3429763d9a9a/magnusmunch-cambridge-3a31a2772c57b3b7ddf9c39e6819e1d03031f70e/rpackage'  \
+  '/mnt/data/tmp/RtmpehM5BY/devtools4969670dad1e/magnusmunch-cambridge-0c64192728dcf2ee1d33aa61cef529e584da1526/rpackage'  \
   --no-resave-data --no-manual --no-build-vignettes 
 
-* checking for file ‘/mnt/data/tmp/RtmpIv3Fp9/devtools3429763d9a9a/magnusmunch-cambridge-3a31a2772c57b3b7ddf9c39e6819e1d03031f70e/rpackage/DESCRIPTION’ ... OK
+* checking for file ‘/mnt/data/tmp/RtmpehM5BY/devtools4969670dad1e/magnusmunch-cambridge-0c64192728dcf2ee1d33aa61cef529e584da1526/rpackage/DESCRIPTION’ ... OK
 * preparing ‘cambridge’:
 * checking DESCRIPTION meta-information ... OK
 * cleaning src
@@ -45,7 +45,7 @@ Warning: invalid uid value replaced by that for user 'nobody'
 Warning: invalid gid value replaced by that for user 'nobody'
 
 '/usr/lib/R/bin/R' --no-site-file --no-environ --no-save --no-restore --quiet  \
-  CMD INSTALL '/mnt/data/tmp/RtmpIv3Fp9/cambridge_0.0.0.9000.tar.gz'  \
+  CMD INSTALL '/mnt/data/tmp/RtmpehM5BY/cambridge_0.0.0.9000.tar.gz'  \
   --library='/home/munchmm/Library/R/3.4.2/library' --install-tests 
 
 * installing *source* package ‘cambridge’ ...
@@ -206,7 +206,7 @@ Loading required package: parallel
 > #   write.table(fit1, file="results/simulations_igaussian_fit1.csv")
 > # 
 > # }
-> # 
+> #
 > # ###############################   simulation 2   ###############################
 > # # settings
 > # nreps <- 100
@@ -678,3 +678,106 @@ Loading required package: parallel
 > # set initial values and control parameters
 > stan.nig <- stan_model("code/igauss.stan")
 > stan.nigig <- stan_model("code/nigig.stan")
+> stan.studentst <- stan_model("code/igamma.stan")
+> nsamples <- 1000
+> nwarmup <- 1000
+> 
+> ### analysis splits in parallel
+> ncores <- min(detectCores() - 1, nreps)
+> cluster <- makeForkCluster(ncores)
+> if(parallel) {
++   registerDoParallel(cluster)
++ } else {
++   registerDoSEQ()
++ }
+> 
+> res <- foreach(s=c(1:nrow(set)), .errorhandling="pass") %:% 
++   foreach(k=c(1:nreps), .errorhandling="pass") %dopar% {
++     print(paste0("set", s, ", rep", k))
++ 
++     set.seed(2019 + k)
++     beta <- sapply(1:D, function(d) {
++       rspikeandslab(p, set[s, "nu"], set[s, "kappa"], 
++                     set[s, "sigma"], set[s, "gamma"], set[s, "r"])})
++     x <- rmvnorm(n, rep(0, p), sigma=Sigma)
++     y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
++     
++     thetac <- set$thetac[s]
++     lambdac <- set$lambdac[s]
++     thetaz <- set$thetaz[s]
++     lambdaz <- set$lambdaz[s]
++     eta <- set$eta[s]
++     lambda <- set$lambda[s]
++     fit.nig <- sapply(1:D, function(d) {
++       sampling(stan.nig, data=list(n=n, p=p, y=y[, d], x=x, theta=thetac, 
++                                    lambda=lambdac), chains=1, warmup=nwarmup,
++                iter=nsamples + nwarmup, cores=1, refresh=0, 
++                control=list(adapt_delta=0.8, max_treedepth=12))})
++     fit.nigig <- sapply(1:D, function(d) {
++       sampling(stan.nigig, data=list(n=n, p=p, y=y[, d], x=x, thetac=thetac, 
++                                      lambdac=lambdac, thetaz=thetaz, lambdaz), 
++                chains=1, warmup=nwarmup, iter=nsamples + nwarmup, cores=1, 
++                refresh=0, control=list(adapt_delta=0.8, max_treedepth=12))})
++     fit.studentst <- sapply(1:D, function(d) {
++       sampling(stan.studentst, data=list(n=n, p=p, y=y[, d], x=x, eta=eta, 
++                                          lambda=lambda), chains=1, 
++                warmup=nwarmup, iter=nsamples + nwarmup, cores=1, refresh=0, 
++                control=list(adapt_delta=0.8, max_treedepth=12))})
++     
++     best <- data.frame(nig=sapply(fit.nig, function(s) {
++       c(get_posterior_mean(s, pars="beta0"),
++         get_posterior_mean(s, pars="beta"))}),
++       nigig=sapply(fit.nigig, function(s) {
++         c(get_posterior_mean(s, pars="beta0"),
++           get_posterior_mean(s, pars="beta"))}),
++       studentst=sapply(fit.studentst, function(s) {
++         c(get_posterior_mean(s, pars="beta0"),
++           get_posterior_mean(s, pars="beta"))}))
++     
++     samp.nig <- cbind(as.matrix(fit.nig[[1]], "beta0"), 
++                       as.matrix(fit.nig[[1]], "beta"))
++     samp.nigig <- cbind(as.matrix(fit.nigig[[1]], "beta0"), 
++                         as.matrix(fit.nigig[[1]], "beta"))
++     samp.studentst <- cbind(as.matrix(fit.studentst[[1]], "beta0"), 
++                             as.matrix(fit.studentst[[1]], "beta"))
++     samp.true <- cbind(0, t(
++       gibbs.spikeandslab(x, y, set[s, "gamma"], set[s, "sigma"], set[s, "r"], 
++                          set[s, "nu"], set[s, "kappa"], init=NULL, 
++                          control=list(samples=nsamples, warmup=nwarmup))$beta))
++     samp <- data.frame(nig=samp.nig, nigig=samp.nigig, studentst=samp.studentst)
++     
++     cram <- c(nig=cramer.test(samp.nig, samp.true, 
++                               just.statistic=TRUE)$statistic,
++               nigig=cramer.test(samp.nigig, samp.true, 
++                                 just.statistic=TRUE)$statistic,
++               studentst=cramer.test(samp.studentst, samp.true, 
++                                     just.statistic=TRUE)$statistic)
++     
++     corbest <- c(nig=cor(c(0, beta), best[, 1]),
++                  nigig=cor(c(0, beta), best[, 2]),
++                  studentst=cor(c(0, beta), best[, 3]))
++     
++     msebest <- c(nig=mean((c(0, beta) - best[, 1])^2),
++                  nigig=mean((c(0, beta) - best[, 2])^2),
++                  studentst=mean((c(0, beta) - best[, 3])^2))
++     
++     ci.nig <- summary(fit.nig[[1]], pars=c("beta0", "beta"))$summary[, c(4, 8)]
++     ci.nigig <- summary(fit.nigig[[1]], 
++                         pars=c("beta0", "beta"))$summary[, c(4, 8)]
++     ci.studentst <- summary(fit.studentst[[1]], 
++                             pars=c("beta0", "beta"))$summary[, c(4, 8)]
++     
++     cover <- c(nig=mean(sapply(1:(p + 1), function(j) {
++       (ci.nig[j, 1] < c(0, beta)[j]) & (c(0, beta)[j] < ci.nig[j, 2])})),
++       nigig=mean(sapply(1:(p + 1), function(j) {
++         (ci.nigig[j, 1] < c(0, beta)[j]) & (c(0, beta)[j] < ci.nigig[j, 2])})),
++       studentst=mean(sapply(1:(p + 1), function(j) {
++         (ci.studentst[j, 1] < c(0, beta)[j]) & 
++           (c(0, beta)[j] < ci.studentst[j, 2])})))
++     
++     list(cram=cram, corbest=corbest, msebest=msebest, cover=cover, 
++          samp=samp)
++   }
+Error in unserialize(socklist[[n]]) : error reading from connection
+Calls: %dopar% ... recvOneData -> recvOneData.SOCKcluster -> unserialize
+Execution halted
