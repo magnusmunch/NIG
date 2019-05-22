@@ -517,17 +517,27 @@ legend("topright", legend=labels, col=col, lty=lty,
     (\bm{\mu}_d^{(h+1)}) \tr \diag (b_{jd}^{(h)}) 
     \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
-  until convergence. The empirical Bayes step that consists of an iteratively 
-  reweighted least squares regression of responses $(f_j^{(l)})^{-1}$ on
-  predictors $\mathbf{z}_j$ with weights $\lambda_j^z f_j^{(l)}$, where 
+  until convergence, where $a_d^{(h)}$ is as before and 
+  $$
+  b_d^{(h)}=\sqrt{\frac{\delta_{jd}}
+  {\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2}}
+  \frac{K_0(\sqrt{\delta_{jd}\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2})}
+  {K_1(\sqrt{\delta_{jd}\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2})} + 
+  \frac{2}{\delta_{jd}}.
+  $$ 
+  The empirical Bayes step that consists of an iteratively 
+  reweighted least squares regression with steps:
   \begin{align*}
-  f_j^{(l)} & = \E_{Q^{(h)}}(\tau_j) = [c_j^{(l)} - 
-  (D + 1)/(\delta_j^z)^{(l)}] \cdot (\delta_j^z)^{(l)} [\mathbf{z}_j \tr 
-  (\bm{\alpha}^z)^{(l)} ]^{-2} / (\lambda_j^z)^{(l)}, \\
-  \lambda_j^z & = \[ c_j^{(l)} + f_j^{(l)} 
-  (\mathbf{z}_j \tr \bm{\alpha}^z)^2 - 
-    2\mathbf{z}_j \tr \bm{\alpha}^z \]^{-1}.
+    \bm{\alpha} & = \[ \mathbf{C} \tr \diag 
+    (\lambda_{jd} e_{jd}^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \diag 
+    (\lambda_{jd}) \mathbf{1}_{p \cdot D \times 1}, \\
+    \lambda_{jd} & = \[ b_{jd}^{(l)} + e_{jd}^{(l)} 
+    (\mathbf{c}_{jd} \tr \bm{\alpha})^2 - 
+    2\mathbf{c}_{jd} \tr \bm{\alpha} \]^{-1},
   \end{align*}
+  where $e_{jd}^{(l)} = \E_{Q^{(l)}}(\gamma_d^2) = [b_{jd}^{(l)} - 
+  2/\delta_{jd}^{(l)})] \cdot \delta_{jd}^{(l)} 
+  /[\lambda_d^{(l)} (\mathbf{c}_{jd} \tr \bm{\alpha})^2]$.
   
   Note that so far, the design matrix $\X$ is assumed to be shared across the
   equations. This is not a requirement, so that we may have $\X^d$, for 
