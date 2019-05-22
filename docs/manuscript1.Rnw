@@ -484,59 +484,40 @@ legend("topright", legend=labels, col=col, lty=lty,
   \begin{subequations}\label{eq:generalmodel2}
     \begin{align*}
       y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} 
-      (\x^d_i \tr \bm{\beta}_d, \sigma_d^2), \nonumber \\
+      \(\x_i \tr \bm{\beta}_d, \sigma_d^2\), \nonumber \\
       \beta_{jd} | \gamma_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
-      (0, \sigma_d^2 \gamma_{jd}^2 ), \\
+      \(0, \sigma_d^2 \gamma_{jd}^2 \), \\
       \gamma_{jd}^2 & \sim \mathcal{IG}
-      \( (\mathcal{c}_{jd} \tr \bm{\alpha})^{-1}, \lambda_{jd} \), \\
+      \( (\mathbf{c}_{jd} \tr \bm{\alpha})^{-1}, \lambda_{jd} \), \\
       \sigma_d^2 & \sim 1/\sigma_d^3, \nonumber
     \end{align*}
   \end{subequations}
-  where we now have an extra variance component $\tau_j$ that is 
-  \textit{a priori} inverse Gaussian distributed with mean dependent on the 
-  feature co-data $\mathbf{z}_j$. We will refer to this model as the normal
-  inverse Gaussian-inverse Gaussian (NIGIG) model. See SM Section 
-  \ref{sm-sec:nigigprior} for more details on this prior.
-  
-  The formulation as in (\ref{eq:generalmodel}) results in an additional 
-  variational distribution for the $\tau_j$:
+  where now the variance components $\gamma_{jd}^2$ are both outcome and 
+  covariate specific and modelled as a function of the co-data. 
+  The formulation as in (\ref{eq:generalmodel2}) results in the following
+  variational distribution for the $\gamma^2_{jd}$:
   $$
-  q(\tau_j^2) \overset{D}{=} \mathcal{GIG}\(-\frac{D+1}{2}, \lambda^z_j 
-  (\theta_j^z)^{-2}, \delta_j^z\).
+  q(\gamma_{jd}^2) \overset{D}{=} \mathcal{GIG}
+  \(-1, \lambda_{jd}(\mathbf{c}_{jd} \tr \bm{\alpha})^2, \delta_{jd}\).
   $$
   The variational parameters are now updated by:
   \begin{align*}
     \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} 
-    \[\X \tr \X + b_d^{(h)} \diag (c_j^{(h)})\]^{-1}, \\
-    \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + b_d^{(h)} \diag(c_j^{(h)})\]^{-1} 
+    \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1}, \\
+    \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1} 
     \X \tr \y_d, \\
-    (\delta^c_d)^{(h+1)} & = a_d^{(h)} \left\{(\bmu^{(h+1)}_d) \tr 
-    \diag (c_j^{(h)}) \bmu^{(h+1)}_d + \trace \[ \diag (c_j^{(h)}) 
-    \bSigma_d^{(h+1)}\] \right\} + \lambda^c_d, \\ 
-    (\delta^z_j)^{(h+1)} & = \sum_{d=1}^D a_d^{(h)} b_d^{(h)} 
-    \[(\bmu^{(h+1)}_d) \tr \bmu^{(h+1)}_d + \trace (\bSigma_d^{(h+1)}) \] + 
-    \lambda^z_j, \\ 
+    \delta_{jd}^{(h+1)} & = a_d^{(h)} \[(\bmu^{(h+1)}_{jd})^2 + 
+    (\bSigma_d)_{jj}\] + \lambda_{jd}, \\ 
     \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
     2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + 
     \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + 
     (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
     & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
-    b_d^{(h+1)} \trace \[ \diag (c_j^{(h)}) \bm{\Sigma}_d^{(h+1)}\] + 
-    b_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \diag (c_j^{(h)}) 
+    \trace \[ \diag (b_{jd}^{(h)}) \bm{\Sigma}_d^{(h+1)}\] + 
+    (\bm{\mu}_d^{(h+1)}) \tr \diag (b_{jd}^{(h)}) 
     \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
-  until convergence, where
-  $$
-  c_j^{(h)} = \E_{Q^{(h)}}(\tau_j^{-2}) = \sqrt{\frac{\lambda^z_j}
-  {(\theta_j^z)^2 (\delta^z_j)^{(h)}}} 
-  \frac{K_{\frac{D - 1}{2}} 
-  \( \sqrt{\lambda^z_j (\delta^z_j)^{(h)}}/\theta_j^z \)}
-  {K_{\frac{D+1}{2}} \( \sqrt{\lambda^z_j (\delta_j^z)^{(h)}}/\theta_j^z \)} +
-  \frac{D+1}{(\delta_j^z)^{(h)}}
-  $$
-  If we set $\theta_d^c=(\mathbf{c}_d \tr \bm{\alpha}^c)^{-1}$ and
-  $\theta_j^z=(\mathbf{z}_j \tr \bm{\alpha}^z)^{-1}$, we have an additional
-  empirical Bayes step that consists of an iteratively 
+  until convergence. The empirical Bayes step that consists of an iteratively 
   reweighted least squares regression of responses $(f_j^{(l)})^{-1}$ on
   predictors $\mathbf{z}_j$ with weights $\lambda_j^z f_j^{(l)}$, where 
   \begin{align*}
@@ -547,6 +528,11 @@ legend("topright", legend=labels, col=col, lty=lty,
   (\mathbf{z}_j \tr \bm{\alpha}^z)^2 - 
     2\mathbf{z}_j \tr \bm{\alpha}^z \]^{-1}.
   \end{align*}
+  
+  Note that so far, the design matrix $\X$ is assumed to be shared across the
+  equations. This is not a requirement, so that we may have $\X^d$, for 
+  $d=1, \dots, D$ different design matrices. As a consequence, the index $j$
+  may run over differently sized sequences.
 
   \section{Simulations}
   \subsection{Comparison of NIG, NIGIG and Student's \texorpdfstring{$t$}{t} 

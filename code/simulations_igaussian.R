@@ -878,3 +878,4 @@ res <- lapply(1:nrow(set), function(s) {
   }, mc.cores=ncores)
 })
 save(res, file="results/simulations_igaussian_res5.Rdata")
+warnings()
