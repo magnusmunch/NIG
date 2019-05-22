@@ -778,9 +778,6 @@ methods <- c("nig", "studentst", "nigig")
 params <- c("beta0", "beta", "sigma", "gamma", "tau")
 
 # set initial values and control parameters
-stan.nig <- stan_model("code/igauss.stan")
-stan.nigig <- stan_model("code/nigig.stan")
-stan.studentst <- stan_model("code/igamma.stan")
 nsamples <- 1000
 nwarmup <- 1000
 
@@ -791,6 +788,10 @@ ncores <- 50
 res <- lapply(1:nrow(set), function(s) {
   mclapply(1:nreps, function(k) {
     print(paste0("set", s, ", rep", k))
+    
+    stan.nig <- stan_model("code/igauss.stan")
+    stan.nigig <- stan_model("code/nigig.stan")
+    stan.studentst <- stan_model("code/igamma.stan")
     
     set.seed(2019 + k)
     beta <- sapply(1:D, function(d) {
