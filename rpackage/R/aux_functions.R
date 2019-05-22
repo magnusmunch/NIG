@@ -1,3 +1,23 @@
+# function to integrate for NIGIG density
+.fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
+  if(expon.scaled) {
+    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) -
+          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
+  } else {
+    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
+      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
+  }
+  
+}
+
+# NIGIG density function
+dnigig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
+  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
+    sapply(x, function(s) {
+      integrate(.fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma,
+                beta=s, expon.scaled=expon.scaled)$value})
+}
+
 # computes ratio besselK(x, nu - 1)/besselK(x, nu) (tested)
 ratio_besselK <- function(x, nu) {
   res <- nu - floor(nu)
