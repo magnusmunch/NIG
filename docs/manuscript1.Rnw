@@ -535,9 +535,9 @@ legend("topright", legend=labels, col=col, lty=lty,
     (\mathbf{c}_{jd} \tr \bm{\alpha})^2 - 
     2\mathbf{c}_{jd} \tr \bm{\alpha} \]^{-1},
   \end{align*}
-  where $e_{jd}^{(l)} = \E_{Q^{(l)}}(\gamma_d^2) = [b_{jd}^{(l)} - 
-  2/\delta_{jd}^{(l)})] \cdot \delta_{jd}^{(l)} 
-  /[\lambda_d^{(l)} (\mathbf{c}_{jd} \tr \bm{\alpha})^2]$.
+  where $e_{jd}^{(l)} = (b_{jd}^{(l)} - 2/\delta_{jd}^{(l)})
+  \lambda_{jd}^{(l)}(\mathbf{c}_{jd} \tr \bm{\alpha^{(l)}})^2/
+  \delta_{jd}^{(l)}$.
   
   Note that so far, the design matrix $\X$ is assumed to be shared across the
   equations. This is not a requirement, so that we may have $\X^d$, for 
