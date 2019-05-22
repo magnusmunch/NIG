@@ -9,7 +9,7 @@ install_github("magnusmunch/cambridge/rpackage", local=FALSE,
                auth_token=Sys.getenv("GITHUB_PAT"))
 
 ### parallelisation
-parallel <- FALSE
+parallel <- TRUE
 
 ### libraries
 library(cambridge)
@@ -78,33 +78,6 @@ for(r in 1:nreps) {
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
   x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(theta)*p))), nrow=n, ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
-  # fit inverse Gaussian models
-  fit1.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE,
-                                init=init.inv.gauss, control=control)
-  fit1.igauss.non.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", FALSE,
-                                    init=init.inv.gauss, control=control)
-
-  # fit independent inverse Gamma models
-  fit1.igamma.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", TRUE,
-                                init=init.inv.gamma, control=control)
-  fit1.igamma.non.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", FALSE,
-                                    init=init.inv.gamma, control=control)
-
-  # store results
-  temp1 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[1]), 1,
-                                paste, collapse="$"), "[fit1.", methods,
-                 "$iter$eb", ", ]", sep="")
-  temp2 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[2:4]), 1,
-                                paste, collapse="$"), "[fit1.", methods,
-                 "$iter$eb", ", ]", sep="")
-  temp3 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[5]), 1,
-                                paste, collapse="$"), sep="")
-  temp4 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[6]), 1,
-                                paste, collapse="$"), sep="")
-  temp5 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[7:8]), 1,
-                                paste, collapse="$"), sep="")
-  res1[r, ] <- c(c(sapply(temp1, function(s) {eval(parse(text=s))})),
 
   # fit inverse Gaussian models
   fit1.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE,
@@ -747,76 +720,5 @@ write.table(fit, file="results/simulations_igaussian_fit4.csv")
 write.table(res, file="results/simulations_igaussian_res4.csv")
 write.table(set, file="results/simulations_igaussian_set4.csv")
 
-
-
-
-
-### nigig model
-fchisq <- function(x, lambdac, lambdaz, thetac, thetaz) {
-  sqrt(lambdac*lambdaz/((2*pi)^2*x^3))*exp(lambdac/thetac + lambdaz/thetaz)*
-    2*besselK(2*sqrt(lambdac/(2*thetac^2) + lambdaz/(2*x))*
-                sqrt(lambdac/2 + lambdaz*x/(2*thetaz^2)), 0)
-}
-
-fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
-  if(expon.scaled) {
-    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) -
-          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
-  } else {
-    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
-      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
-  }
-
-}
-
-fvint <- function(x, a, b) {
-  1/sqrt(x)*besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
-}
-
-
-dnigig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
-  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
-    sapply(x, function(s) {
-      integrate(fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma,
-                beta=s, expon.scaled=expon.scaled)$value})
-}
-
-vnigig <- function(lambda, a, b, sigma) {
-  exp(b)*sigma^2*lambda/(pi*sqrt(a))*
-    integrate(fvint, 0, Inf, a=a, b=b)$value
-}
-
-vnigig <- function(thetaz, thetac, lambdac, sigma) {
-  sigma^2*thetaz*thetac*(ratio_besselK(lambdac/thetac, 1) + 2*thetac/lambdac)
-}
-
-set.seed(123)
-n <- 100
-p <- 20
-x <- matrix(rnorm(n*p), nrow=n, ncol=p)
-beta <- rnorm(p, 0, 1)
-y <- rbinom(n, 1, 1/(1 + exp(-x %*% beta)))
-lambda <- 1
-a <- 1
-b <- 1
-sigma <- 1
-curve(dnigig(x, lambda=lambda, a=a, b=b, sigma=sigma, expon.scaled=TRUE),
-      -10, 10, n=1000)
-vnigig(lambda, a, b, sigma)
-
-
-lambdac=10; lambdaz=4; thetac=3; thetaz=2
-curve(fchisq(x, lambdac=lambdac, lambdaz=lambdaz, thetac=thetac,
-             thetaz=thetaz), 0.001, 10)
-integrate(fchisq, 0, Inf, lambdac=lambdac, lambdaz=lambdaz,
-          thetac=thetac, thetaz=thetaz)
-
-
-
-
-
-
-x <- exp(c(-10:10))
-besselK()
 
 
