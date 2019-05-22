@@ -874,6 +874,6 @@ res <- lapply(1:nrow(set), function(s) {
     
     list(cram=cram, corbest=corbest, msebest=msebest, cover=cover, 
          samp=samp)
-  })
+  }, mc.cores=ncores)
 })
 save(res, file="results/simulations_igaussian_res5.Rdata")
