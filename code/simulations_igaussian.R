@@ -9,7 +9,7 @@ install_github("magnusmunch/cambridge/rpackage", local=FALSE,
                auth_token=Sys.getenv("GITHUB_PAT"))
 
 ### parallelisation
-parallel <- FALSE
+parallel <- TRUE
 
 ### libraries
 library(cambridge)
@@ -78,33 +78,6 @@ for(r in 1:nreps) {
   beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]*gamma[d])})
   x <- matrix(rnorm(n*p, 0, sqrt(SNR/(mean(theta)*p))), nrow=n, ncol=p)
   y <- sapply(1:D, function(d) {rnorm(n, x %*% beta[, d], sigma[d])})
-
-  # fit inverse Gaussian models
-  fit1.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE,
-                                init=init.inv.gauss, control=control)
-  fit1.igauss.non.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", FALSE,
-                                    init=init.inv.gauss, control=control)
-
-  # fit independent inverse Gamma models
-  fit1.igamma.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", TRUE,
-                                init=init.inv.gamma, control=control)
-  fit1.igamma.non.conj <- est.model(x, y, C.inv.gamma, "inv. Gamma", FALSE,
-                                    init=init.inv.gamma, control=control)
-
-  # store results
-  temp1 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[1]), 1,
-                                paste, collapse="$"), "[fit1.", methods,
-                 "$iter$eb", ", ]", sep="")
-  temp2 <- paste("fit1.", apply(expand.grid(methods, "seq.eb", params[2:4]), 1,
-                                paste, collapse="$"), "[fit1.", methods,
-                 "$iter$eb", ", ]", sep="")
-  temp3 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[5]), 1,
-                                paste, collapse="$"), sep="")
-  temp4 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[6]), 1,
-                                paste, collapse="$"), sep="")
-  temp5 <- paste("fit1.", apply(expand.grid(methods, "vb.post", params[7:8]), 1,
-                                paste, collapse="$"), sep="")
-  res1[r, ] <- c(c(sapply(temp1, function(s) {eval(parse(text=s))})),
 
   # fit inverse Gaussian models
   fit1.igauss.conj <- est.model(x, y, C.inv.gauss, "inv. Gaussian", TRUE,
@@ -746,10 +719,3 @@ dimnames(res) <- list(paste0("rep", (1:nreps)), paste(rep(paste0(
 write.table(fit, file="results/simulations_igaussian_fit4.csv")
 write.table(res, file="results/simulations_igaussian_res4.csv")
 write.table(set, file="results/simulations_igaussian_set4.csv")
-
-
-
-
-
-
-
