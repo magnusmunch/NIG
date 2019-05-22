@@ -877,4 +877,3 @@ res <- lapply(1:nrow(set), function(s) {
   })
 })
 save(res, file="results/simulations_igaussian_res5.Rdata")
-
