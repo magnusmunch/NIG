@@ -142,10 +142,10 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  \mathcal{K}(\beta_{jd} | \sigma_d^2) & = \frac{3\theta_d}{\lambda_d} + 3.
 	\end{align*}
   
-	\section{NIGIG prior}\label{sec:nigigprior}
+	\section{NIGIG prior}\label{sec:dnigprior}
 	Equivalently, we may set 
   $\eta_{jd}^2=\tau_j^2 \gamma_d^2/(\theta_j^z \theta_d^c)$ and write 
-  MD equation (\ref{md-eq:generalmodel}) as:
+  MD equation (\ref{md-eq:extendedmodel1}) as:
   \begin{align*}
     \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
     \(0, \frac{\lambda_{jd}}{\chi_{jd}}\eta_{jd}^2\sigma_d^2\), \\
@@ -157,7 +157,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   $\chi_{jd}=\lambda_j^z\lambda_d^c/(\theta_j^z \theta_d^c)$, and
   $\psi_{jd}=\lambda_j^z/\theta_j^z + \lambda_d^c/ \theta_d^c$. A third way
   of writing the model is:
-  \begin{subequations}\label{eq:generalprior}
+  \begin{subequations}\label{eq:extendedmodel1.2}
     \begin{align}
       \beta_{jd} | \eta_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
       \(0, \eta_{jd}^2 \sigma_d^2\), \\
@@ -166,9 +166,9 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       \xi_d^2 & \sim \mathcal{GIG} (1, \lambda_d^c/(\theta_d^c)^2, \lambda_d^c).
     \end{align}
   \end{subequations}
-	From (\ref{eq:generalprior}), for a fixed error variance
+	From (\ref{eq:extendedmodel1.2}), for a fixed error variance
 	$\sigma_d^2$, we find the marginal prior variance and kurtosis:
-	\begin{subequations}\label{eq:varkurtnigig}
+	\begin{subequations}\label{eq:varkurtdgig}
 	  \begin{align}
 	    \V(\beta_{jd} | \sigma_d^2) & = \sigma_d^2 \theta_d^c \theta_j^z  
       \(r_d + \frac{2\theta_d^c}{\lambda_d^c}\), \\
@@ -183,11 +183,11 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   variance 
   $\V(\gamma_d^2)$ go to zero, we have $\V(\beta_{jd} | \sigma_d^2) \rightarrow
   \sigma_d^2 \theta_j^z \theta_d^c$ and $\mathcal{K}(\beta_{jd} | \sigma_d^2)
-  \rightarrow 3(\theta_j^z/\lambda_j^z + 1)$. From (\ref{eq:varkurtnigig}) we see
+  \rightarrow 3(\theta_j^z/\lambda_j^z + 1)$. From (\ref{eq:varkurtdgig}) we see
   that we can keep the variance constant by fixing $\theta_j^z$, $\theta_d^c$,
   and $\lambda_d^c$, while we increasing the kurtosis by decrearing 
-  $\lambda_j^z$. This makes the model MD equations (\ref{md-eq:generalmodel}) a
-  flexible model.
+  $\lambda_j^z$. This makes the model MD equations (\ref{md-eq:extendedmodel1})
+  a flexible model.
 	
 	\section{Student's \texorpdfstring{$t$}{t} prior}\label{sec:studentstprior}
 	For a fixed error variance $\sigma_d^2$, we have a marginal prior variance 
@@ -299,6 +299,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   iteration.
   
   \section{Efficient computation}
+  \subsection{NIG model}
   The empirical Bayes updates require the following quantities: $\zeta_d$, $a_d$, $\delta_d$, $\trace (\bm{\Sigma}_d)$, $\trace (\X \tr \X \bm{\Sigma}_d)$, $\bm{\mu}_d \tr \bm{\mu}_d$, and $\bm{\mu}_d \tr \X \tr \X \bm{\mu}_d$. In addition, we need $\log|\bm{\Sigma}|$ and $\mathbf{y}_d \tr \X \bm{\mu}_d$ to monitor the ELBO. The first three quantities are obtained by scalar operations of $\mathcal{O}(n)$. Let $c_d^{(h)}=b_d^{(h)}$ in the conjugate setting and $c_d^{(h)}=b_d^{(h)}/a_d^{(h)}$ in the non-conjugate setting. Then, beforementioned quantities are easily calculated using the SVD $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$:
   \begin{align*}
   \trace (\bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \[\sum_{i=1}^n (v_i^2 + c_d^{(h)})^{-1} + \max (p - n, 0)\cdot (c_d^{(h)})^{-1}\], \\
@@ -309,6 +310,82 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)}).
   \end{align*}
   where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
+  
+  \subsection{DNIG and ENIG models}
+  If we have the following forms:
+  \begin{align*}
+    \bm{\Sigma} = a^{-1} \(\tilde{\X} \tr \tilde{\X} + 
+    \tilde{\mathbf{H}}\)^{-1}, \\
+    \bm{\mu} = \(\tilde{\X} \tr \tilde{\X} + 
+    \tilde{\mathbf{H}}\)^{-1} \tilde{\X} \tr \y,
+  \end{align*}
+  with $\tilde{\X} = \begin{bmatrix} \mathbf{1} & \X \end{bmatrix}$ and
+  $$
+  \tilde{\mathbf{H}} = 
+  \begin{bmatrix} 
+    0 & \mathbf{0} \\
+    \mathbf{0} & \mathbf{H}
+  \end{bmatrix},
+  $$
+  then 
+  \begin{align*}
+    \diag (\bSigma) = a^{-1} 
+    \begin{bmatrix}
+      q \\
+      \mathbf{r}
+    \end{bmatrix},
+  \end{align*}
+  with
+  \begin{align*}
+    \mathbf{D} & = (\I_n + \X \H^{-1} \X \tr), \\
+    q & = \[ n - \mathbf{1} \X \H^{-1} \X \tr \mathbf{1} + 
+    \mathbf{1} \X \H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \mathbf{1}\]^{-1} \\
+    \mathbf{r} & = \diag( \H^{-1}) - \left\{ \[\H^{-1} \X \tr 
+    \mathbf{D}^{-1}\] \circ (\H^{-1} \X \tr) \right\} \mathbf{1} +
+    q (\H^{-1} \X \tr \mathbf{1}) \circ (\H^{-1} \X \tr \mathbf{1}) \\
+    & \,\,\,\,\, - 2q \[\H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \mathbf{1}\] \circ (\H^{-1} \X \tr \mathbf{1}) \\
+    & \,\,\,\,\, + q \[\H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \mathbf{1}\] \circ \[\H^{-1} \X \tr 
+    \mathbf{D}^{-1} \X \H^{-1} \X \tr \mathbf{1}\].
+  \end{align*}
+  Likewise we find 
+  \begin{align*}
+    \bm{\mu} =  
+    \begin{bmatrix}
+      q \sum_{i=1}^n y_i - q t + qs \\
+      \mathbf{u}
+    \end{bmatrix},
+  \end{align*}
+  with
+  \begin{align*}
+    s & = 1 \X \H^{-1} \X \tr \mathbf{D}^{-1} \X \tr \H^{-1}
+    \X \tr \y \\
+    t & = \mathbf{1} \X \H^{-1} \X \tr \y \\
+    \mathbf{u} & = q \(t - \sum_{i=1}^n y_i - 2s \) \H^{-1} \X \tr \mathbf{1} + 
+    + \H^{-1} \X \tr \y + q \( \sum_{i=1}^n y_i + s\) 
+    \H^{-1} \X \tr \mathbf{D}^{-1} \X \H^{-1} \X \tr \mathbf{1} \\
+    & \,\,\,\,\, - \H^{-1} \X \tr \mathbf{D}^{-1} \X \H^{-1} \X \tr \y.
+  \end{align*}
+  We have
+  \begin{align*}
+    \X \bmu & = q \( \sum_{i=1}^n y_i + s - t \) \mathbf{1} + 
+    q \(t - \sum_{i=1}^n y_i - 2s \) \X \H^{-1} \X \tr \mathbf{1} +
+    \X \H^{-1} \X \tr \y \\
+    & \,\,\,\,\, + q \(s + \sum_{i=1}^n \) \X \H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \mathbf{1} - \X \H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \y.
+  \end{align*}
+  Furthermore
+  \begin{align*}
+    \bSigma \X \tr & = q \( \sum_{i=1}^n y_i + s - t \) \mathbf{1} + 
+    q \(t - \sum_{i=1}^n y_i - 2s \) \X \H^{-1} \X \tr \mathbf{1} +
+    \X \H^{-1} \X \tr \y \\
+    & \,\,\,\,\, + q \(s + \sum_{i=1}^n \) \X \H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \mathbf{1} - \X \H^{-1} \X \tr \mathbf{D}^{-1} 
+    \X \H^{-1} \X \tr \y.
+  \end{align*}
   
   \section{Ratios of modified Bessel functions}\label{sec:ratiosmodifiedbessels}
   Ratios of modified Bessel functions of the second kind 

@@ -1,0 +1,16 @@
+P38MAPKpathwayKb100K.Rdata contains 3 objects:
+- Gn is a list of 99 genes from the P38MAPK pathway. Each gene is a list of 9 
+  objects:
+  1) n=373 gene expression levels
+  2) matrix with between 56 and 1169 SNPs (0/1 coded)
+  3) vector of start location [bits], end [bits] location and length of the gene 
+  4) binary vector that indicates whether the SNP is in (1) or out (0) of the 
+    gene
+  5) vector with location [bits] of the SNP
+
+  
+The main references are:
+- G.B. Kpogbezan, M.A., van de Wiel, W.N. van Wieringen, and A.W. van der Vaart
+  (2019). Incorporating prior information and borrowing information in 
+  high-dimensional sparse regression using the horseshoe and variational Bayes.
+  arXiv:1901.10217 [stat].

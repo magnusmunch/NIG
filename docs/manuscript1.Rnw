@@ -151,6 +151,8 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	
 	\section{Model}
 	\subsection{Simultaneous equations model}\label{sec:SEM}
+	- change the name to seemingly unrelated regressions?
+	
 	We have continuous measurements $y_{id}$ for observation $i=1,\dots, n$ on 
 	outcome $d=1,\dots,D$. Throughout this paper we assume the $y_{id}$ to be 
 	centred per outcome and let $\y_d = \begin{bmatrix} y_{1d} & \dots & y_{nd} 
@@ -181,22 +183,14 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
       \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim 
       \mathcal{N} (0, \sigma_d^2 \gamma_d^2), \label{eq:betaprior} \\
-      \gamma_d^2 & \sim \mathcal{IG}(\theta_d, \lambda_d), \\
+      \gamma_d^2 & \sim \mathcal{IG} \( (\mathbf{c}_d \tr \bm{\alpha})^{-1}, 
+      \lambda_d \), \\
       \sigma_d^2 & \sim 1/\sigma_d^3,
     \end{align}
   \end{subequations}
-  where $\mathcal{IG}(\theta, \lambda)$ denotes the inverse Gaussian 
-  distribution with mean $\theta$ and shape $\lambda$.
-  \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ 
-  and $\sigma_d^2$ should be independent \textit{a priori}, i.e.
-  $\beta_{jd} | \gamma_d^2, \sigma_d^2 \sim \beta_{jd} | 
-  \gamma_d^2$. However, in our case
-  that is debatable. The $D$ regressions need not be on the same scale, so in
-  order to jointly consider the $\bm{\beta}_d$ some 
-  form of calibration is required. A straightforward way 
-  of doing this is to scale the $\bm{\beta}_d$ prior with 
-  $\sigma_d^2$ as in (\ref{eq:betaprior}), resulting in a 
-  scale-free prior with respect to the response.
+  where $\mathcal{IG}((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda_d)$ 
+  denotes the inverse Gaussian distribution with mean 
+  $(\mathbf{c}_d \tr \bm{\alpha})^{-1}$ and shape $\lambda_d$.
   
   The normal inverse Gaussian (NIG) prior model for $\beta_{jd}$ and 
   $\gamma^2_d$ in (\ref{eq:priormodel}) was introduced in 
@@ -208,8 +202,8 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   prior distribution marginalised over $\gamma_d^2$ is depicted together with 
   three other common prior choices,
   Student's $t$ (see Section \ref{sec:inversegammamodel} for more details on 
-  this prior), ridge and lasso, all scaled to variance one. From this Figure 
-  we see that, depending on the choice
+  this prior), normal (ridge) and Laplace (lasso), all scaled to variance one. 
+  From this Figure we see that, depending on the choice
   of hyperparameters, the NIG prior can vary from heavier tails than the lasso, 
   to more Gaussian tails like the ridge, but behaves similarly to the 
   Student's $t$ prior. Our argumentation to model the 
@@ -218,7 +212,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \cite{caron_sparse_2008}, is two-fold: (i) the NIG model is more flexible than
   the standard ridge and lasso priors (as seen from Figure 
   \ref{fig:dens_igaussian_marginalbeta}), and (ii) the NIG prior allows to model
-  the mean $\theta_d$ as a 
+  the mean as a 
   function of the co-data $\mathbf{c}_d$ more conveniently than the Student's 
   $t$ prior, as explained in Section 
   \ref{sec:empiricalbayes}. 
@@ -227,33 +221,36 @@ library(GeneralizedHyperbolic)
 library(metRology)
 # all scaled such that variance is one
 sigma <- 1
-theta <- 1/sigma^2
+mgammasq <- 1/sigma^2
 lambda <- c(0.1, 2)
 lambda1 <- sqrt(2)
-eta <- lambda/theta + 2
+eta <- lambda/mgammasq + 2
 col <- c(1:6)
 lty <- c(1:6)
 labels <- as.expression(c(bquote("NIG, "~lambda==.(lambda[1])~", "~
-                                   theta==.(theta)),
+                                   (bold(c)^"T"~bold(alpha))^-1==.(mgammasq)),
                           bquote("NIG, "~lambda==.(lambda[2])~", "~
-                                   theta==.(theta)),
+                                   (bold(c)^"T"~bold(alpha))^-1==.(mgammasq)),
                           bquote("Student's t, "~lambda==.(lambda[1])~", "~
                                    eta==.(eta[1])),
                           bquote("Student's t, "~lambda==.(lambda[2])~", "~
                                    eta==.(eta[2])),
                           "ridge", "lasso"))
-dprior <- function(x, lambda, theta, sigma) {
-  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
+dprior <- function(x, lambda, mgammasq, sigma) {
+  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(mgammasq*sigma)), 0)
 }
 dlasso <- function(x, lambda1) {
   0.5*lambda1*exp(-lambda1*abs(x))
 }
 
 ylim <- c(0, dt.scaled(0, eta[1]/2, 0, sqrt(lambda[1]*sigma^2/eta[1])))
-curve(dprior(x, lambda[1], theta, sigma), -3, 3, ylab=expression(p(beta[j])), 
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+curve(dprior(x, lambda[1], mgammasq, sigma), -3, 3, 
+      ylab=expression(p(beta[j])), 
       xlab=expression(beta[j]), n=1000, ylim=ylim,
       col=col[1], lty=lty[1])
-curve(dprior(x, lambda[2], theta, sigma), add=TRUE, n=1000, 
+curve(dprior(x, lambda[2], mgammasq, sigma), add=TRUE, n=1000, 
       col=col[2], lty=lty[2])
 curve(dnorm(x, 0, 1), add=TRUE, n=1000, col=col[3], lty=lty[3])
 curve(dlasso(x, lambda1), add=TRUE, n=1000, col=col[4], lty=lty[4])
@@ -263,7 +260,19 @@ curve(dt.scaled(x, eta[2]/2, 0, sqrt(lambda[2]*sigma^2/eta[2])), add=TRUE,
       n=1000, col=col[6], lty=lty[6])
 legend("topright", legend=labels, col=col, lty=lty, 
        title="Prior", seg.len=1)
+par(opar)
 @
+
+  \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ 
+  and $\sigma_d^2$ should be independent \textit{a priori}, i.e.
+  $\beta_{jd} | \gamma_d^2, \sigma_d^2 \sim \beta_{jd} | 
+  \gamma_d^2$. However, in our case
+  that is debatable. The $D$ regressions need not be on the same scale, so in
+  order to jointly consider the $\bm{\beta}_d$ some 
+  form of calibration is required. A straightforward way 
+  of doing this is to scale the $\bm{\beta}_d$ prior with 
+  $\sigma_d^2$ as in (\ref{eq:betaprior}), resulting in a 
+  scale-free prior with respect to the response.
 	
   A few remarks on the choice of error variance prior are justified here: 
   many authors endow error variance components with vague gamma priors. 
@@ -275,11 +284,9 @@ legend("topright", legend=labels, col=col, lty=lty,
   setting we are in. We therefore model the error variance with Jeffrey's 
   objective prior 
   \cite[]{jeffreys_invariant_1946}. In the derivation of our Jeffrey's prior
-  for the error variance, we jointly consider an unknown mean and variance.
-  
-  - Jeffrey's prior for variance $1/\sigma^{3/2}$ (a priori independent data 
-	mean and variance) or $1/\sigma^3$ (joint prior, but only mean and variance, 
-	not variance and betas).
+  for the error variance, we jointly consider an unknown mean and variance. This
+  joint consideration results in the somewhat unorthodox $1/\sigma^3$ Jeffrey's
+  prior.
 	
 	\section{Estimation}
 	\subsection{Variational Bayes}\label{sec:variationalbayes}
@@ -298,7 +305,7 @@ legend("topright", legend=labels, col=col, lty=lty,
     q(\bm{\beta}_d) & \overset{D}{=} \mathcal{N}_p 
     (\bm{\mu}_d, \bm{\Sigma}_d), \\
     q(\gamma^2_d) & \overset{D}{=} \mathcal{GIG}
-    \(-\frac{p+1}{2}, \lambda_d \theta_d^{-2}, \delta_d\), \\
+    \(-\frac{p+1}{2}, \lambda_d (\mathbf{c}_d \tr \bm{\alpha})^2, \delta_d\), \\
     q(\sigma^2_d) & \overset{D}{=} \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\).
   \end{align*}
 	See SM Section \ref{sm-sec:vbderivations} for the derivations. The variational
@@ -323,10 +330,12 @@ legend("topright", legend=labels, col=col, lty=lty,
   \begin{align}
     a_d^{(h)} & =\E_{Q^{(h)}}(\sigma_d^{-2})=(n + p + 1)/(2 \zeta_d^{(h)}), 
     \nonumber\\
-    b_d^{(h)} & = \E_{Q^{(h)}}(\gamma_d^{-2}) = \sqrt{\frac{\lambda_d}
-    {\theta_d^2 \delta_d^{(h)}}} \frac{K_{\frac{p - 1}{2}} 
-    \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)}
-    {K_{\frac{p+1}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)} + 
+    b_d^{(h)} & = \E_{Q^{(h)}}(\gamma_d^{-2}) = 
+    \sqrt{\frac{\lambda_d(\mathbf{c}_d \tr \bm{\alpha})^{2}}
+    {\delta_d^{(h)}}} \frac{K_{\frac{p - 1}{2}} 
+    \( \sqrt{\lambda_d \delta_d^{(h)}}(\mathbf{c}_d \tr \bm{\alpha}) \)}
+    {K_{\frac{p+1}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}
+    (\mathbf{c}_d \tr \bm{\alpha}) \)} + 
     \frac{p+1}{\delta_d^{(h)}}, \label{eq:ratiomodifiedbessel}
   \end{align}
   where $K_{\nu}(x)$ denotes the modified Bessel function of the second kind.
@@ -335,24 +344,28 @@ legend("topright", legend=labels, col=col, lty=lty,
   \ref{sm-sec:ratiosmodifiedbessels}.
   
   \subsection{Empirical Bayes}\label{sec:empiricalbayes}
-  A full Bayesian model requires the specification of hyper parameters 
-  $\bm{\theta}=\begin{bmatrix} \theta_1 & \cdots & \theta_D \end{bmatrix} \tr$ 
-  and $\begin{bmatrix} \lambda_1 & \cdots & \lambda_D \end{bmatrix} \tr$. 
-  These are abstract and hard to interpret parameters 
+  To make use of the outcome-specific codata, we parametrised the prior 
+  $\gamma_d^2$ mean as $(\mathbf{c}_d \tr \bm{\alpha})^{-1}$. This allows us to
+  include continuous co-data on the outcomes into the model. Additionally, it 
+  reduces the number of hyperparameters. A full Bayesian model then requires the
+  specification of these hyper parameters 
+  $\bm{\alpha}$ and $\begin{bmatrix} \lambda_1 & \cdots & \lambda_D 
+  \end{bmatrix} \tr$. These are abstract and hard to interpret parameters 
   for which we generally lack expert knowledge. They do, however, have a 
   significant influence on the shape of the posterior distribution. We 
   therefore propose to estimate these hyper parameters by empirical Bayes. 
   Simply put, empirical Bayes fits the prior model to the data and is, as such, 
-  objective (up to model specification). 
+  objective (up to model specification). In our case, this results in an   
+  objective and data-driven inclusion of the co-data.
 	
 	The canonical method for empirical Bayes is maximisation of the marginal 
 	likelihood with respect to the hyper parameters. In 
 	\cite{casella_empirical_2001} the marginal likelihood is maximised by an EM 
 	algorithm:
 	$$
-	\bm{\theta}^{(l+1)},\bm{\lambda}^{(l+1)} = \underset{\bm{\theta},\bm{\lambda}}
+	\bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} = \underset{\bm{\alpha},\bm{\lambda}}
 	{\argmax}\E_{\cdot | \Y} 
-	[\log p(\Y, \B, \bgamma^2, \bsigma^2) | \bm{\theta}^{(l)},\bm{\lambda}^{(l)}],
+	[\log p(\Y, \B, \bgamma^2, \bsigma^2) | \bm{\alpha}^{(l)},\bm{\lambda}^{(l)}],
 	$$
 	where $\Y = \begin{bmatrix} \y_1 & \cdots & \y_D \end{bmatrix}$,
 	$\B = \begin{bmatrix} \bbeta_1 & \cdots & \bbeta_D \end{bmatrix}$, 
@@ -365,21 +378,16 @@ legend("topright", legend=labels, col=col, lty=lty,
 	expectation by a Monte Carlo sample, we propose to use the variational Bayes 
 	approximation developed in Section \ref{sec:variationalbayes}:
 	\begin{align*}
-	  \bm{\theta}^{(l+1)},\bm{\lambda}^{(l+1)} & = 
-	  \underset{\bm{\theta},\bm{\lambda}}{\argmax}\E_{Q^{(l)}} 
+	  \bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} & = 
+	  \underset{\bm{\alpha},\bm{\lambda}}{\argmax}\E_{Q^{(l)}} 
 	  [\log p(\Y, \B, \bgamma^2, \bsigma^2)] \\
-	  & = \underset{\bm{\theta},\bm{\lambda}}{\argmax} \E_{Q^{(l)}} 
-	  [\log \pi (\B | \bgamma^2, \bsigma^2)] + 
+	  & = \underset{\bm{\alpha},\bm{\lambda}}{\argmax} 
 	  \E_{Q^{(l)}} [\log \pi (\bgamma^2)].
 	\end{align*}
 	where now the expectation is with respect to the converged variational 
 	posterior $Q^{(l)}=\prod_{d=1}^D Q_d^{(l)}$. 
 	
-	To make use of the outcome-specific codata, we parametrise 
-	$\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ and estimate $\blambda$ and
-	$\bm{\alpha}$. This allows us to include continuous co-data on the outcomes
-	in an objective, data-driven manner. Additionally, it reduces the number of
-	hyperparameters even further. The estimating equations are:
+	The estimating equations are:
   \begin{align*}
     \bm{\alpha} & = \[ \mathbf{C} \tr \diag 
     (\lambda_d e_d^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \diag 
@@ -388,8 +396,9 @@ legend("topright", legend=labels, col=col, lty=lty,
     2\mathbf{c}_d \tr \bm{\alpha} \]^{-1},
   \end{align*}
   where $e_d^{(l)} = \E_{Q^{(l)}}(\gamma_d^2) = [b_d^{(l)} - 
-  (p + 1)/\delta_d^{(l)})] \cdot \delta_d^{(l)} 
-  (\theta_d^{(h)})^2/\lambda_d^{(l)}$. Solving the equations is done by 
+  (p + 1)/\delta_d^{(l)})] \cdot \delta_d^{(l)}
+  /[\lambda_d^{(l)}(\mathbf{c}_d \tr \alpha^{(h)})^2]$. 
+  Solving the equations is done by 
   iteratively reweighted least squares of responses $(e_d^{(l)})^{-1}$ on 
   predictors $\mathbf{c}_d$ with weights $\lambda_d e_d^{(l)}$. 
   
@@ -404,33 +413,36 @@ legend("topright", legend=labels, col=col, lty=lty,
   (\ref{eq:priormodel}) in \texttt{stan} code may be found on 
   \url{https://github.com/magnusmunch/cambridge}. 
   
-  \section{General model}
+  \section{Extended model I}
   In addition to the outcome co-data $\mathbf{c}_d$, we may have feature co-data
   $\mathbf{z}_j$ available. Examples of this in omics settings are pathway 
   memberships or previously obtained $p$-values for the features. In
   that case, we extend model (\ref{eq:priormodel}) to:
-  \begin{subequations}\label{eq:generalmodel}
+  \begin{subequations}\label{eq:extendedmodel1}
     \begin{align}
       y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} 
       (\x_i \tr \bm{\beta}_d, \sigma_d^2), \nonumber \\
       \beta_{jd} | \tau_j^2, \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} 
       (0, \sigma_d^2 \gamma_d^2 \tau_j^2), \\
-      \gamma_d^2 & \sim \mathcal{IG}\(\theta_d^c, \lambda^c_d\), \\
-      \tau_j^2 & \sim \mathcal{IG}\(\theta_j^z, \lambda^z_j\), \\
+      \gamma_d^2 & \sim \mathcal{IG}
+      \((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda_d\), \\
+      \tau_j^2 & \sim \mathcal{IG}
+      \((\mathbf{z}_j \tr \bm{\theta})^{-1}, \kappa_j\), \\
       \sigma_d^2 & \sim 1/\sigma_d^3, \nonumber
     \end{align}
   \end{subequations}
   where we now have an extra variance component $\tau_j$ that is 
   \textit{a priori} inverse Gaussian distributed with mean dependent on the 
-  feature co-data $\mathbf{z}_j$. We will refer to this model as the normal
-  inverse Gaussian-inverse Gaussian (NIGIG) model. See SM Section 
-  \ref{sm-sec:nigigprior} for more details on this prior.
+  feature co-data $\mathbf{z}_j$ and hyper parameter $\bm{\theta}$. We will
+  refer to this model as the double normal
+  inverse Gaussian (DNIG) model. See SM Section 
+  \ref{sm-sec:dnigprior} for more details on this prior.
   
-  The formulation as in (\ref{eq:generalmodel}) results in an additional 
+  The formulation as in (\ref{eq:extendedmodel1}) results in an additional 
   variational distribution for the $\tau_j$:
   $$
-  q(\tau_j^2) \overset{D}{=} \mathcal{GIG}\(-\frac{D+1}{2}, \lambda^z_j 
-  (\theta_j^z)^{-2}, \delta_j^z\).
+  q(\tau_j^2) \overset{D}{=} \mathcal{GIG}\(-\frac{D+1}{2}, \kappa_j 
+  (\mathbf{z}_j \tr \bm{\theta})^{2}, \nu_j\).
   $$
   The variational parameters are now updated by:
   \begin{align*}
@@ -438,115 +450,140 @@ legend("topright", legend=labels, col=col, lty=lty,
     \[\X \tr \X + b_d^{(h)} \diag (c_j^{(h)})\]^{-1}, \\
     \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + b_d^{(h)} \diag(c_j^{(h)})\]^{-1} 
     \X \tr \y_d, \\
-    (\delta^c_d)^{(h+1)} & = a_d^{(h)} \left\{(\bmu^{(h+1)}_d) \tr 
+    \delta_d^{(h+1)} & = a_d^{(h)} \left\{(\bmu^{(h+1)}_d) \tr 
     \diag (c_j^{(h)}) \bmu^{(h+1)}_d + \trace \[ \diag (c_j^{(h)}) 
-    \bSigma_d^{(h+1)}\] \right\} + \lambda^c_d, \\ 
-    (\delta^z_j)^{(h+1)} & = \sum_{d=1}^D a_d^{(h)} b_d^{(h)} 
+    \bSigma_d^{(h+1)}\] \right\} + \lambda_d, \\ 
+    \nu_j^{(h+1)} & = \sum_{d=1}^D a_d^{(h)} b_d^{(h)} 
     \[(\bmu^{(h+1)}_d) \tr \bmu^{(h+1)}_d + \trace (\bSigma_d^{(h+1)}) \] + 
-    \lambda^z_j, \\ 
+    \kappa_j, \\ 
     \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
     2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + 
     \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + 
     (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
     & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
-    b_d^{(h+1)} \trace \[ \diag (c_j^{(h)}) \bm{\Sigma}_d^{(h+1)}\] + 
-    b_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \diag (c_j^{(h)}) 
+    b_d^{(h+1)} \trace \[ \diag (c_j^{(h+1)}) \bm{\Sigma}_d^{(h+1)}\] + 
+    b_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \diag (c_j^{(h+1)}) 
     \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
   until convergence, where
   $$
-  c_j^{(h)} = \E_{Q^{(h)}}(\tau_j^{-2}) = \sqrt{\frac{\lambda^z_j}
-  {(\theta_j^z)^2 (\delta^z_j)^{(h)}}} 
-  \frac{K_{\frac{D - 1}{2}} 
-  \( \sqrt{\lambda^z_j (\delta^z_j)^{(h)}}/\theta_j^z \)}
-  {K_{\frac{D+1}{2}} \( \sqrt{\lambda^z_j (\delta_j^z)^{(h)}}/\theta_j^z \)} +
-  \frac{D+1}{(\delta_j^z)^{(h)}}
+  c_j^{(h)} = \E_{Q^{(h)}}(\tau_j^{-2}) = \sqrt{\frac{\kappa_j 
+  (\mathbf{z}_j \tr \bm{\theta})^2}{\nu_j^{(h)}}} 
+  \frac{K_{\frac{D - 1}{2}} \( \sqrt{\kappa_j \nu_j^{(h)}} 
+  (\mathbf{z}_j \tr \bm{\theta}) \)}{K_{\frac{D+1}{2}} 
+  \( \sqrt{\kappa_j \nu_j^{(h)}} (\mathbf{z}_j \tr \bm{\theta}) \)} +
+  \frac{D+1}{\nu_j^{(h)}}
   $$
-  If we set $\theta_d^c=(\mathbf{c}_d \tr \bm{\alpha}^c)^{-1}$ and
-  $\theta_j^z=(\mathbf{z}_j \tr \bm{\alpha}^z)^{-1}$, we have an additional
-  empirical Bayes step that consists of an iteratively 
+  We have an additional empirical Bayes step that consists of an iteratively 
   reweighted least squares regression of responses $(f_j^{(l)})^{-1}$ on
-  predictors $\mathbf{z}_j$ with weights $\lambda_j^z f_j^{(l)}$, where 
+  predictors $\mathbf{z}_j$ with weights $\kappa_j f_j^{(l)}$:
   \begin{align*}
-  f_j^{(l)} & = \E_{Q^{(h)}}(\tau_j) = [c_j^{(l)} - 
-  (D + 1)/(\delta_j^z)^{(l)}] \cdot (\delta_j^z)^{(l)} [\mathbf{z}_j \tr 
-  (\bm{\alpha}^z)^{(l)} ]^{-2} / (\lambda_j^z)^{(l)}, \\
-  \lambda_j^z & = \[ c_j^{(l)} + f_j^{(l)} 
-  (\mathbf{z}_j \tr \bm{\alpha}^z)^2 - 
-    2\mathbf{z}_j \tr \bm{\alpha}^z \]^{-1}.
+    \bm{\theta} & = \[ \mathbf{Z} \tr \diag 
+    (\kappa_j f_j^{(l)}) \mathbf{Z} \]^{-1} \mathbf{Z} \tr \diag 
+    (\kappa_j) \mathbf{1}_{p \times 1}, \\
+    \kappa_j & = \[ c_j^{(l)} + f_j^{(l)} (\mathbf{z}_j \tr \bm{\theta})^2 - 
+    2\mathbf{z}_j \tr \bm{\theta}^z \]^{-1},
   \end{align*}
+  where $f_j^{(l)} = \E_{Q^{(h)}}(\tau_j) = [c_j^{(l)} - 
+  (D + 1)/\nu_j^{(l)}] \cdot \nu_j^{(l)}/ [\kappa^{(l)}_j (\mathbf{z}_j \tr 
+  \bm{\theta}^{(l)})^2 ]$ and $\mathbf{Z} = \begin{bmatrix} \mathbf{z}_1 & 
+  \dots & \mathbf{z}_p \end{bmatrix} \tr$.
   
-  \section{General model 2}
-  We have co-data $\mathbf{c}_{jd}$ available that describes the relationship
-  between the covariate $j$ and outcome $d$. An example from eQTL is the 
+  \section{Extended model II}
+  We propose a second extension of model (\ref{eq:priormodel}) 
+  that incorporates co-data $\mathbf{c}_{d}^j$ that describes the relationship
+  between covariate $j$ and outcome $d$, collected in
+  $\mathbf{C} = \begin{bmatrix} \mathbf{c}_{1}^1 & \cdots & \mathbf{c}_{1}^p &
+  \cdots & \mathbf{c}_{D}^1 & \cdots & \mathbf{c}_{D}^p
+  \end{bmatrix}_{1 \times pD} \tr$. An example from eQTL is the 
   distance between SNP and gene. Model (\ref{eq:priormodel}) is then rewritten
   as:
-  \begin{subequations}\label{eq:generalmodel2}
+  \begin{subequations}\label{eq:extendedmodel2}
     \begin{align*}
       y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} 
       \(\x_i \tr \bm{\beta}_d, \sigma_d^2\), \nonumber \\
       \beta_{jd} | \gamma_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
       \(0, \sigma_d^2 \gamma_{jd}^2 \), \\
       \gamma_{jd}^2 & \sim \mathcal{IG}
-      \( (\mathbf{c}_{jd} \tr \bm{\alpha})^{-1}, \lambda_{jd} \), \\
+      \( [(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^{-1}, \lambda_{d} \), \\
       \sigma_d^2 & \sim 1/\sigma_d^3, \nonumber
     \end{align*}
   \end{subequations}
   where now the variance components $\gamma_{jd}^2$ are both outcome and 
-  covariate specific and modelled as a function of the co-data. 
-  The formulation as in (\ref{eq:generalmodel2}) results in the following
+  covariate specific and modelled as a function of the co-data 
+  $\mathbf{c}_{d}^j$. We will
+  refer to this model as the extended normal
+  inverse Gaussian (ENIG) model
+  The formulation as in (\ref{eq:extendedmodel2}) results in the following
   variational distribution for the $\gamma^2_{jd}$:
   $$
   q(\gamma_{jd}^2) \overset{D}{=} \mathcal{GIG}
-  \(-1, \lambda_{jd}(\mathbf{c}_{jd} \tr \bm{\alpha})^2, \delta_{jd}\).
+  \(-1, \lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2, \delta_{jd}\).
   $$
-  The variational parameters are now updated by:
+  The variational parameters are iteratively updated by:
   \begin{align*}
     \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} 
     \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1}, \\
     \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1} 
     \X \tr \y_d, \\
     \delta_{jd}^{(h+1)} & = a_d^{(h)} \[(\bmu^{(h+1)}_{jd})^2 + 
-    (\bSigma_d)_{jj}\] + \lambda_{jd}, \\ 
+    (\bSigma_d)_{jj}\] + \lambda_{d}, \\ 
     \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
     2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + 
     \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + 
     (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
     & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
-    \trace \[ \diag (b_{jd}^{(h)}) \bm{\Sigma}_d^{(h+1)}\] + 
-    (\bm{\mu}_d^{(h+1)}) \tr \diag (b_{jd}^{(h)}) 
+    \trace \[ \diag (b_{jd}^{(h+1)}) \bm{\Sigma}_d^{(h+1)}\] + 
+    (\bm{\mu}_d^{(h+1)}) \tr \diag (b_{jd}^{(h+1)}) 
     \bm{\mu}_d^{(h+1)}\bigg],
   \end{align*}
-  until convergence, where $a_d^{(h)}$ is as before and 
+  until convergence, where
   $$
-  b_d^{(h)}=\sqrt{\frac{\delta_{jd}}
-  {\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2}}
-  \frac{K_0(\sqrt{\delta_{jd}\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2})}
-  {K_1(\sqrt{\delta_{jd}\lambda_{jd}(\mathbf{c}_{jd} \bm{\alpha})^2})} + 
-  \frac{2}{\delta_{jd}}.
+  b_{jd}^{(h)}=\sqrt{\frac{\delta_{jd}^{(h)}}
+  {\lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2}}
+  \frac{K_0(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
+  [(\mathbf{c}_{d}^j) \tr \bm{\alpha}])}
+  {K_1(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
+  [(\mathbf{c}_{d}^j) \tr \bm{\alpha}])} + 
+  \frac{2}{\delta_{jd}^{(h)}}.
   $$ 
-  The empirical Bayes step that consists of an iteratively 
-  reweighted least squares regression with steps:
+  The empirical Bayes step consists of an iteratively 
+  reweighted least squares regression with iterations:
   \begin{align*}
-    \bm{\alpha} & = \[ \mathbf{C} \tr \diag 
-    (\lambda_{jd} e_{jd}^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \diag 
-    (\lambda_{jd}) \mathbf{1}_{p \cdot D \times 1}, \\
-    \lambda_{jd} & = \[ b_{jd}^{(l)} + e_{jd}^{(l)} 
-    (\mathbf{c}_{jd} \tr \bm{\alpha})^2 - 
-    2\mathbf{c}_{jd} \tr \bm{\alpha} \]^{-1},
+    \bm{\alpha} & = \[ \mathbf{C} \tr \bLambda \diag 
+    (e_{jd}^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \bLambda
+    \mathbf{1}_{pD \times 1}, \\
+    \lambda_{d} & = p \left\{ \sum_{j=1}^p b_{jd}^{(l)} + 
+    \sum_{j=1}^p e_{jd}^{(l)} [(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2 - 
+    2 \sum_{j=1}^p (\mathbf{c}_{d}^j) \tr \bm{\alpha} \right\}^{-1},
   \end{align*}
-  where $e_{jd}^{(l)} = (b_{jd}^{(l)} - 2/\delta_{jd}^{(l)})
-  \lambda_{jd}^{(l)}(\mathbf{c}_{jd} \tr \bm{\alpha^{(l)}})^2/
-  \delta_{jd}^{(l)}$.
+  where $\bLambda=\I_p \otimes \diag(\lambda_d)$ and 
+  $e_{jd}^{(l)} = (b_{jd}^{(l)} - 
+  2/\delta_{jd}^{(l)}) \cdot \delta_{jd}^{(l)}/[\lambda_{d}^{(l)}
+  \left\{(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2\right\}$.
+  
+  Another option is to consider a constant $\lambda$ over the equations, i.e.,
+  $\forall d: \lambda_d = \lambda$. In that case the EB step reduces to an
+  ordinary least squares fit with:
+  \begin{align*}
+    \hat{\bm{\alpha}} & = \[ \mathbf{C} \tr \diag (e_{jd}^{(l)}) 
+    \mathbf{C} \]^{-1} \mathbf{C} \tr \mathbf{1}_{p D \times 1}, \\
+    \hat{\lambda} & = pD \[ \sum_{d=1}^D\sum_{j=1}^p b_{jd}^{(l)} + 
+    \hat{\bm{\alpha}} \tr \mathbf{C} \tr \diag (e_{jd}^{(l)}) \mathbf{C}
+    \hat{\bm{\alpha}} - 2 \hat{\bm{\alpha}} \tr \mathbf{C} \tr 
+    \mathbf{1}_{pD \times 1} \]^{-1}.
+  \end{align*}
   
   Note that so far, the design matrix $\X$ is assumed to be shared across the
-  equations. This is not a requirement, so that we may have $\X^d$, for 
-  $d=1, \dots, D$ different design matrices. As a consequence, the index $j$
-  may run over differently sized sequences.
+  equations. This is not a requirement. That is, we may have D different design 
+  matrices $\X^d$. These design matrices need not have the same number of 
+  columns. This becomes useful in, e.g. eQTL, where we regress genes on a
+  selection of SNPs, often based on distance from the gene. As a consequence of
+  different design matrices the number of features is now indexed by the 
+  number of equations, i.e., we have $p_d$ instead of $p$.
 
   \section{Simulations}
-  \subsection{Comparison of NIG, NIGIG and Student's \texorpdfstring{$t$}{t} 
-  priors}
+  \subsection{Comparison of priors}
   \label{sec:inversegammamodel}
   A common default prior for latent variance components is the inverse Gamma
   prior:
@@ -565,7 +602,7 @@ legend("topright", legend=labels, col=col, lty=lty,
   with degrees of freedom $\eta_d$ and scale $\sigma_d \sqrt{\lambda_d/\eta_d}$.
   See SM Section \ref{sm-sec:inversegamma} for more details on this prior. 
   We compare the 
-  posteriors of the proposed NIG and NIGIG priors to the scaled Student's 
+  posteriors of the proposed NIG, DNIG, and EGIG priors to the scaled Student's 
   $t$-distribution prior in a simulated setting. 
   
   We compare the three posterior distributions to the true posterior for a 
