@@ -1,23 +1,3 @@
-# function to integrate for NIGIG density
-.fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
-  if(expon.scaled) {
-    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) -
-          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
-  } else {
-    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
-      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
-  }
-  
-}
-
-# NIGIG density function
-dnigig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
-  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
-    sapply(x, function(s) {
-      integrate(.fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma,
-                beta=s, expon.scaled=expon.scaled)$value})
-}
-
 # computes ratio besselK(x, nu - 1)/besselK(x, nu) (tested)
 ratio_besselK <- function(x, nu) {
   res <- nu - floor(nu)
@@ -29,33 +9,98 @@ ratio_besselK <- function(x, nu) {
   return(val)
 }
 
-# calculates the auxiliary variables in general model in the VB step (tested)
-.aux.var.gen <- function(aold, bold, cold, x, ytx) {
+# calculates the auxiliary variables in DNIG VB step with intercept (not tested)
+# .aux.var.dnig.int <- function(aold, bold, cold, y, x, ytx, csumsx) {
+#   
+#   hinv <- 1/(bold*cold)
+#   HinvXt <- t(x)*hinv
+#   Dinv <- XHinvXt <- x %*% HinvXt
+#   diag(Dinv) <- diag(Dinv) + 1
+#   Dinv <- solve(Dinv)
+#   HinvXt1 <- rowSums(HinvXt)
+#   mat1 <- colSums(t(HinvXt %*% Dinv)*colSums(t(HinvX)*csumsx))
+#   
+#   
+#   q <- 1/(n - sum(HinvXt1) + sum(t(Dinv*HinvXt1)*HinvXt1))
+#   r <- 
+#   
+#   # shared auxiliaries
+#   dSigma <- XHinvXt
+#   diag(dSigma) <- diag(dSigma) + 1
+#   dSigma <- HinvXt %*% solve(dSigma)
+#   mu <- trXtXSigma <- mutXt <-
+#     HinvXt - dSigma %*% XHinvXt
+#   dSigma <- (hinv - rowSums(dSigma*HinvXt))/aold
+#   mu <- as.numeric(mu %*% y)
+#   mutXt <- as.numeric(ytx %*% mutXt)
+#   trXtXSigma <- sum(trXtXSigma*t(x))/aold
+#   
+#   # separate auxiliaries
+#   mutmu <- sum(mu^2)
+#   trSigma <- sum(dSigma)
+#   ytXmu <- as.numeric(ytx %*% mu)
+#   mutXtXmu <- sum(mutXt^2)
+#   
+#   out <- list(mu=mu, dSigma=dSigma, mutmu=mutmu, trSigma=trSigma, 
+#               ytXmu=ytXmu, trXtXSigma=trXtXSigma, mutXtXmu=mutXtXmu)
+#   return(out)
+# }
+
+# calculates the auxiliary variables in ENIG model in the VB step (not tested)
+.aux.var.enig <- function(aold, bold, y, x, ytx) {
+  
+  hinv <- 1/bold
+  HinvXt <- t(x)*hinv
+  XHinvXt <- x %*% HinvXt
+  
+  # shared auxiliaries
+  dSigma <- XHinvXt
+  diag(dSigma) <- diag(dSigma) + 1
+  dSigma <- HinvXt %*% solve(dSigma)
+  mu <- trXtXSigma <- mutXt <-
+    HinvXt - dSigma %*% XHinvXt
+  dSigma <- (hinv - rowSums(dSigma*HinvXt))/aold
+  mu <- as.numeric(mu %*% y)
+  mutXt <- as.numeric(ytx %*% mutXt)
+  trXtXSigma <- sum(trXtXSigma*t(x))/aold
+  
+  # separate auxiliaries
+  ytXmu <- as.numeric(ytx %*% mu)
+  mutXtXmu <- sum(mutXt^2)
+  trHSigma <- sum(dSigma*bold)
+  mutHmu <- sum(mu^2*bold)
+
+  out <- list(mu=mu, dSigma=dSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma,
+              mutXtXmu=mutXtXmu, trHSigma=trHSigma, mutHmu=mutHmu)
+  return(out)
+}
+
+# calculates the auxiliary variables in DNIG in the VB step (tested)
+.aux.var.dnig <- function(aold, bold, cold, y, x, ytx) {
   
   hinv <- 1/(bold*cold)
   HinvXt <- t(x)*hinv
   XHinvXt <- x %*% HinvXt
   
-  # auxiliary variables involving mu and Sigma
+  # shared auxiliaries
   dSigma <- XHinvXt
   diag(dSigma) <- diag(dSigma) + 1
   dSigma <- HinvXt %*% solve(dSigma)
-  mu <- mudiagcmu <- trXtXSigma <- mutXtXmu <- ytXmu <- 
-    HinvXt - trSigma %*% XHinvXt
-  mutmu <- ytXmu <- mutmu %*% y
-  mutmu <- mutmu^2
-  mutdiagcmu <- sum(mutmu*cold)
-  mutmu <- sum(mutmu)
-  ytXmu <- colSums(ytx*ytXmu)
-  trSigma <- hinv - rowSums(trSigma*HinvXt)
-  trdiagcSigma <- sum(trSigma*cold)/aold
-  trSigma <- sum(trSigma)/aold
+  mu <- trXtXSigma <- mutXt <-
+    HinvXt - dSigma %*% XHinvXt
+  dSigma <- (hinv - rowSums(dSigma*HinvXt))/aold
+  mu <- as.numeric(mu %*% y)
+  mutXt <- as.numeric(ytx %*% mutXt)
   trXtXSigma <- sum(trXtXSigma*t(x))/aold
-  mutXtXmu <- sum((ytx %*% mutXtXmu)^2)
   
-  out <- list(mutdiagcmu=mutdiagcmu, trdiagcSigma=trdiagcSigma, mutmu=mutmu,
-              trSigma=trSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma, 
-              mutXtXmu=mutXtXmu)
+  # separate auxiliaries
+  mutmu <- sum(mu^2)
+  trSigma <- sum(dSigma)
+  ytXmu <- as.numeric(ytx %*% mu)
+  mutXtXmu <- sum(mutXt^2)
+  
+  out <- list(mu=mu, dSigma=dSigma, mutmu=mutmu, trSigma=trSigma, 
+              ytXmu=ytXmu, trXtXSigma=trXtXSigma, mutXtXmu=mutXtXmu)
   return(out)
 }
 
@@ -111,6 +156,26 @@ ratio_besselK <- function(x, nu) {
   return(out)
 }
 
+# function to integrate for DGIG density
+.fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
+  if(expon.scaled) {
+    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) -
+          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
+  } else {
+    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
+      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
+  }
+  
+}
+
+# DGIG density function
+ddgig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
+  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
+    sapply(x, function(s) {
+      integrate(.fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma,
+                beta=s, expon.scaled=expon.scaled)$value})
+}
+
 # calculates the ELBO in the inverse Gaussian model (tested)
 .elbo.inv.gauss <- function(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
                             yty) {
@@ -153,12 +218,12 @@ ratio_besselK <- function(x, nu) {
 }
 
 # ridge marginal log likelihood of ridge model (not tested)
-.ridge.mll <- function(par, sv, uty, n) {
-  sigma.sq <- par[1]
-  gamma.sq <- par[2]
-  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
-    sum(log(sv^2 + 1/gamma.sq)) - 0.5*sum(uty^2/(sv^2 + 1/gamma.sq))/
-    (sigma.sq*gamma.sq)
+ridge.mll <- function(par, sv, uty, yty, n, p) {
+  lsigma.sq <- par[1]
+  lgamma.sq <- par[2]
+  mll <- -0.5*n*lsigma.sq - 0.5*p*lgamma.sq - 0.5*yty*exp(-lsigma.sq) -
+    0.5*sum(log(sv^2 + exp(-lgamma.sq))) + max(p - n, 0)*lgamma.sq +
+    0.5*sum(uty^2*sv^2/(sv^2 + exp(-lgamma.sq)))*exp(-lsigma.sq)
   return(mll)
 }
 

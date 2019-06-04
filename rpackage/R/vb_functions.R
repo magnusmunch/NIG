@@ -1,23 +1,55 @@
-# single VB update in general model (not tested)
-.single.vb.gen.update <- function(aold, bold, cold, thetac, thetaz, lambdac,
-                                  lambdaz, x, ytx, p, D) {
+# single VB update in ENIG model (not tested)
+.single.vb.update.enig <- function(aold, bold, Calpha, lambda, y, x, ytx, yty, 
+                                   n, p, D) {
   
   # auxiliary variables involving mu and Sigma
-  aux <- sapply(1:D, function(d) {
-    .aux.var.gen(aold[d], bold[d], cold, x, ytx[d, ])})
-    
+  aux <- .aux.var.enig(aold, bold, y, x, ytx)
+  
   # vb parameters
-  deltac <- sapply(1:D, function(d) {
-    aold[d]*(aux[[d]]$mutdiagcmu + aux[[d]]$trdiagcSigma) + lambdac[d]})
-  dz.nolambda <- sum(sapply(1:D, function(d) {
-    aold[d]*bold[d]*(aux[[d]]$mutmu + aux[[d]]$trSigma)}) + lambda)
-        
-  b <- sqrt(lambdac/deltac)/thetac^2*
-    ratio_besselK(sqrt(lambdac*deltac)/thetac, 0.5*(p + 1)) + (p + 1)/deltac
-        
-  out <- c(deltac=deltac, deltaz=deltaz, zeta=zeta, a=a, b=b, c=c, e=e, f=f)
+  delta <- aold*(aux$mu^2 + aux$dSigma) + lambda
+  b <- sqrt(lambda*Calpha^2/delta)*
+    ratio_besselK(sqrt(lambda*delta)*Calpha, 1) + 2/delta
+  zeta <- (yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + aux$trHSigma +
+             aux$mutHmu)/2
+  a <- (n + p + 1)/(2*zeta)
+  e <- (b - 2/delta)*delta/(lambda*Calpha^2)
+    
+  out <- list(delta=delta, zeta=zeta, a=a, b=b, e=e)
   return(out)
 }
+
+# VB update in DNIG model for all equations (not tested)
+# .vb.update.dnig <- function(aold, bold, cold, Calpha, lambda, Ztheta, kappa, 
+#                             y, x, ytx, yty, n, p, D) {
+#   
+#   # auxiliary variables involving mu and Sigma
+#   aux <- sapply(1:D, function(d) {
+#     .aux.var.dnig(aold[d], bold[d], cold, y[, d], x, ytx[d, ])
+#     
+#     
+#     mu=mu, dSigma=dSigma, mutmu=mutmu, trSigma=trSigma, 
+#     ytXmu=ytXmu, trXtXSigma=trXtXSigma, mutXtXmu=mutXtXmu  
+#     
+#   # vb parameters
+#   delta <- sapply(1:D, function(d) {
+#     aold[d]*(sum(aux[[d]]$mu^2*cold) + sum(aux[[d]]$trCSigma*cold)) + 
+#       lambda[d]})
+#   nu <- sum(aold[d]*bold[d]*(aux[[d]]$mutmu + aux[[d]]$trSigma)) + kappa
+#   b <- sqrt(lambda*Calpha^2/delta)*
+#     ratio_besselK(sqrt(lambda*delta)*Calpha, 1) + 2/delta
+#   c <- sqrt(kappa*Ztheta^2/nu)*
+#     ratio_besselK(sqrt(kappa*nu)*Ztheta, (D + 1)/2) + (D + 1)/nu
+#   zeta <- sapply(1:D, function(d) {
+#     (yty[d] - 2*aux[[d]]$ytXmu + aux[[d]]$trXtXSigma + aux[[d]]$mutXtXmu +
+#        b[d]*sum(c*aux[[d]]$dSigma) + b[d]*sum(aux[[d]]$mu^2*c))/2})
+#   a <- (n + p + 1)/(2*zeta)
+#   e <- (b - (p + 1)/delta)*delta/(lambda*Calpha^2)
+#   f <- (c - (D + 1)/nu)*nu/(kappa*Ztheta^2)
+#   
+#   out <- list(rbind(delta=delta, zeta=zeta, a=a, b=b, e=e), 
+#               rbind(nu=nu, c=c, e=e))
+#   return(out)
+# }
 
 # single VB update (tested)
 .single.vb.update <- function(aold, bold, eta, theta, lambda, sv, n, p, uty, 

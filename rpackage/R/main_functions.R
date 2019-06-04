@@ -1,3 +1,152 @@
+mult.lambda=FALSE; fixed.eb="none"; init=NULL; 
+control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+             epsilon.opt=sqrt(.Machine$double.eps), 
+             maxit.eb=30, maxit.vb=2, maxit.opt=100, 
+             trace=TRUE)
+
+# estimate ENIG model (not tested)
+enig <- function(x, y, C, mult.lambda=FALSE, 
+                 fixed.eb=c("none", "lambda", "both"), init=NULL,
+                 control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                              epsilon.opt=sqrt(.Machine$double.eps),
+                              maxit.eb=10, maxit.vb=2, maxit.opt=100,
+                              trace=TRUE)) {
+  
+  # save the arguments
+  cl <- match.call()
+  
+  # fixed parameters
+  n <- nrow(y)
+  p <- sapply(x, ncol)
+  D <- ncol(y)
+  
+  # transform co-data to matrix
+  Cmat <- Reduce("rbind", C)
+  
+  # number of co-data features
+  ncd <- ncol(C[[1]])
+  yty <- colSums(y^2)
+  ytx <- lapply(1:D, function(d) {as.numeric(y[, d] %*% x[[d]])})
+  
+  # set initial values if not given
+  if(is.null(init)) {
+    init$aold <- rchisq(D, 1)
+    init$bold <- lapply(1:D, function(d) {rchisq(p[d], 1)})
+  }
+  init$lambda <- rep(1, ifelse(mult.lambda, D, 1))
+  init$alpha <- rep(1, ncd)
+  init$Calpha <- lapply(1:D, function(d) {as.numeric(C[[d]] %*% init$alpha)})
+  init$mprior <- lapply(1:D, function(d) {1/(init$Calpha[[d]])})
+  init$vprior <- lapply(1:D, function(d) {
+    1/(init$Calpha[[d]]*init$lambda[ifelse(mult.lambda, d, 1)])})
+  
+  # set initial values for VB, EB, and ELBO estimates
+  old.eb <- list(alpha=init$alpha, lambda=init$lambda, mprior=init$mprior,
+                 vprior=init$vprior, Calpha=init$Calpha, conv=FALSE, iter=0)
+  old.vb <- lapply(c(1:D), function(d) {
+    .single.vb.update.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
+                           init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                           x[[d]], ytx[[d]], yty[d], n, p[d], D)})
+  old.vb <- setNames(lapply(names(old.vb[[1]]), function(var) {
+    sapply(old.vb, "[[", var)}), names(old.vb[[1]]))
+  
+  # prepare objects to store EB and ELBO iterations
+  seq.eb <- list(alpha=old.eb$alpha, lambda=old.eb$lambda, 
+                 mprior=sapply(1:D, function(d) {1/old.eb$Calpha[[d]]}), 
+                 vprior=sapply(1:D, function(d) {
+                   1/(old.eb$Calpha[[d]]^3*
+                        old.eb$lambda[ifelse(mult.lambda, d, 1)])}))
+  
+  # set all convergence check parameters
+  conv.eb <- FALSE
+  conv.vb <- logical(0)
+  conv.opt <- logical(0)
+  iter.eb <- 0
+  iter.vb <- numeric(0)
+  iter.opt <- numeric(0)
+  check.eb <- FALSE
+  check.vb <- FALSE
+  
+  # outer EB loop
+  while(!check.eb) {
+    
+    # if EB is required
+    if(fixed.eb!="both") {
+      # increase iteration number by one
+      iter.eb <- iter.eb + 1
+      
+      # possibly print iteration number
+      if(control$trace & fixed.eb!="both") {cat("\r", "iteration", iter.eb)}
+      
+      # update the EB parameters
+      new.eb <- .eb.update.enig(old.vb$e, old.vb$b, old.eb$lambda, Cmat, p, D, 
+                                mult.lambda, fixed.eb, control$epsilon.opt, 
+                                control$maxit.opt) 
+      
+      # paste new hyperparameters to previous
+      seq.eb <- sapply(names(seq.eb), function(s) {
+        if(!is.list(seq.eb[[s]])) {
+          rbind(seq.eb[[s]], new.eb[[s]])
+        } else {
+          sapply(1:D, function(d) {rbind(seq.eb[[s]][[d]], new.eb[[s]][[d]])})
+        }})
+      iter.opt <- c(iter.opt, new.eb$iter)
+
+      # check convergence of EB estimates
+      conv.eb <- all(abs(unlist(new.eb[c("mprior", "vprior")]) -
+                           unlist(old.eb[c("mprior", "vprior")]))/
+                       unlist(old.eb[c("mprior", "vprior")]) <= 
+                       control$epsilon.eb)
+      conv.opt <- c(conv.opt, new.eb$conv)
+      check.eb <- conv.eb | (iter.eb >= control$maxit.eb)
+      old.eb <- new.eb
+    }
+    
+    
+    # set convergence check parameters for VB
+    conv.vb <- c(conv.vb, FALSE)
+    check.vb <- FALSE
+    iter.vb <- c(iter.vb, 0)
+    
+    # inner VB loop
+    while(!check.vb) {
+      
+      # increase iteration number by one
+      iter.vb[iter.eb] <- iter.vb[iter.eb] + 1
+      
+      # update the VB parameters and elbo
+      new.vb <- lapply(c(1:D), function(d) {
+        .single.vb.update.enig(old.vb$a[d], old.vb$b[[d]], old.eb$Calpha[[d]], 
+                               old.eb$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                               x[[d]], ytx[[d]], yty[d], n, p[d], D)})
+      new.vb <- setNames(lapply(names(new.vb[[1]]), function(var) {
+        sapply(new.vb, "[[", var)}), names(new.vb[[1]]))
+      
+      # check convergence of the VB iterations
+      conv.vb[iter.eb] <- all(abs(unlist(new.vb[c("delta", "zeta")]) - 
+                                    unlist(old.vb[c("delta", "zeta")]))/
+                                unlist(old.vb[c("delta", "zeta")]) <= 
+                                control$epsilon.vb)
+      check.vb <- conv.vb[iter.eb] | (iter.vb[iter.eb] >= control$maxit.vb)
+      old.vb <- new.vb
+    }
+  }
+  
+  aux <- lapply(1:D, function(d) {.aux.var.enig(old.vb$a[d], old.vb$b[[d]], 
+                                                y[, d], x[[d]], ytx[[d]])})
+  mu <- sapply(aux, "[[", "mu")
+  dSigma <- sapply(aux, "[[", "dSigma")
+  
+  out <- list(call=cl,
+              vb=list(mu=mu, dSigma=dSigma, delta=old.vb$delta, 
+                      zeta=old.vb$zeta), 
+              eb=old.eb[!(names(old.eb) %in% c("Calpha", "conv", "iter"))],
+              seq.eb=seq.eb,
+              conv=list(eb=conv.eb, vb=conv.vb, opt=conv.opt),
+              iter=list(eb=iter.eb, vb=iter.vb, opt=iter.opt))
+  
+}
+
 # fit model without tissue effect and molecular feature groups (not tested)
 est.model <- function(x, y, C, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
                       conjugate, init=NULL,
