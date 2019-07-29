@@ -7,7 +7,9 @@ P38MAPKpathwayKb100K.Rdata contains 3 objects:
   4) binary vector that indicates whether the SNP is in (1) or out (0) of the 
     gene
   5) vector with location [bits] of the SNP
-
+- G2 is the training data
+- G1 is the test data
+- Annotation is from the GRCh37 reference genome
   
 The main references are:
 - G.B. Kpogbezan, M.A., van de Wiel, W.N. van Wieringen, and A.W. van der Vaart

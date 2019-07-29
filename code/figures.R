@@ -1,8 +1,8 @@
 ################################# main document ################################
 # ---- figures ----
-# ---- boxplots_igaussian_res4_post1 ----  
+# ---- boxplots_igaussian_res4.1_post1 ----  
 library(sp)
-res <- read.table("results/simulations_igaussian_res4.csv")
+res <- read.table("results/simulations_igaussian_res4.1.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
 plot.data <- sapply(1:nrow(set), function(s) {
@@ -12,8 +12,8 @@ plot.data <- sapply(1:nrow(set), function(s) {
          res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
     simplify=FALSE)
 
-methods <- c("NIG", "NIGIG", "Student's t")
-labels1 <- c("NIG", "NIGIG", "Student's t")
+methods <- c("NIG", "ENIG", "DGIG", "Student's t")
+labels1 <- c("NIG", "ENIG", "DGIG", "Student's t")
 labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
              expression("MSD"(hat(beta), beta)), "95% coverage")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
@@ -32,9 +32,9 @@ for(r in 1:3) {
 }
 par(opar)
 
-# ---- boxplots_igaussian_res4_post2 ----  
+# ---- boxplots_igaussian_res4.1_post2 ----  
 library(sp)
-res <- read.table("results/simulations_igaussian_res4.csv")
+res <- read.table("results/simulations_igaussian_res4.1.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
 plot.data <- sapply(1:nrow(set), function(s) {
@@ -44,8 +44,8 @@ plot.data <- sapply(1:nrow(set), function(s) {
        res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
   simplify=FALSE)
 
-methods <- c("NIG", "NIGIG", "Student's t")
-labels1 <- c("NIG", "NIGIG", "Student's t")
+methods <- c("NIG", "ENIG", "DGIG", "Student's t")
+labels1 <- c("NIG", "ENIG", "DGIG", "Student's t")
 labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
              expression("MSD"(hat(beta), beta)), "95% coverage")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
@@ -63,6 +63,44 @@ for(r in 4:6) {
   }
 }
 par(opar)
+
+# ---- boxplots_igaussian_res4.2_post1 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res4.2.csv")
+set <- read.table("results/simulations_igaussian_set4.csv")
+
+plot.data <- list(cram=res[, substr(colnames(res), nchar(colnames(res)) - 7 
+                                    + 1, nchar(colnames(res)))=="enig.vb" &
+                             substr(colnames(res), 6, 9)=="cram"],
+                  corbest=res[, substr(colnames(res), nchar(colnames(res)) - 7 
+                                       + 1, nchar(colnames(res)))=="enig.vb" &
+                                substr(colnames(res), 6, 12)=="corbest"],
+                  msebest=res[, substr(colnames(res), nchar(colnames(res)) - 7 
+                                       + 1, nchar(colnames(res)))=="enig.vb" &
+                                substr(colnames(res), 6, 12)=="msebest"])
+
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")])},
+  simplify=FALSE)
+
+methods <- c("ENIG VB")
+labels1 <- paste("set", 1:nrow(set))
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)))
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(rep(rep(c(1:3), each=2), 2), nrow=6, ncol=2))
+for(r in 1:3) {
+  boxplot(plot.data[[r]], 
+          names=labels1, las=2, col=col, outline=FALSE)
+
+}
+par(opar)
+plot.data[[1]]
 
 # ---- boxplots_igaussian_res3_vb ----  
 library(sp)
@@ -483,7 +521,21 @@ plot(bvar.mcmc, bvar.advi, ylab=expression(hat(V)(beta["ADVI"]~"|"~bold(y))),
 abline(a=0, b=1, col=2, lty=2)
 par(opar)
 
-
+################################# presentation #################################
+# ---- dens_beta_prior1 ---- 
+library(GeneralizedHyperbolic)
+dprior <- function(x, lambda, theta, sigma) {
+  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
+}
+colors <- sp::bpy.colors(4)[-c(1, 4)]
+pdf(file="figs/dens_beta_prior1.pdf", width=10)
+curve(dprior(x, 0.1, 10, 1), -2, 2, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", 
+      bty="n", ann=FALSE, n=1000)
+curve(dprior(x, 10, 0.1, 1), -2, 2, col=colors[2], lwd=4, add=TRUE, main="", yaxt="n", 
+      xaxt="n", bty="n", ann=FALSE, n=1000)
+legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3, 
+       border=colors)
+dev.off()
 
 
 

@@ -1,16 +1,22 @@
-mult.lambda=FALSE; fixed.eb="none"; init=NULL; 
-control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
-             epsilon.opt=sqrt(.Machine$double.eps), 
-             maxit.eb=30, maxit.vb=2, maxit.opt=100, 
-             trace=TRUE)
+x <- lapply(vector("list", ncol(resp.sel)), function(x) {expr.sel})
+y <- resp.sel
+mult.lambda=FALSE; intercept.eb=TRUE; 
+fixed.eb="none"; full.post=FALSE; init=NULL; 
+control=list(conv.post=TRUE, trace=TRUE,
+             epsilon.eb=1e-3, epsilon.vb=1e-3, 
+             epsilon.opt=sqrt(.Machine$double.eps),
+             maxit.eb=2, maxit.vb=2, maxit.opt=100,
+             maxit.post=100)
 
 # estimate ENIG model (not tested)
-enig <- function(x, y, C, mult.lambda=FALSE, 
-                 fixed.eb=c("none", "lambda", "both"), init=NULL,
-                 control=list(epsilon.eb=1e-3, epsilon.vb=1e-3, 
+enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
+                 fixed.eb=c("none", "lambda", "both"), full.post=FALSE, 
+                 init=NULL,
+                 control=list(conv.post=TRUE, trace=TRUE,
+                              epsilon.eb=1e-3, epsilon.vb=1e-3, 
                               epsilon.opt=sqrt(.Machine$double.eps),
                               maxit.eb=10, maxit.vb=2, maxit.opt=100,
-                              trace=TRUE)) {
+                              maxit.post=100)) {
   
   # save the arguments
   cl <- match.call()
@@ -19,23 +25,35 @@ enig <- function(x, y, C, mult.lambda=FALSE,
   n <- nrow(y)
   p <- sapply(x, ncol)
   D <- ncol(y)
+  ncd <- ifelse(is.null(C), 0, ncol(C[[1]]))
   
-  # transform co-data to matrix
+  # add intercept and transform co-data to matrix
+  if(intercept.eb & is.null(C)) {
+    C <- lapply(1:D, function(d) {
+      m <- matrix(1, nrow=p[d]); colnames(m) <- "intercept"; return(m)})
+  } else if(intercept.eb) {
+    C <- lapply(C, function(cc) {cbind(intercept=1, cc)})
+  }
   Cmat <- Reduce("rbind", C)
   
-  # number of co-data features
-  ncd <- ncol(C[[1]])
+  # fixed data functions
   yty <- colSums(y^2)
   ytx <- lapply(1:D, function(d) {as.numeric(y[, d] %*% x[[d]])})
   
   # set initial values if not given
   if(is.null(init)) {
-    init$aold <- rchisq(D, 1)
-    init$bold <- lapply(1:D, function(d) {rchisq(p[d], 1)})
+    init$aold <- rep(1, D)
+    init$bold <- lapply(1:D, function(d) {rep(1, p[d])})
+    init$lambda <- rep(1, ifelse(mult.lambda, D, 1))
+    if(intercept.eb) {
+      init$alpha <- c(1, rep(0, ncd))
+      init$Calpha <- lapply(1:D, function(d) {
+        as.numeric(C[[d]] %*% init$alpha)})
+    } else {
+      init$alpha <- rep(0, ncd)
+      init$Calpha <- lapply(1:D, function(d) {rep(1, p[d])})
+    }
   }
-  init$lambda <- rep(1, ifelse(mult.lambda, D, 1))
-  init$alpha <- rep(1, ncd)
-  init$Calpha <- lapply(1:D, function(d) {as.numeric(C[[d]] %*% init$alpha)})
   init$mprior <- lapply(1:D, function(d) {1/(init$Calpha[[d]])})
   init$vprior <- lapply(1:D, function(d) {
     1/(init$Calpha[[d]]*init$lambda[ifelse(mult.lambda, d, 1)])})
@@ -70,10 +88,11 @@ enig <- function(x, y, C, mult.lambda=FALSE,
   # outer EB loop
   while(!check.eb) {
     
+    # increase iteration number by one
+    iter.eb <- iter.eb + 1
+    
     # if EB is required
     if(fixed.eb!="both") {
-      # increase iteration number by one
-      iter.eb <- iter.eb + 1
       
       # possibly print iteration number
       if(control$trace & fixed.eb!="both") {cat("\r", "iteration", iter.eb)}
@@ -100,6 +119,8 @@ enig <- function(x, y, C, mult.lambda=FALSE,
       conv.opt <- c(conv.opt, new.eb$conv)
       check.eb <- conv.eb | (iter.eb >= control$maxit.eb)
       old.eb <- new.eb
+    } else {
+      check.eb <- TRUE
     }
     
     
@@ -127,19 +148,47 @@ enig <- function(x, y, C, mult.lambda=FALSE,
                                     unlist(old.vb[c("delta", "zeta")]))/
                                 unlist(old.vb[c("delta", "zeta")]) <= 
                                 control$epsilon.vb)
-      check.vb <- conv.vb[iter.eb] | (iter.vb[iter.eb] >= control$maxit.vb)
+      
+      # last vb iterations until convergence or not
+      if(control$conv.post & check.eb) {
+        check.vb <- conv.vb[iter.eb] | (iter.vb[iter.eb] >= control$maxit.post)
+      } else {
+        check.vb <- conv.vb[iter.eb] | (iter.vb[iter.eb] >= control$maxit.vb)
+      }
       old.vb <- new.vb
     }
   }
   
+  # computing mu and the diagonal of Sigma
   aux <- lapply(1:D, function(d) {.aux.var.enig(old.vb$a[d], old.vb$b[[d]], 
                                                 y[, d], x[[d]], ytx[[d]])})
   mu <- sapply(aux, "[[", "mu")
-  dSigma <- sapply(aux, "[[", "dSigma")
+  if(full.post) {
+    Sigma <- lapply(1:D, function(d) {.Sigma.enig(old.vb$a[d], old.vb$b[[d]], 
+                                                  x[[d]])})
+  } else {
+    Sigma <- sapply(aux, "[[", "dSigma")  
+  }
   
+  
+  # computing posterior means and variances
+  mpost <- list(beta=mu, gamma.sq=sapply(1:D, function(d) {
+    old.eb$mprior[[d]]*sqrt(old.vb$delta[[d]]/old.eb$lambda[
+      ifelse(mult.lambda, d, 1)])*ratio_besselK(sqrt(
+        old.vb$delta[[d]]*old.eb$lambda[ifelse(mult.lambda, d, 1)])/
+          old.eb$mprior[[d]], 1)}),
+    sigma.sq=2*old.vb$zeta/(n + p - 1))
+  vpost <- list(beta=Sigma, gamma.sq=sapply(1:D, function(d) {
+    old.eb$mprior[[d]]^2*
+      old.vb$delta[[d]]/old.eb$lambda[ifelse(mult.lambda, d, 1)]*
+      (1 - ratio_besselK(sqrt(old.vb$delta[[d]]*old.eb$lambda[ifelse(
+        mult.lambda, d, 1)])/old.eb$mprior[[d]], 1)^2)}),
+    sigma.sq=8*old.vb$zeta^2/((n + p - 1)^2*(n + p - 3)))
+  
+  # creating output object
   out <- list(call=cl,
-              vb=list(mu=mu, dSigma=dSigma, delta=old.vb$delta, 
-                      zeta=old.vb$zeta), 
+              vb=list(mu=mu, Sigma=Sigma, delta=old.vb$delta, 
+                      zeta=old.vb$zeta, mpost=mpost, vpost=vpost), 
               eb=old.eb[!(names(old.eb) %in% c("Calpha", "conv", "iter"))],
               seq.eb=seq.eb,
               conv=list(eb=conv.eb, vb=conv.vb, opt=conv.opt),

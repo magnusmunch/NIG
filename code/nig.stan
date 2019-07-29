@@ -15,7 +15,7 @@ data {
   int<lower=1> n;
   matrix[n, p] x;
   vector[n] y; 
-  real<lower=0> theta;
+  real<lower=0> ctalphainv;
   real<lower=0> lambda;
 }
 
@@ -37,7 +37,7 @@ transformed parameters {
 model {
   // priors
   target += jeffreys_lpdf(sigmasq);   
-  target += igauss_lpdf(gammasq | theta, lambda);
+  target += igauss_lpdf(gammasq | ctalphainv, lambda);
   beta ~ normal(0., betavar);
   // likelihood
   y ~ normal(mu, sigma);

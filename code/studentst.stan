@@ -11,7 +11,7 @@ data {
   matrix[n, p] x;
   vector[n] y; 
   real<lower=0> eta;
-  real<lower=0> lambda;
+  real<lower=0> xi;
 }
 
 parameters {
@@ -32,7 +32,7 @@ transformed parameters {
 model {
   // priors
   target += jeffreys_lpdf(sigmasq);   
-  gammasq ~ inv_gamma(eta/2, lambda/2);
+  gammasq ~ inv_gamma(eta/2, xi/2);
   beta ~ normal(0., betavar);
   // likelihood
   y ~ normal(mu, sigma);

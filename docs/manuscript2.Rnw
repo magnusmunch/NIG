@@ -330,6 +330,15 @@ xr-hyper,hyperref,enumerate}
 	\subsection{GDSC}
 	After iteratively removing the cell line or drug with the highest proportion of missings until there are no more missing values, we end up with  IC50 estimates for 495 cell lines on 167 drugs.
 	
+	From Oslo:
+	1.2) Preselecting GEX features: we selected gene expression features
+explaining 50\% variations over all cell lines, since this results in not too
+features and probably remains those important features.
+
+1.3) Preselecting CNV: we used the same strategy as Garnett et al. (2012) where the GDSC data are from.
+
+1.4) Preselecting MUT: we deleted mutated genes with less than two cell lines.
+	
 	\subsection{CCLE}
 	
 	\section{Discussion}

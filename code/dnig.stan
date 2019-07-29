@@ -15,10 +15,10 @@ data {
   int<lower=1> n;
   matrix[n, p] x;
   vector[n] y; 
-  real<lower=0> thetac;
-  real<lower=0> lambdac;
-  real<lower=0> thetaz;
-  real<lower=0> lambdaz;
+  real<lower=0> ctalphainv;
+  real<lower=0> lambda;
+  real<lower=0> ztthetainv;
+  real<lower=0> kappa;
 }
 
 parameters {
@@ -41,9 +41,9 @@ transformed parameters {
 model {
   // priors
   target += jeffreys_lpdf(sigmasq);   
-  target += igauss_lpdf(gammasq | thetac, lambdac);
+  target += igauss_lpdf(gammasq | ctalphainv, lambda);
   for(j in 1:p) {
-    target += igauss_lpdf(tausq[j] | thetaz, lambdaz);
+    target += igauss_lpdf(tausq[j] | ztthetainv, kappa);
   }
   beta ~ normal(0., betasd);
   

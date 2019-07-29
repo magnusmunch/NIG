@@ -134,7 +134,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	`Empirical Bayes estimation of simultaneous-equation models'. In the 
 	following, this document is referred to as Main Document (MD).
 	
-	\section{NIG prior}\label{sec:nigprior}
+	\section{NIG and ENIG prior}\label{sec:nigprior}
 	For a fixed error variance $\sigma_d^2$, we have a marginal prior variance 
 	and kurtosis:
 	\begin{align*}
@@ -142,7 +142,7 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  \mathcal{K}(\beta_{jd} | \sigma_d^2) & = \frac{3\theta_d}{\lambda_d} + 3.
 	\end{align*}
   
-	\section{NIGIG prior}\label{sec:dnigprior}
+	\section{DGIG prior}\label{sec:dnigprior}
 	Equivalently, we may set 
   $\eta_{jd}^2=\tau_j^2 \gamma_d^2/(\theta_j^z \theta_d^c)$ and write 
   MD equation (\ref{md-eq:extendedmodel1}) as:

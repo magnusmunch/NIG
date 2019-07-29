@@ -495,7 +495,7 @@ par(opar)
   between covariate $j$ and outcome $d$, collected in
   $\mathbf{C} = \begin{bmatrix} \mathbf{c}_{1}^1 & \cdots & \mathbf{c}_{1}^p &
   \cdots & \mathbf{c}_{D}^1 & \cdots & \mathbf{c}_{D}^p
-  \end{bmatrix}_{1 \times pD} \tr$. An example from eQTL is the 
+  \end{bmatrix}_{|\bm{\alpha}| \times pD} \tr$. An example from eQTL is the 
   distance between SNP and gene. Model (\ref{eq:priormodel}) is then rewritten
   as:
   \begin{subequations}\label{eq:extendedmodel2}
@@ -583,23 +583,31 @@ par(opar)
   number of equations, i.e., we have $p_d$ instead of $p$.
 
   \section{Simulations}
+  Our simulation study consists of three parts investigating the model and its
+  estimation:
+  \begin{enumerate}
+    \item Prior performance
+    \item Variational Bayes approximation
+    \item Empirical Bayes estimation
+  \end{enumerate}
+  
   \subsection{Comparison of priors}
   \label{sec:inversegammamodel}
   A common default prior for latent variance components is the inverse Gamma
   prior:
   $$
-  \gamma_d^2 \sim \Gamma^{-1}(\eta_d/2,\lambda_d/2),
+  \gamma_d^2 \sim \Gamma^{-1}(\eta_d/2,\xi_d/2),
   $$
-  with shape $\eta_d/2$ and scale $\lambda_d/2$, both rescaled to match our 
+  with shape $\eta_d/2$ and scale $\xi_d/2$, both rescaled to match our 
   inverse Gaussian prior formulation. The resulting marginal prior for the model
   parameters
   (conditional on the error variance $\sigma_d^2$) is then a scaled Student's 
   $t$-distribution:
   $$
   \beta_j | \sigma_d^2 \sim \text{Student's } 
-  t\(\eta_d,\sigma_d \sqrt{\lambda_d/\eta_d}\),
+  t\(\eta_d,\sigma_d \sqrt{\xi_d/\eta_d}\),
   $$
-  with degrees of freedom $\eta_d$ and scale $\sigma_d \sqrt{\lambda_d/\eta_d}$.
+  with degrees of freedom $\eta_d$ and scale $\sigma_d \sqrt{\xi_d/\eta_d}$.
   See SM Section \ref{sm-sec:inversegamma} for more details on this prior. 
   We compare the 
   posteriors of the proposed NIG, DNIG, and EGIG priors to the scaled Student's 
@@ -658,25 +666,27 @@ kableExtra::kable_styling(
   [! describe results here]
   
   In the sparse setting, the observed data generating process is the same. The
-  model parameters are are simulated from a spike-and-slab prior with a 
-  Gaussian slab:
+  model parameters are are simulated from a spike-and-slab prior with both the
+  spike and slab Gaussian:
   \begin{align*}
-    w & \sim \text{Beta}(\nu, \kappa), \\
-    z_j | w & \sim \text{Binom}(w), \\
-    \beta_j | z_j & \sim z_j \mathcal{N} \( 0, 1\) +
-    (1 - z_j)\delta_0,
+    w & \sim \text{Beta}(\phi, \chi), \\
+    z_j | w & \sim \text{Bernoulli}(w), \\
+    \beta_j | z_j & \sim z_j \mathcal{N} \( 0, 1 + 0.99 \frac{\chi}{\phi}\) +
+    (1 - z_j)\mathcal{N} \( 0, 0.01\).
   \end{align*}
-  where $\delta_0$ denotes the Dirac mass at zero. The slab is chosen
+  The slab is chosen
   such that the we have marginal prior variance $\V(\beta_j)=1$. The sparsity 
   level is determined by the proportion of zero $\beta_j$, 
-  $s=1 - \nu/(\nu + \kappa)$. Note that the resulting marginal prior for
+  $s=1 - \phi/(\phi + \chi)$. Note that the resulting marginal prior for
   $\beta_j$ is:
   $$
-  \beta_j \sim (s - 1)\mathcal{N} \( 0, 1\) + s\delta_0.
+  \beta_j \sim (1 - s)\mathcal{N} \( 0, \frac{1 - 0.01 s}{1 - s}\) + 
+  s \mathcal{N} \( 0, 0.01\).
   $$
   We use two settings, $s=0.5$ and $s=0.9$. The 
   hyperparameters for estimation are set the same as in the dense setting, 
-  resulting in a total of 12 different simulation settings.
+  resulting in a total of 12 different simulation settings 
+  (6 per sparsity setting).
   To mitigate the effect of random variation, we
   repeated the simulations 100 times and report the results in Figures 
   [! ref to figure here]
@@ -727,7 +737,7 @@ kableExtra::kable_styling(
   
   [! describe results here]
   
-  \section{Empirical Bayes estimation}
+  \subsection{Empirical Bayes estimation}
   We simulate from a correctly specified model given in \ref{eq:priormodel}. We 
   assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$,
   $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$,
@@ -766,13 +776,96 @@ kableExtra::kable_styling(
   - try to fix convergence: (i) track only expectation and variance or ELBO, 
   (ii) reparametrise, and (iii) fix $\forall d: \lambda_d=\lambda$.
   
-  \section{Application}
-  - Possible: network reconstruction, medical surveys, drug response prediction
+  \section{Application in eQTL detection}
+  - Genes from p38MAPK pathway. Possible co-data are:
+  \begin{itemize}
+    \item gene $\times$ SNP: distance of SNP to gene (continuous)
+    \item gene: length of the gene (continuous) 
+      (and possibly chromosome number (categorical))
+    \item SNP: within or outside of gene (binary), intron or exon (binary),
+      and minor allele frequency (continuous)
+  \end{itemize}
+  Within or outside of gene and distance of SNP to gene are probably highly
+  collinear.
   
-  - metabolomics data: oxidative stress als uitkomst van de andere metabolieten
+  From Gino: 108 Geuvadis genes, 9 removed because they contained just one 
+  subject. Annotation is from GRCh37 reference genome: 
+  \url{https://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.13/}. 
+  Annotation file that Gino used: 
+  \url{https://www.gencodegenes.org/human/release_12.html}.
+  Ensembl version of this genome:
+  \url{https://grch37.ensembl.org/Homo_sapiens/Info/Index}.
+  Possibly use GeuvadisTranscriptExpr R package.
+  
+  - compare to intercept only co-data model, i.e., 
+  $\mathbf{C} = \mathbf{1}_{pD \times 1}$.
+  
+  - show influence of co-data with standardized $\bm{\alpha}$'s.
+  
+  - comparison in terms of explained heritability by plotting explained 
+  heritability versus number of SNPs used to calculate explained heritability,
+  where explained heritability is fraction of heritability explained with top 
+  SNPs and heritability explained with all SNPs. We may calculate the AUC of
+  this curve to quantify performance in one number per regression.
+  
+  The posterior mean of the heritability is approximated by 
+  \begin{align*}
+    \E(h_d^2 | \y_d) & = \E \( \frac{\sigma^2_d \sum_{j=1}^{p_d} 
+    \gamma_{jd}^2}{\sigma^2_d \sum_{j=1}^{p_d} \gamma_{jd}^2 + 
+    \sigma_d^2} \bigg| \y_d \) 
+    \approx \E_Q \( \frac{\sum_{j=1}^{p_d} \gamma_{jd}^2}
+    {\sum_{j=1}^{p_d} \gamma_{jd}^2 + 1} \) \\
+    & \approx \frac{\sum_{j=1}^{p_d} \E_Q (\gamma_{jd}^2)}
+    {\sum_{j=1}^{p_d} \E_Q (\gamma_{jd}^2) + 1} - 
+    \frac{\sum_{j=1}^{p_d} \V_Q (\gamma_{jd}^2)}
+    {\[\sum_{j=1}^{p_d} \E_Q (\gamma_{jd}^2) + 1\]^3},
+  \end{align*}
+  where the last step is the result of a second order Taylor approximation.
+  
+  Also compare by log pseudo marginal likelihood 
+  $LPML_d = n^{-1}\sum_{i=1}^n \log (CPO_{id})$ \cite[]{gelfand_model_1992}. Let 
+  $\theta_{id}=\x_i \tr \bbeta_d$. Then the conditional 
+  predictive ordinates (CPO) are given by:
+  \begin{align*}
+    CPO_{id} & = p(\y_{id} | \y_{-id}) = \int_{-\infty}^{\infty} \int_0^{\infty}
+    p(\y_{id} | \bbeta_d, \sigma_d^2 ) \pi (\bbeta | \y_{-id}, \sigma_d^2) 
+    \pi (\sigma_d^2 | \y_{-id}) d\sigma_d^2 d\bbeta_d \\
+    & = \int_{-\infty}^{\infty} \int_0^{\infty}
+    p(\y_{id} | \theta_{id}, \sigma_d^2 ) 
+    \pi (\theta_{id} | \y_{-id}, \sigma_d^2) 
+    \pi (\sigma_d^2 | \y_{-id}) d\sigma_d^2 d\theta_{id},
+  \end{align*}
+  where
+  \begin{align*}
+    \y_i | \theta_{id}, \sigma_d^2 & \sim \mathcal{N} (\theta_{id}, 
+    \sigma_d^2), \\
+    \theta_{id} | \y_{-id} & \sim \mathcal{N}(\x_i \tr \bmu_{-id}, 
+    \x_i \tr \bSigma_{-id} \x_i), \\
+    \sigma_d^2 | \y_{-id} & \sim \Gamma^{-1} \( \frac{n - n_{id} + p + 1}{2},
+    \zeta_{-id} \),
+  \end{align*}
+  $n_{id}$ denotes the number of elements in $\y_{id}$ and $\bmu_{-id}$, 
+  $\bSigma_{-id}$, and $\zeta_{-id}$ are the corresponding parameters estimated
+  from $\y_{-id}$. Plugging in the densities we see that we have:
+  \begin{align*}
+    CPO_{id} = & (2 \pi)^{-1} \frac{\Gamma\(\frac{n - n_{id} + p + 2}{2}\)}
+    {\Gamma\(\frac{n - n_{id} + p + 1}{2}\)}
+    (\zeta_{-id} \x_i \tr \bSigma_{-id} \x_i)^{-1/2} \\
+    & \cdot \int_{-\infty}^{\infty}
+    \( \frac{\theta^2}{2\zeta_{-id}} + 1 \)^{-\frac{n - n_{id} + p + 2}{2}}
+    \exp \[ - \frac{(\theta - \x_i \tr \bmu_{-id} + y_i)^2}
+    {2 \x_i \tr \bSigma_{-id} \x_i} \] d\theta,
+  \end{align*}
+  a one-dimensional (well-behaved) integral that is easily solved with some 
+  numerical integration routine
+  
+  - Also possible: network reconstruction, medical surveys, drug response 
+  prediction, metabolomics data: oxidative stress als uitkomst van de andere 
+  metabolieten
   min organic acids omdat ze downstream zijn. oxidateve stress onderverdelen in
   high and low als uitkomst co-data en de andere metabolieten onderverdelen
   als predictor co-data.
+  
   \section{Discussion}
   - inverse Gaussian more convenient than inverse Gamma, because EB is closed-
   form
@@ -786,6 +879,8 @@ kableExtra::kable_styling(
   $q(\bbeta_d) \cdot q(\sigma_d)$ is actually true for this model. The 
   approximate expectation used in the empirical Bayes step is therefore more 
   accurate
+  
+  - issues: co-data needs to be positive
 	
   \section*{Software}
 	A (developmental) \texttt{R} package is available from 

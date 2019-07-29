@@ -46,6 +46,17 @@ ratio_besselK <- function(x, nu) {
 #   return(out)
 # }
 
+.Sigma.enig <- function(aold, bold, x) {
+  hinv <- 1/bold
+  HinvXt <- t(x)*hinv
+  Sigma <- x %*% HinvXt
+  diag(Sigma) <- diag(Sigma) + 1
+  Sigma <- -HinvXt %*% solve(Sigma) %*% t(HinvXt)
+  diag(Sigma) <- diag(Sigma) + hinv
+  Sigma <- Sigma/aold
+  return(Sigma)
+}
+
 # calculates the auxiliary variables in ENIG model in the VB step (not tested)
 .aux.var.enig <- function(aold, bold, y, x, ytx) {
   
