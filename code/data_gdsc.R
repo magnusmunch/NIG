@@ -18,6 +18,7 @@ library(fingerprint)
 library(glmnet)
 library(MASS)
 library(biomaRt)
+library(rstan)
 
 ################################## analysis 1 ##################################
 # loading the data either from a local file or from the GDSC website
@@ -201,6 +202,12 @@ pathways <- sapply(1:nrow(drug.temp), function(d) {
                 substring(vec, 2, nchar(vec)), vec)
   vec <- ifelse(substring(vec, nchar(vec), nchar(vec))==",", 
                 substring(vec, 1, nchar(vec) - 1), vec)
+  vec[vec=="chromain histone acetylation"] <- "Chromatin histone acetylation"
+  vec[vec=="cytoskeleton"] <- "Cytoskeleton"
+  vec[vec=="JNK and p38 signaling"] <- "JNK signaling, p38 signaling"
+  vec[vec=="metabolism"] <- "Metabolism"
+  vec[vec=="mitosis"] <- "Mitosis"
+  vec[vec=="Unclassified"] <- NA
   vec <- vec[!duplicated(tolower(vec))]
   vec <- sort(vec)
   vec <- paste(vec, collapse=", ")
@@ -276,73 +283,122 @@ drug.prep <- drug.prep[order(drug.prep$name), ]
 # save(drug.prep, expr.prep, resp.prep, file="data/data_gdsc_dat1.Rdata")
 load(file="data/data_gdsc_dat1.Rdata")
 
+### creating extra external covariates
 # retrieve CID and SMILES from PUG REST
-smiles.list <- vector("list", nrow(drug.prep))
-for(i in 1:nrow(drug.prep)) {
-  cat("\r", "drug", i)
-  
-  # create a vector of all drug name synonyms
-  syn <- na.omit(c(drug.prep$name[i], drug.prep$synonyms[i]))
-  
-  # loop over the synonyms to find SMILES and CID
-  sfound <- FALSE
-  snum <- 0
-  start <- -1
-  while(!sfound & (snum < length(syn))) {
-    snum <- snum + 1
-    
-    smiles.list[[i]] <- NA
-    
-    # see PUG REST website for url explanation
-    url <- paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/",
-                 paste(syn[snum], collapse=","), 
-                 "/property/CanonicalSMILES/CSV", sep="")
-             
-    
-    # PUG REST asks for not more than 5 requests per second
-    elapsed <- proc.time()[3] - start
-    Sys.sleep((0.2 - elapsed)*(elapsed < 0.2))
-    start <- proc.time()[3]
-    
-    # error handling if the name is not found in PUG REST (return NA's)
-    smiles.list[[i]] <- suppressWarnings(tryCatch(read.table(
-      url, sep=",", header=TRUE, stringsAsFactors=FALSE), error=function(e) {
-        data.frame(CID=NA, CanonicalSMILES=NA)}))
-    closeAllConnections()
-    
-    # indicator whether a CID and SMILES was found
-    sfound <- !is.na(smiles.list[[i]]$CID[1])
-    
-  }
-  if(all(is.na(smiles.list[[i]])) & !is.na(drug.prep$pubchem[i])) {
-    
-    url <- paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/",
-                 paste(drug.prep$pubchem[i], collapse=","), 
-                 "/property/CanonicalSMILES/CSV", sep="")
-    smiles.list[[i]] <- suppressWarnings(tryCatch(read.table(
-      url, sep=",", header=TRUE, stringsAsFactors=FALSE), error=function(e) {
-        data.frame(CID=NA, CanonicalSMILES=NA)}))
-  }
-}
+# smiles.list <- vector("list", nrow(drug.prep))
+# for(i in 1:nrow(drug.prep)) {
+#   cat("\r", "drug", i)
+#   
+#   # create a vector of all drug name synonyms
+#   syn <- na.omit(c(drug.prep$name[i], drug.prep$synonyms[i]))
+#   
+#   # loop over the synonyms to find SMILES and CID
+#   sfound <- FALSE
+#   snum <- 0
+#   start <- -1
+#   while(!sfound & (snum < length(syn))) {
+#     snum <- snum + 1
+#     
+#     smiles.list[[i]] <- NA
+#     
+#     # see PUG REST website for url explanation
+#     url <- paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/",
+#                  paste(syn[snum], collapse=","), 
+#                  "/property/CanonicalSMILES/CSV", sep="")
+#     
+#     
+#     # PUG REST asks for not more than 5 requests per second
+#     elapsed <- proc.time()[3] - start
+#     Sys.sleep((0.2 - elapsed)*(elapsed < 0.2))
+#     start <- proc.time()[3]
+#     
+#     # error handling if the name is not found in PUG REST (return NA's)
+#     smiles.list[[i]] <- suppressWarnings(tryCatch(read.table(
+#       url, sep=",", header=TRUE, stringsAsFactors=FALSE), error=function(e) {
+#         data.frame(CID=NA, CanonicalSMILES=NA)}))
+#     closeAllConnections()
+#     
+#     # indicator whether a CID and SMILES was found
+#     sfound <- !is.na(smiles.list[[i]]$CID[1])
+#     
+#   }
+#   if(all(is.na(smiles.list[[i]])) & !is.na(drug.prep$pubchem[i])) {
+#     
+#     url <- paste("https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/cid/",
+#                  paste(drug.prep$pubchem[i], collapse=","), 
+#                  "/property/CanonicalSMILES/CSV", sep="")
+#     smiles.list[[i]] <- suppressWarnings(tryCatch(read.table(
+#       url, sep=",", header=TRUE, stringsAsFactors=FALSE), error=function(e) {
+#         data.frame(CID=NA, CanonicalSMILES=NA)}))
+#   }
+# }
+# 
+# # just picking the first SMILES to use
+# smiles <- sapply(smiles.list, function(s) {s$CanonicalSMILES[1]})
+# 
+# # parse the smiles to IAtomContainer objects
+# mols <- parse.smiles(smiles[!is.na(smiles)])
+# 
+# # fingerprint as binary string indicating occurence of structures
+# fps <- lapply(mols, get.fingerprint, type='circular')
+# 
+# # sum of bit importances per drug
+# bimp <- sapply(1:length(fps), function(s) {
+#   sum(bit.importance(list(fps[[s]]), fps[-s]), na.rm=TRUE)})
+# 
+# # creating clustering based on distance matrix between fingerprints
+# fp.sim <- fp.sim.matrix(fps, method='tanimoto')
+# fullclus <- hclust(as.dist(1 - fp.sim))
+# cluster <- replace(rep(5, nrow(drug.prep)), !is.na(smiles), 
+#                    cutree(fullclus, k=4))
 
-# just picking the first SMILES to use
-smiles <- sapply(smiles.list, function(s) {s$CanonicalSMILES[1]})
+### find genes that are in the target pathway of the drug
+# hand coded pathway names to KEGG and reactome ids
+pathwayid <- data.frame(
+  pathway=c('kinases', 'DNA replication', 'EGFR signaling', 'PI3K signaling', 
+            'PI3K/MTOR signaling', 'RTK signaling', 
+            'Chromatin histone acetylation', 
+            'JNK signaling', 'p38 signaling', 'Cell cycle', 'Genome integrity', 
+            'TOR signaling', 'Hormone-related', 
+            'ERK MAPK signaling', 'IGFR signaling', 'ABL signaling', 
+            'WNT signaling', 'Metabolism', 'Mitosis', 
+            'Protein stability and degradation', 'Apoptosis regulation', 
+            'Cytoskeleton', 'Chromatin other', 'p53 pathway', 
+            'Chromatin histone methylation'),
+  keggid=c(NA, "map03030", NA, "map04151", "map04150", NA, NA, "N00446", 
+           "N00444", "map04110", NA, "map04150", NA, "map04010", "N00182", NA, 
+           "map04310", NA, NA, NA, "map04210", "map04810", NA, "map04115", NA),
+  reactomeid=c(NA, "R-HSA-69306", "R-HSA-177929", "R-HSA-109704", 
+               "R-HSA-165159", "R-HSA-9006934", NA, NA, NA, "R-HSA-1640170", 
+               NA, "R-HSA-165159", NA, "R-HSA-5683057", "R-HSA-2428924", NA, 
+               "R-HSA-195721", "R-HSA-1430728", NA, NA, "R-HSA-169911", NA, 
+               "R-HSA-4839726", "R-HSA-5633007", NA))
+notes <- c("RTK is a family, many of which have identified pathways",
+           "ERK is the same as MAPK",
+           "IGFR is the same as IGF1R",
+           "Cytoskeleton consists of actin and tubulin",
+           "P53 is the same as TP53")
 
-# parse the smiles to IAtomContainer objects
-mols <- parse.smiles(smiles[!is.na(smiles)])
+# retrieve gene lists of all reactome pathways
+# mapid <- read.table("https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt",
+#                     comment.char="", sep="\t", quote="",
+#                     col.names=c("database", "reactomeid", "url", "name", 
+#                                 "evidencecode", "species"))
+mapid <- read.table("data/Ensembl2Reactome_All_Levels.txt",
+                    comment.char="", sep="\t", quote="",
+                    col.names=c("ensemblid", "reactomeid", "url", "name", 
+                                "evidencecode", "species"))
 
-# fingerprint as binary string indicating occurence of structures
-fps <- lapply(mols, get.fingerprint, type='circular')
+# link drugs to ensembl symbols in their pathway
+drug.reactomeid <- sapply(drug.prep$pathways, function(s) {
+  pathwayid$reactomeid[match(strsplit(s, ", ")[[1]], pathwayid$pathway)]})
+drug.ensemblid <- sapply(1:D, function(d) {
+  vec <- mapid$ensemblid[mapid$reactomeid %in% drug.reactomeid[d]]
+  if(length(vec)==0) {NA} else {vec}})
 
-# sum of bit importances per drug
-bimp <- sapply(1:length(fps), function(s) {
-  sum(bit.importance(list(fps[[s]]), fps[-s]), na.rm=TRUE)})
-
-# creating clustering based on distance matrix between fingerprints
-fp.sim <- fp.sim.matrix(fps, method='tanimoto')
-fullclus <- hclust(as.dist(1 - fp.sim))
-cluster <- replace(rep(5, nrow(drug.prep)), !is.na(smiles), 
-                   cutree(fullclus, k=4))
+# determine for every feature whether it is in the target pathway or not
+inpathway <- sapply(1:D, function(d) {
+  as.numeric(colnames(expr.sel[[d]]) %in% drug.ensemblid[[d]])})
 
 # selecting genes
 # fit.enet <- apply(resp.scale, 2, function(y) {
@@ -366,74 +422,80 @@ C <- lapply(1:ncol(resp.prep), function(s) {
   stage <- matrix(model.matrix(~ stage)[s, -1], nrow=p[s], ncol=2, byrow=TRUE)
   action <- matrix(model.matrix(~ replace(drug.prep$action, is.na(
     drug.prep$action), "unknown"))[s, -1], nrow=p[s], ncol=2, byrow=TRUE)
-  mat <- cbind(stage, action)
-  colnames(mat) <- c("stageexperimental", "stagein clinical development",
-                     "action.targeted", "action.unknown")
+  mat <- cbind(stage, action, inpathway[[s]])
+  colnames(mat) <- c("stage.experimental", "stage.in clinical development",
+                     "action.targeted", "action.unknown", "inpathway")
   return(mat)})
 
-# # creating some drug covariates
-# kldist <- replace(rep(NA, length(smiles)), which(!is.na(smiles)), bimp)
-# bckldist <- boxcox(lm(kldist ~ 1))
-# tkldist <- (kldist^bckldist$x[which.max(bckldist$y)] - 1)/
-#   bckldist$x[which.max(bckldist$y)]
-# tkldist <- (tkldist - min(tkldist, na.rm=TRUE))/
-#   (max(tkldist, na.rm=TRUE) - min(tkldist, na.rm=TRUE))
-# pathway <- drug6$TARGET_PATHWAY
-# stage <- drug6$Clinical.Stage
-# action <- drug6$Action
-# cluster <- replace(rep(5, nrow(drug6)), !is.na(smiles), cutree(fullclus, 4))
-# cluster2 <- drug6$Cluster.identifier
-
 # analysis
+D <- ncol(resp.prep)
+p <- sapply(expr.sel, ncol)
+n <- nrow(resp.prep)
 set.seed(2019)
-idtrain <- sample(1:nrow(resp.prep), floor(nrow(resp.prep)/2))
+ntrain <- floor(nrow(resp.prep)/2)
+idtrain <- sample(1:nrow(resp.prep), ntrain)
 xtrain <- lapply(expr.sel, function(s) {scale(s[idtrain, ])})
 ytrain <- scale(resp.prep[idtrain, ])
-fit.enig <- enig(xtrain, ytrain, C, mult.lambda=TRUE, intercept.eb=TRUE, 
-                 fixed.eb="none", full.post=FALSE, init=NULL, 
-                 control=list(conv.post=TRUE, trace=TRUE,
-                              epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                              epsilon.opt=sqrt(.Machine$double.eps),
-                              maxit.eb=100, maxit.vb=2, maxit.opt=100,
-                              maxit.post=100))
+xtest <- lapply(expr.sel, function(s) {scale(s[-idtrain, ])})
+ytest <- scale(resp.prep[-idtrain, ])
 
-data.frame(parameter=c("intercept", colnames(C[[1]])), value=round(fit.enig$eb$alpha, 2))
+control <- list(conv.post=TRUE, trace=TRUE,
+                epsilon.eb=1e-3, epsilon.vb=1e-3,
+                epsilon.opt=sqrt(.Machine$double.eps),
+                maxit.eb=300, maxit.vb=2, maxit.opt=100,
+                maxit.post=100)
+fit1.enig <- enig(xtrain, ytrain, NULL, mult.lambda=TRUE, intercept.eb=TRUE,
+                  fixed.eb="none", full.post=FALSE, init=NULL, control=control)
+fit2.enig <- enig(xtrain, ytrain, C, mult.lambda=TRUE, intercept.eb=TRUE,
+                  fixed.eb="none", full.post=FALSE, init=NULL, control=control)
+save(fit1.enig, fit2.enig, file="results/data_gdsc_fit1.Rdata")
+load(file="results/data_gdsc_fit1.Rdata")
 
-plot(fit.enig$seq.eb$alpha[, 1], ylim=range(fit.enig$seq.eb$alpha), type="l", 
-     col=1)
-lines(fit.enig$seq.eb$alpha[, 2], ylim=range(fit.enig$seq.eb$alpha), col=2)
-lines(fit.enig$seq.eb$alpha[, 3], ylim=range(fit.enig$seq.eb$alpha), col=3)
-lines(fit.enig$seq.eb$alpha[, 4], ylim=range(fit.enig$seq.eb$alpha), col=4)
-lines(fit.enig$seq.eb$alpha[, 5], ylim=range(fit.enig$seq.eb$alpha), col=5)
-
-barplot(unique(unlist(fit.enig$eb$mprior)))
-
-# ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-# # View(listFilters(ensembl))
-# # reading from ensembl
-# gb1 <- getBM(attributes=c("reactome"), 
-#              filters=c("ensembl_gene_id"), 
-#              values="ENSG00000140443", 
-#              mart=ensembl)
-# gb1$reactome
-# gb2 <- getBM(attributes=c("ensembl_gene_id"), 
-#             filters=c("reactome"), 
-#             values="R-HSA-162582", 
-#             mart=ensembl)
-# gb2$ensembl_gene_id
-
-# # getting pathway identifiers from reactome (by hand)
-# sure <- c(NA, 1, 1, 0, NA, NA, NA, NA, NA, 1, NA, NA)
-# pathwayid <- c(NA, "R-HSA-69306", "R-HSA-177929", "R-HSA-165159", NA, NA, NA, 
-#                NA, NA, "R-HSA-1640170", NA, NA)
-
-# # reading from reactome
-# test <- readLines("https://reactome.org/ContentService/data/pathway/R-HSA-162582/containedEvents/displayName")
-
-# # reading from pubchem
-# library(XML)
-# url <- "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/Erlotinib/description/XML"
-# test <- xmlParse(readLines(url), asText=TRUE)
+# MCMC samples
+# stan.enig <- stan_model("code/enig.stan")
+# nsamples <- 1000
+# nwarmup <- 1000
+# mcmc1.enig <- sapply(1:D, function(d) {
+#   sampling(stan.enig, chains=1, warmup=nwarmup, iter=nsamples + nwarmup, 
+#            cores=1, refresh=0, control=list(adapt_delta=0.8, max_treedepth=12),
+#            data=list(n=ntrain, p=p[d], y=ytrain[, d], x=xtrain[[d]], 
+#                      ctalphainv=fit1.enig$eb$mprior[[d]], 
+#                      lambda=fit1.enig$eb$lambda[d]))})
 # 
-# url <- "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/Erlotinib/assaysummary/CSV"
-# test <- read.table(url, sep=",", header=TRUE, stringsAsFactors=FALSE)
+# mcmc2.enig <- sapply(1:D, function(d) {
+#   sampling(stan.enig, chains=1, warmup=nwarmup, iter=nsamples + nwarmup, 
+#            cores=1, refresh=0, control=list(adapt_delta=0.8, max_treedepth=12),
+#            data=list(n=ntrain, p=p[d], y=ytrain[, d], x=xtrain[[d]], 
+#                      ctalphainv=fit2.enig$eb$mprior[[d]], 
+#                      lambda=fit2.enig$eb$lambda[d]))})
+# bmpost1.enig <- sapply(1:D, function(d) {
+#   get_posterior_mean(mcmc1.enig[[d]])[1:(p[d] + 1), ]})
+# bmpost2.enig <- sapply(1:D, function(d) {
+#   get_posterior_mean(mcmc2.enig[[d]])[1:(p[d] + 1), ]})
+
+mse1.enig <- sapply(1:D, function(d) {
+  mean((ytest[, d] - xtest[[d]] %*% fit1.enig$vb$mpost$beta[[d]])^2)})
+mse2.enig <- sapply(1:D, function(d) {
+  mean((ytest[, d] - xtest[[d]] %*% fit2.enig$vb$mpost$beta[[d]])^2)})
+
+mean(mse1.enig)
+mean(mse2.enig)
+plot(mse1.enig, mse2.enig)
+abline(a=0, b=1, col=2, lty=2)
+
+tab <- rbind(c(fit1.enig$eb$alpha, rep(NA, 5)),
+             fit2.enig$eb$alpha)
+colnames(tab) <- c("intercept", colnames(C[[1]]))
+rownames(tab) <- c("intercept only", "model 1")
+tab
+
+plot(fit2.enig$seq.eb$alpha[, 1], ylim=range(fit2.enig$seq.eb$alpha), type="l", 
+     col=1)
+lines(fit2.enig$seq.eb$alpha[, 2], ylim=range(fit2.enig$seq.eb$alpha), col=2)
+lines(fit2.enig$seq.eb$alpha[, 3], ylim=range(fit2.enig$seq.eb$alpha), col=3)
+lines(fit2.enig$seq.eb$alpha[, 4], ylim=range(fit2.enig$seq.eb$alpha), col=4)
+lines(fit2.enig$seq.eb$alpha[, 5], ylim=range(fit2.enig$seq.eb$alpha), col=5)
+
+plot(fit1.enig$seq.eb$alpha, type="l")
+
+barplot(unique(unlist(fit2.enig$eb$mprior)))

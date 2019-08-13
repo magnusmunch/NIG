@@ -15,7 +15,7 @@ data {
   int<lower=1> n;
   matrix[n, p] x;
   vector[n] y; 
-  real<lower=0> ctalphainv;
+  vector<lower=0>[p] ctalphainv;
   real<lower=0> lambda;
 }
 
@@ -39,7 +39,7 @@ model {
   target += jeffreys_lpdf(sigmasq);   
   for(j in 1:p) {
     beta[j] ~ normal(0., betasd[j]);
-    target += igauss_lpdf(gammasq[j] | ctalphainv, lambda);
+    target += igauss_lpdf(gammasq[j] | ctalphainv[j], lambda);
   }
 
   // likelihood

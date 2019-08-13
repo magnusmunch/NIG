@@ -1,19 +1,74 @@
 ################################# main document ################################
 # ---- figures ----
+# ---- dens_igaussian_marginalbeta ----
+library(GeneralizedHyperbolic)
+library(metRology)
+library(sp)
+sigma <- 1
+mgammasq <- 1/sigma^2
+lambda <- c(0.1, 2)
+lambda1 <- sqrt(2)
+eta <- lambda/mgammasq + 2
+labels <- as.expression(c(bquote("NIG, "~lambda==.(lambda[1])*","~
+                                   (bold(c)^"T"*bold(alpha))^-1==.(mgammasq)),
+                          bquote("NIG, "~lambda==.(lambda[2])*","~
+                                   (bold(c)^"T"*bold(alpha))^-1==.(mgammasq)),
+                          bquote("Student's t, "~xi==.(lambda[1])*","~
+                                   eta==.(eta[1])),
+                          bquote("Student's t, "~xi==.(lambda[2])*","~
+                                   eta==.(eta[2])),
+                          "ridge", "lasso"))
+dprior <- function(x, lambda, mgammasq, sigma) {
+  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(mgammasq*sigma)), 0)
+}
+dlasso <- function(x, lambda1) {
+  0.5*lambda1*exp(-lambda1*abs(x))
+}
+
+col <- bpy.colors(length(labels), cutoff.tail=0.3)
+lty <- c(1:length(labels))
+
+ylim <- c(0, dt.scaled(0, eta[1]/2, 0, sqrt(lambda[1]*sigma^2/eta[1])))
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+curve(dprior(x, lambda[1], mgammasq, sigma), -3, 3, 
+      ylab=expression(p(beta)), 
+      xlab=expression(beta), n=1000, ylim=ylim,
+      col=col[1], lty=lty[1])
+curve(dprior(x, lambda[2], mgammasq, sigma), add=TRUE, n=1000, 
+      col=col[2], lty=lty[2])
+curve(dt.scaled(x, eta[1]/2, 0, sqrt(lambda[1]*sigma^2/eta[1])), add=TRUE, 
+      n=1000, col=col[3], lty=lty[3])
+curve(dt.scaled(x, eta[2]/2, 0, sqrt(lambda[2]*sigma^2/eta[2])), add=TRUE, 
+      n=1000, col=col[4], lty=lty[4])
+curve(dnorm(x, 0, 1), add=TRUE, n=1000, col=col[5], lty=lty[5])
+curve(dlasso(x, lambda1), add=TRUE, n=1000, col=col[6], lty=lty[6])
+legend("topright", legend=labels, col=col, lty=lty, 
+       title="Prior", seg.len=1)
+par(opar)
+
 # ---- boxplots_igaussian_res4.1_post1 ----  
 library(sp)
 res <- read.table("results/simulations_igaussian_res4.1.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
 plot.data <- sapply(1:nrow(set), function(s) {
-    list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
-         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
-         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")],
-         res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
+    list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+               substr(colnames(res), nchar(colnames(res)) - 3, 
+                      nchar(colnames(res))) %in% c("enig", "ntst")],
+         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+               substr(colnames(res), nchar(colnames(res)) - 3, 
+                      nchar(colnames(res))) %in% c("enig", "ntst")],
+         res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+               substr(colnames(res), nchar(colnames(res)) - 3, 
+                      nchar(colnames(res))) %in% c("enig", "ntst")],
+         res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover") &
+               substr(colnames(res), nchar(colnames(res)) - 3, 
+                      nchar(colnames(res))) %in% c("enig", "ntst")])},
     simplify=FALSE)
 
-methods <- c("NIG", "ENIG", "DGIG", "Student's t")
-labels1 <- c("NIG", "ENIG", "DGIG", "Student's t")
+methods <- c("NIG", "Student's t")
+labels1 <- c("NIG", "Student's t")
 labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
              expression("MSD"(hat(beta), beta)), "95% coverage")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
@@ -38,14 +93,22 @@ res <- read.table("results/simulations_igaussian_res4.1.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
 plot.data <- sapply(1:nrow(set), function(s) {
-  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
-       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
-       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")],
-       res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover")])},
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")])},
   simplify=FALSE)
 
-methods <- c("NIG", "ENIG", "DGIG", "Student's t")
-labels1 <- c("NIG", "ENIG", "DGIG", "Student's t")
+methods <- c("NIG", "Student's t")
+labels1 <- c("NIG", "Student's t")
 labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
              expression("MSD"(hat(beta), beta)), "95% coverage")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
@@ -57,7 +120,87 @@ layout(matrix(c(rep(rep(c(1:4), each=2), 2),
                 rep(rep(c(9:12), each=2), 2)), nrow=6, ncol=8, byrow=TRUE))
 for(r in 4:6) {
   for(m in 1:4) {
-    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 4)*6 + m], ")"),
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 4)*4 + m], ")"),
+            ylab=labels2[m], las=2, names=labels1, col=col, outline=FALSE)
+    if(m==4) {abline(h=0.95)}
+  }
+}
+par(opar)
+
+# ---- boxplots_igaussian_res5_post1 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res5.csv")
+set <- read.table("results/simulations_igaussian_set5.csv")
+
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")])},
+  simplify=FALSE)
+
+methods <- c("NIG", "Student's t")
+labels1 <- c("NIG", "Student's t")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)), "95% coverage")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(c(rep(rep(c(1:4), each=2), 2),
+                rep(rep(c(5:8), each=2), 2),
+                rep(rep(c(9:12), each=2), 2)), nrow=6, ncol=8, byrow=TRUE))
+for(r in 1:3) {
+  for(m in 1:4) {
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 1)*4 + m], ")"),
+            ylab=labels2[m], las=2, names=labels1, col=col, outline=FALSE)
+    if(m==4) {abline(h=0.95)}
+  }
+}
+par(opar)
+
+# ---- boxplots_igaussian_res5_post2 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res5.csv")
+set <- read.table("results/simulations_igaussian_set5.csv")
+
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")],
+       res[, substr(colnames(res), 1, 10)==paste0("set", s, ".cover") &
+             substr(colnames(res), nchar(colnames(res)) - 3, 
+                    nchar(colnames(res))) %in% c("enig", "ntst")])},
+  simplify=FALSE)
+
+methods <- c("NIG", "Student's t")
+labels1 <- c("NIG", "Student's t")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)), "95% coverage")
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(c(rep(rep(c(1:4), each=2), 2),
+                rep(rep(c(5:8), each=2), 2),
+                rep(rep(c(9:12), each=2), 2)), nrow=6, ncol=8, byrow=TRUE))
+for(r in 4:6) {
+  for(m in 1:4) {
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 4)*4 + m], ")"),
             ylab=labels2[m], las=2, names=labels1, col=col, outline=FALSE)
     if(m==4) {abline(h=0.95)}
   }
@@ -69,38 +212,66 @@ library(sp)
 res <- read.table("results/simulations_igaussian_res4.2.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
-plot.data <- list(cram=res[, substr(colnames(res), nchar(colnames(res)) - 7 
-                                    + 1, nchar(colnames(res)))=="enig.vb" &
-                             substr(colnames(res), 6, 9)=="cram"],
-                  corbest=res[, substr(colnames(res), nchar(colnames(res)) - 7 
-                                       + 1, nchar(colnames(res)))=="enig.vb" &
-                                substr(colnames(res), 6, 12)=="corbest"],
-                  msebest=res[, substr(colnames(res), nchar(colnames(res)) - 7 
-                                       + 1, nchar(colnames(res)))=="enig.vb" &
-                                substr(colnames(res), 6, 12)=="msebest"])
+plot.data1 <- list(cram=res[, substr(colnames(res), 4, 4) %in% 
+                              c("1", "2", "3") &
+                              substr(colnames(res), nchar(colnames(res)) - 7 
+                                     + 1, nchar(colnames(res)))=="enig.vb" &
+                              substr(colnames(res), 6, 9)=="cram"],
+                   corbest=res[, substr(colnames(res), 4, 4) %in% 
+                                 c("1", "2", "3") &
+                                 substr(colnames(res), nchar(colnames(res)) - 7 
+                                        + 1, nchar(colnames(res)))=="enig.vb" &
+                                 substr(colnames(res), 6, 12)=="corbest"],
+                   msebest=res[, substr(colnames(res), 4, 4) %in% 
+                                 c("1", "2", "3") &
+                                 substr(colnames(res), nchar(colnames(res)) - 7 
+                                        + 1, nchar(colnames(res)))=="enig.vb" &
+                                 substr(colnames(res), 6, 12)=="msebest"])
+plot.data2 <- list(cram=res[, substr(colnames(res), 4, 4) %in% 
+                              c("4", "5", "6") &
+                              substr(colnames(res), nchar(colnames(res)) - 7 
+                                     + 1, nchar(colnames(res)))=="enig.vb" &
+                              substr(colnames(res), 6, 9)=="cram"],
+                   corbest=res[, substr(colnames(res), 4, 4) %in% 
+                                 c("4", "5", "6") &
+                                 substr(colnames(res), nchar(colnames(res)) - 7 
+                                        + 1, nchar(colnames(res)))=="enig.vb" &
+                                 substr(colnames(res), 6, 12)=="corbest"],
+                   msebest=res[, substr(colnames(res), 4, 4) %in% 
+                                 c("4", "5", "6") &
+                                 substr(colnames(res), nchar(colnames(res)) - 7 
+                                        + 1, nchar(colnames(res)))=="enig.vb" &
+                                 substr(colnames(res), 6, 12)=="msebest"])
 
-plot.data <- sapply(1:nrow(set), function(s) {
-  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
-       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
-       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")])},
-  simplify=FALSE)
+# plot.data <- sapply(1:nrow(set), function(s) {
+#   list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
+#        res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
+#        res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")])},
+#   simplify=FALSE)
 
-methods <- c("ENIG VB")
-labels1 <- paste("set", 1:nrow(set))
-labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
-             expression("MSD"(hat(beta), beta)))
-col <- bpy.colors(length(methods), cutoff.tail=0.3)
+labels1 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)), "95% coverage")
+labels2 <- list(paste("set", 1:3), paste("set", 4:6))
+col <- list(bpy.colors(6, cutoff.tail=0.3)[1:3], 
+            bpy.colors(6, cutoff.tail=0.3)[4:6]) 
 
 opar <- par(no.readonly=TRUE)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(rep(c(4:6), each=2), 2)), 
+              nrow=4, ncol=6, byrow=TRUE))
 par(mar=opar$mar*c(1, 1.1, 1, 1))
-layout(matrix(rep(rep(c(1:3), each=2), 2), nrow=6, ncol=2))
 for(r in 1:3) {
-  boxplot(plot.data[[r]], 
-          names=labels1, las=2, col=col, outline=FALSE)
+  boxplot(plot.data1[[r]], ylab=labels1[r], main=paste0("(", letters[r], ")"), 
+          names=labels2[[1]], las=2, col=col[[1]], outline=FALSE)
 
 }
+for(r in 1:3) {
+  boxplot(plot.data2[[r]], ylab=labels1[r], 
+          main=paste0("(", letters[r + 3], ")"), 
+          names=labels2[[2]], las=2, col=col[[2]], outline=FALSE)
+  
+}
 par(opar)
-plot.data[[1]]
+
 
 # ---- boxplots_igaussian_res3_vb ----  
 library(sp)
@@ -131,7 +302,6 @@ res <- read.table("results/simulations_igaussian_res3.csv")
 plot.data1 <- res[, substr(colnames(res), 1, 7)=="corbest"]
 plot.data2 <- res[, substr(colnames(res), 1, 7)=="msebest"]
 methods <- c("ADVI", "VB", "glmnet", "MAP")
-labels <- c("ADVI", "VB", "glmnet", "MAP")
 col <- bpy.colors(length(methods), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
@@ -143,98 +313,174 @@ boxplot(plot.data2, names=labels, col=col, outline=FALSE, main="(b)",
         ylab=expression("MSD"(hat(beta),hat(beta["MCMC"]))))
 par(opar)
 
-# ---- boxplot_igaussian_res1_prior_mean ----  
-res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
-set1 <- read.table("results/simulations_igaussian_set1.csv")
-labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
-              "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
-colors1 <- sp::bpy.colors(6)[-c(1, 6)]
+# ---- boxplots_igaussian_res6_eb ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res6.csv")
+set <- read.table("results/simulations_igaussian_set6.csv")
 
-C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
-                   function(s) {eval(parse(text=s))}), 
-            ncol=set1$nclass, nrow=set1$D)
-prior.means <- as.numeric((sapply(paste("set1$theta", 1:set1$D, sep=""),
-                                  function(s) {eval(parse(text=s))}) %*% C)/
-                            (set1$D/set1$nclass))
-temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
-                    method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
-                    prior.means=c((res1[, grepl("igauss.conj_theta", colnames(
-                      res1))] %*% C)/(set1$D/set1$nclass), 
-                      (res1[, grepl("igauss.non.conj_theta", colnames(res1))]
-                       %*% C)/(set1$D/set1$nclass), 
-                      ((res1[, grepl("igamma.conj_lambda", colnames(res1))]/
-                          (res1[, grepl("igamma.conj_eta", colnames(
-                            res1))] - 2)) %*% C)/(set1$D/set1$nclass), 
-                      ((res1[, grepl("igamma.non.conj_lambda", colnames(res1))]/
-                          (res1[, grepl("igamma.non.conj_eta", colnames(
-                            res1))] - 2)) %*% C)/(set1$D/set1$nclass)))
-  
-opar <- par(no.readonly=TRUE)
-at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
-           2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
-at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
-         mean(1:set1$nclass + 2*set1$nclass + 2),
-         mean(1:set1$nclass + 3*set1$nclass + 3))
-par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
-boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
-        at=at1, col=colors1, names=NA, xaxt="n",
-        ylab=expression(hat(E)(gamma[d]^2)))
-abline(h=prior.means, col=colors1, lty=2, lwd=1.5)
-# text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
-axis(1, at=at2, labels=labels1, tick=FALSE)
-legend("topright", legend=c(paste("class", 1:set1$nclass), "true value"), 
-       lty=c(rep(NA, 4), 2), col=c(colors1, 1), seg.len=rep(1, 5), 
-       border=c(rep(1, 4), NA), fill=c(colors1, NA), merge=TRUE)
-par(opar)
+plot.data <- res[, substr(colnames(res), 1, 5)=="alpha"]
+alpha <- set[1, substr(colnames(set), 1, 5)=="alpha"]
 
-# ---- boxplot_igaussian_res2_prior_mean ----  
-res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
-set2 <- read.table("results/simulations_igaussian_set2.csv")
-labels2 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
-             "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
-colors2 <- sp::bpy.colors(6)[-c(1, 6)]
+labels <- expression(alpha[0], alpha[1], alpha[2], alpha[3], alpha[4])
+col <- bpy.colors(length(labels), cutoff.tail=0.3)
 
-C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
-                   function(s) {eval(parse(text=s))}), 
-            ncol=set2$nclass, nrow=set2$D)
-prior.means <- as.numeric((sapply(paste(
-  "set2$lambda", 1:set2$D, sep=""), function(s) {eval(parse(text=s))})/
-    (sapply(paste("set2$eta", 1:set2$D, sep=""), function(s) {
-      eval(parse(text=s))}) - 2)) %*% C)/(set1$D/set1$nclass)
-temp1 <- data.frame(class=factor(rep(rep(c(1:set2$nclass), each=set2$D), 4)),
-                    method=rep(paste(1:4, labels2), each=set2$nclass*set2$D),
-                    prior.means=c((res2[, grepl("igauss.conj_theta", colnames(
-                      res2))] %*% C)/(set2$D/set2$nclass), 
-                      (res2[, grepl("igauss.non.conj_theta", colnames(res2))]
-                       %*% C)/(set2$D/set2$nclass), 
-                      ((res2[, grepl("igamma.conj_lambda", colnames(res2))]/
-                          (res2[, grepl("igamma.conj_eta", colnames(
-                            res2))] - 2)) %*% C)/(set2$D/set2$nclass), 
-                      ((res2[, grepl("igamma.non.conj_lambda", colnames(res2))]/
-                          (res2[, grepl("igamma.non.conj_eta", colnames(
-                            res2))] - 2)) %*% C)/(set2$D/set2$nclass)))
+boxplot(plot.data, names=labels, col=col, ylab=expression(hat(alpha)))
+lines(c(0.5, 1.5), rep(alpha[1], 2), lty=2, lwd=2, col=col[1])
+lines(c(1.5, 2.5), rep(alpha[2], 2), lty=2, lwd=2, col=col[2])
+lines(c(2.5, 3.5), rep(alpha[3], 2), lty=2, lwd=2, col=col[3])
+lines(c(3.5, 4.5), rep(alpha[4], 2), lty=2, lwd=2, col=col[4])
+lines(c(4.5, 5.5), rep(alpha[5], 2), lty=2, lwd=2, col=col[5])
+legend("topleft", lty=2, col=1, legend=expression("true"~alpha))
+
+# ---- lines_eqtl_hsq ----
+library(sp)
+res <- read.table("results/eQTL_hsq.csv")
+
+plot.data1 <- list(intercept=colMeans(res[, substr(colnames(res), 1, 
+                                                   6)=="interc"]),
+                   model1=colMeans(res[, substr(colnames(res), 1, 
+                                                6)=="model1"]),
+                   model2=colMeans(res[, substr(colnames(res), 1, 
+                                                6)=="model2"]),
+                   model3=colMeans(res[, substr(colnames(res), 1, 
+                                                6)=="model3"]),
+                   model4=colMeans(res[, substr(colnames(res), 1, 
+                                                6)=="model4"]))
+plot.data2 <- list(intercept=apply(res[, substr(colnames(res), 1, 
+                                                   6)=="interc"], 2, sd),
+                   model1=apply(res[, substr(colnames(res), 1, 
+                                             6)=="model1"], 2, sd),
+                   model2=apply(res[, substr(colnames(res), 1, 
+                                             6)=="model2"], 2, sd),
+                   model3=apply(res[, substr(colnames(res), 1, 
+                                             6)=="model3"], 2, sd),
+                   model4=apply(res[, substr(colnames(res), 1, 
+                                             6)=="model4"], 2, sd))
+psel <- c(1, 5, 10, 20, 50)
+
+labels <- c("intercept only", "model 1", "model 2", "model 3", "model 4")
+col <- bpy.colors(length(plot.data), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
-at1 <- c(1:set2$nclass, 1:set2$nclass + set2$nclass + 1, 1:set2$nclass +
-           2*set2$nclass + 2, 1:set2$nclass + 3*set2$nclass + 3)
-at2 <- c(mean(1:set2$nclass), mean(1:set2$nclass + set2$nclass + 1),
-         mean(1:set2$nclass + 2*set2$nclass + 2),
-         mean(1:set2$nclass + 3*set2$nclass + 3))
-par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
-b2 <- boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
-              at=at1, col=colors2, names=NA, xaxt="n",
-              ylab=expression(hat(E)(gamma[d]^2)), 
-              subset=method!="2 nc. inv. \n Gaussian")
-r2 <- range(b2$stats, na.rm=TRUE)
-# arrows(mean(1:set2$nclass + set2$nclass + 1), r2[2] - (r2[2] - r2[1])/5, 
-#        mean(1:set2$nclass + set2$nclass + 1), r2[2])
-abline(h=prior.means, col=colors2, lty=2, lwd=1.5)
-# text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
-axis(1, at=at2, labels=labels2, tick=FALSE)
-legend("topright", legend=c(paste("class", 1:set2$nclass), "true value"), 
-       lty=c(rep(NA, 4), 2), col=c(colors2, 1), seg.len=rep(1, 5), 
-       border=c(rep(1, 4), NA), fill=c(colors2, NA), merge=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+plot(psel, plot.data1[[1]], pch=19, ylab="mean heritability", 
+     xlab="number of selected SNPs",
+     ylim=range(c(unlist(plot.data1) - unlist(plot.data2),
+                  unlist(plot.data1) + unlist(plot.data2))), col=col[1])
+arrows(psel, plot.data1[[1]] - plot.data2[[1]], psel, 
+       plot.data1[[1]] + plot.data2[[1]], length=0.05, angle=90, code=3, 
+       col=col[1])
+points(psel, plot.data1[[2]], col=col[2], pch=19)
+arrows(psel, plot.data1[[2]] - plot.data2[[2]], psel, 
+       plot.data1[[2]] + plot.data2[[2]], length=0.05, angle=90, code=3, 
+       col=col[2])
+points(psel, plot.data1[[3]], col=col[3], pch=19)
+arrows(psel, plot.data1[[3]] - plot.data2[[3]], psel, 
+       plot.data1[[3]] + plot.data2[[3]], length=0.05, angle=90, code=3, 
+       col=col[3])
+points(psel, plot.data1[[4]], col=col[4], pch=19)
+arrows(psel, plot.data1[[4]] - plot.data2[[4]], psel, 
+       plot.data1[[4]] + plot.data2[[4]], length=0.05, angle=90, code=3, 
+       col=col[4])
+points(psel, plot.data1[[5]], col=col[5], pch=19)
+arrows(psel, plot.data1[[5]] - plot.data2[[5]], psel, 
+       plot.data1[[5]] + plot.data2[[5]], length=0.05, angle=90, code=3, 
+       col=col[5])
+legend("bottomright", lty=1, legend=labels, col=col)
 par(opar)
+
+# # ---- boxplot_igaussian_res1_prior_mean ----  
+# res1 <- as.matrix(read.table("results/simulations_igaussian_res1.csv"))
+# set1 <- read.table("results/simulations_igaussian_set1.csv")
+# labels1 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+#               "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
+# colors1 <- sp::bpy.colors(6)[-c(1, 6)]
+# 
+# C <- matrix(sapply(paste("set1$C", 1:(set1$nclass*set1$D), sep=""), 
+#                    function(s) {eval(parse(text=s))}), 
+#             ncol=set1$nclass, nrow=set1$D)
+# prior.means <- as.numeric((sapply(paste("set1$theta", 1:set1$D, sep=""),
+#                                   function(s) {eval(parse(text=s))}) %*% C)/
+#                             (set1$D/set1$nclass))
+# temp1 <- data.frame(class=factor(rep(rep(c(1:set1$nclass), each=set1$D), 4)),
+#                     method=rep(paste(1:4, labels1), each=set1$nclass*set1$D),
+#                     prior.means=c((res1[, grepl("igauss.conj_theta", colnames(
+#                       res1))] %*% C)/(set1$D/set1$nclass), 
+#                       (res1[, grepl("igauss.non.conj_theta", colnames(res1))]
+#                        %*% C)/(set1$D/set1$nclass), 
+#                       ((res1[, grepl("igamma.conj_lambda", colnames(res1))]/
+#                           (res1[, grepl("igamma.conj_eta", colnames(
+#                             res1))] - 2)) %*% C)/(set1$D/set1$nclass), 
+#                       ((res1[, grepl("igamma.non.conj_lambda", colnames(res1))]/
+#                           (res1[, grepl("igamma.non.conj_eta", colnames(
+#                             res1))] - 2)) %*% C)/(set1$D/set1$nclass)))
+#   
+# opar <- par(no.readonly=TRUE)
+# at1 <- c(1:set1$nclass, 1:set1$nclass + set1$nclass + 1, 1:set1$nclass +
+#            2*set1$nclass + 2, 1:set1$nclass + 3*set1$nclass + 3)
+# at2 <- c(mean(1:set1$nclass), mean(1:set1$nclass + set1$nclass + 1),
+#          mean(1:set1$nclass + 2*set1$nclass + 2),
+#          mean(1:set1$nclass + 3*set1$nclass + 3))
+# par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+# boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+#         at=at1, col=colors1, names=NA, xaxt="n",
+#         ylab=expression(hat(E)(gamma[d]^2)))
+# abline(h=prior.means, col=colors1, lty=2, lwd=1.5)
+# # text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
+# axis(1, at=at2, labels=labels1, tick=FALSE)
+# legend("topright", legend=c(paste("class", 1:set1$nclass), "true value"), 
+#        lty=c(rep(NA, 4), 2), col=c(colors1, 1), seg.len=rep(1, 5), 
+#        border=c(rep(1, 4), NA), fill=c(colors1, NA), merge=TRUE)
+# par(opar)
+# 
+# # ---- boxplot_igaussian_res2_prior_mean ----  
+# res2 <- as.matrix(read.table("results/simulations_igaussian_res2.csv"))
+# set2 <- read.table("results/simulations_igaussian_set2.csv")
+# labels2 <- c("conj. inv. \n Gaussian", "non-conj. inv. \n Gaussian",
+#              "conj. inv. \n Gamma", "non-conj. inv. \n Gamma")
+# colors2 <- sp::bpy.colors(6)[-c(1, 6)]
+# 
+# C <- matrix(sapply(paste("set2$C", 1:(set2$nclass*set2$D), sep=""), 
+#                    function(s) {eval(parse(text=s))}), 
+#             ncol=set2$nclass, nrow=set2$D)
+# prior.means <- as.numeric((sapply(paste(
+#   "set2$lambda", 1:set2$D, sep=""), function(s) {eval(parse(text=s))})/
+#     (sapply(paste("set2$eta", 1:set2$D, sep=""), function(s) {
+#       eval(parse(text=s))}) - 2)) %*% C)/(set1$D/set1$nclass)
+# temp1 <- data.frame(class=factor(rep(rep(c(1:set2$nclass), each=set2$D), 4)),
+#                     method=rep(paste(1:4, labels2), each=set2$nclass*set2$D),
+#                     prior.means=c((res2[, grepl("igauss.conj_theta", colnames(
+#                       res2))] %*% C)/(set2$D/set2$nclass), 
+#                       (res2[, grepl("igauss.non.conj_theta", colnames(res2))]
+#                        %*% C)/(set2$D/set2$nclass), 
+#                       ((res2[, grepl("igamma.conj_lambda", colnames(res2))]/
+#                           (res2[, grepl("igamma.conj_eta", colnames(
+#                             res2))] - 2)) %*% C)/(set2$D/set2$nclass), 
+#                       ((res2[, grepl("igamma.non.conj_lambda", colnames(res2))]/
+#                           (res2[, grepl("igamma.non.conj_eta", colnames(
+#                             res2))] - 2)) %*% C)/(set2$D/set2$nclass)))
+# 
+# opar <- par(no.readonly=TRUE)
+# at1 <- c(1:set2$nclass, 1:set2$nclass + set2$nclass + 1, 1:set2$nclass +
+#            2*set2$nclass + 2, 1:set2$nclass + 3*set2$nclass + 3)
+# at2 <- c(mean(1:set2$nclass), mean(1:set2$nclass + set2$nclass + 1),
+#          mean(1:set2$nclass + 2*set2$nclass + 2),
+#          mean(1:set2$nclass + 3*set2$nclass + 3))
+# par(cex=1.2, mar=opar$mar*c(1, 1.3, 1/1.3, 1))
+# b2 <- boxplot(prior.means ~ class + method, data=temp1, outline=FALSE,
+#               at=at1, col=colors2, names=NA, xaxt="n",
+#               ylab=expression(hat(E)(gamma[d]^2)), 
+#               subset=method!="2 nc. inv. \n Gaussian")
+# r2 <- range(b2$stats, na.rm=TRUE)
+# # arrows(mean(1:set2$nclass + set2$nclass + 1), r2[2] - (r2[2] - r2[1])/5, 
+# #        mean(1:set2$nclass + set2$nclass + 1), r2[2])
+# abline(h=prior.means, col=colors2, lty=2, lwd=1.5)
+# # text(at2, par("usr")[3] - 0.2, labels1, srt=45, pos=1, xpd=TRUE)
+# axis(1, at=at2, labels=labels2, tick=FALSE)
+# legend("topright", legend=c(paste("class", 1:set2$nclass), "true value"), 
+#        lty=c(rep(NA, 4), 2), col=c(colors2, 1), seg.len=rep(1, 5), 
+#        border=c(rep(1, 4), NA), fill=c(colors2, NA), merge=TRUE)
+# par(opar)
 
 ################################## supplement ##################################
 # ---- hist_igaussian_res3_beta_post ---- 

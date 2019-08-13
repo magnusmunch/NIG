@@ -1,12 +1,14 @@
-x <- lapply(vector("list", ncol(resp.sel)), function(x) {expr.sel})
-y <- resp.sel
-mult.lambda=FALSE; intercept.eb=TRUE; 
-fixed.eb="none"; full.post=FALSE; init=NULL; 
-control=list(conv.post=TRUE, trace=TRUE,
-             epsilon.eb=1e-3, epsilon.vb=1e-3, 
-             epsilon.opt=sqrt(.Machine$double.eps),
-             maxit.eb=2, maxit.vb=2, maxit.opt=100,
-             maxit.post=100)
+# x <- rep(list(x), D)
+# mult.lambda=TRUE
+# intercept.eb=TRUE
+# fixed.eb=c("none")
+# full.post=FALSE
+# init=NULL
+# control=list(conv.post=TRUE, trace=TRUE,
+#              epsilon.eb=1e-3, epsilon.vb=1e-3,
+#              epsilon.opt=sqrt(.Machine$double.eps),
+#              maxit.eb=10, maxit.vb=2, maxit.opt=100,
+#              maxit.post=100)
 
 # estimate ENIG model (not tested)
 enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
@@ -66,12 +68,12 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
                            init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
                            x[[d]], ytx[[d]], yty[d], n, p[d], D)})
   old.vb <- setNames(lapply(names(old.vb[[1]]), function(var) {
-    sapply(old.vb, "[[", var)}), names(old.vb[[1]]))
+    lapply(old.vb, "[[", var)}), names(old.vb[[1]]))
   
   # prepare objects to store EB and ELBO iterations
   seq.eb <- list(alpha=old.eb$alpha, lambda=old.eb$lambda, 
-                 mprior=sapply(1:D, function(d) {1/old.eb$Calpha[[d]]}), 
-                 vprior=sapply(1:D, function(d) {
+                 mprior=lapply(1:D, function(d) {1/old.eb$Calpha[[d]]}), 
+                 vprior=lapply(1:D, function(d) {
                    1/(old.eb$Calpha[[d]]^3*
                         old.eb$lambda[ifelse(mult.lambda, d, 1)])}))
   
@@ -103,11 +105,11 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
                                 control$maxit.opt) 
       
       # paste new hyperparameters to previous
-      seq.eb <- sapply(names(seq.eb), function(s) {
+      seq.eb <- lapply(1:length(seq.eb), function(s) {
         if(!is.list(seq.eb[[s]])) {
           rbind(seq.eb[[s]], new.eb[[s]])
         } else {
-          sapply(1:D, function(d) {rbind(seq.eb[[s]][[d]], new.eb[[s]][[d]])})
+          lapply(1:D, function(d) {rbind(seq.eb[[s]][[d]], new.eb[[s]][[d]])})
         }})
       iter.opt <- c(iter.opt, new.eb$iter)
 
@@ -137,11 +139,11 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
       
       # update the VB parameters and elbo
       new.vb <- lapply(c(1:D), function(d) {
-        .single.vb.update.enig(old.vb$a[d], old.vb$b[[d]], old.eb$Calpha[[d]], 
+        .single.vb.update.enig(old.vb$a[[d]], old.vb$b[[d]], old.eb$Calpha[[d]], 
                                old.eb$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
                                x[[d]], ytx[[d]], yty[d], n, p[d], D)})
       new.vb <- setNames(lapply(names(new.vb[[1]]), function(var) {
-        sapply(new.vb, "[[", var)}), names(new.vb[[1]]))
+        lapply(new.vb, "[[", var)}), names(new.vb[[1]]))
       
       # check convergence of the VB iterations
       conv.vb[iter.eb] <- all(abs(unlist(new.vb[c("delta", "zeta")]) - 
@@ -160,14 +162,14 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
   }
   
   # computing mu and the diagonal of Sigma
-  aux <- lapply(1:D, function(d) {.aux.var.enig(old.vb$a[d], old.vb$b[[d]], 
+  aux <- lapply(1:D, function(d) {.aux.var.enig(old.vb$a[[d]], old.vb$b[[d]], 
                                                 y[, d], x[[d]], ytx[[d]])})
-  mu <- sapply(aux, "[[", "mu")
+  mu <- lapply(aux, "[[", "mu")
   if(full.post) {
-    Sigma <- lapply(1:D, function(d) {.Sigma.enig(old.vb$a[d], old.vb$b[[d]], 
+    Sigma <- lapply(1:D, function(d) {.Sigma.enig(old.vb$a[[d]], old.vb$b[[d]], 
                                                   x[[d]])})
   } else {
-    Sigma <- sapply(aux, "[[", "dSigma")  
+    Sigma <- lapply(aux, "[[", "dSigma")  
   }
   
   
@@ -177,23 +179,24 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
       ifelse(mult.lambda, d, 1)])*ratio_besselK(sqrt(
         old.vb$delta[[d]]*old.eb$lambda[ifelse(mult.lambda, d, 1)])/
           old.eb$mprior[[d]], 1)}),
-    sigma.sq=2*old.vb$zeta/(n + p - 1))
+    sigma.sq=2*unlist(old.vb$zeta)/(n + p - 1))
   vpost <- list(beta=Sigma, gamma.sq=sapply(1:D, function(d) {
     old.eb$mprior[[d]]^2*
       old.vb$delta[[d]]/old.eb$lambda[ifelse(mult.lambda, d, 1)]*
       (1 - ratio_besselK(sqrt(old.vb$delta[[d]]*old.eb$lambda[ifelse(
         mult.lambda, d, 1)])/old.eb$mprior[[d]], 1)^2)}),
-    sigma.sq=8*old.vb$zeta^2/((n + p - 1)^2*(n + p - 3)))
+    sigma.sq=8*unlist(old.vb$zeta)^2/((n + p - 1)^2*(n + p - 3)))
+  names(seq.eb) <- c("alpha", "lambda", "mprior", "vprior")
   
   # creating output object
   out <- list(call=cl,
               vb=list(mu=mu, Sigma=Sigma, delta=old.vb$delta, 
-                      zeta=old.vb$zeta, mpost=mpost, vpost=vpost), 
+                      zeta=unlist(old.vb$zeta), mpost=mpost, vpost=vpost), 
               eb=old.eb[!(names(old.eb) %in% c("Calpha", "conv", "iter"))],
               seq.eb=seq.eb,
               conv=list(eb=conv.eb, vb=conv.vb, opt=conv.opt),
               iter=list(eb=iter.eb, vb=iter.vb, opt=iter.opt))
-  
+  return(out)
 }
 
 # fit model without tissue effect and molecular feature groups (not tested)

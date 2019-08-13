@@ -348,56 +348,33 @@ K <- rep(c(4, 10), each=3)
 ctalphainv <- V/sigma^2
 lambda <- c(3/2, 3, 6, 3/14, 3/7, 6/7)
 ratios <- ratio_besselK(lambda/ctalphainv, 1)
-ztthetainv <- 1/(ratios + 2*ctalphainv/lambda)/sigma^2
-kappa <- (3*ztthetainv^3 + 12*ztthetainv^2*ctalphainv)/
-  (K*lambda - 3*ztthetainv^2 - 12*ztthetainv*ctalphainv)
 eta <- 6/(K - 3) + 4
 xi <- V*(eta - 2)/sigma^2
 
 # check variances
-vars <- cbind(nig=sigma^2*ctalphainv,
-              dnig=sigma^2*ctalphainv*ztthetainv*(ratios + 2*ctalphainv/lambda),
+vars <- cbind(enig=sigma^2*ctalphainv,
               studentst=sigma^2*xi/(eta - 2))
-all.equal(vars, cbind(nig=V, dnig=V, studentst=V))
-kurts <- cbind(nig=3*ctalphainv/lambda + 3,
-               dnig=(3*ztthetainv/kappa + 3)*
-                 (4*ctalphainv*(ratios + 2*ctalphainv/lambda) + 1)/
-                 (lambda*(ratios + 2*ctalphainv/lambda)^2),
+all.equal(vars, cbind(enig=V, studentst=V))
+kurts <- cbind(dnig=3*ctalphainv/lambda + 3,
                studentst=6/(eta - 4) + 3)
-all.equal(kurts, cbind(nig=K, dnig=K, studentst=K))
+all.equal(kurts, cbind(dnig=K, studentst=K))
 
 # store settings in an object
 set <- data.frame(nreps=nreps, n=n, p=p, gamma=gamma, sigma=sigma,
-                  ctalphainv=ctalphainv, lambda=lambda, ztthetainv=ztthetainv, 
-                  kappa=kappa, eta=eta, xi=xi, vars=V, kurts=K)
+                  ctalphainv=ctalphainv, lambda=lambda, 
+                  eta=eta, xi=xi, vars=V, kurts=K)
 rownames(set) <- paste0("set", 1:nrow(set))
-methods1 <- c("nig", "enig", "dnig", "studentst")
-methods2 <- c("nig.advi", "enig.advi", "dnig.advi", "enig.vb")
+methods1 <- c("enig", "studentst")
+methods2 <- c("enig.advi", "enig.vb", "enig.map", "glmnet", "cv.glmnet")
 measures1 <- c("cram", "corbest", "msebest", "cover")
 measures2 <- c("cram", "corbest", "msebest")
 
 # set initial values and control parameters
-stan.nig <- stan_model("code/nig.stan")
 stan.enig <- stan_model("code/enig.stan")
-stan.dnig <- stan_model("code/dnig.stan")
 stan.studentst <- stan_model("code/studentst.stan")
 nsamples <- 1000
 nwarmup <- 1000
 
-# fit1 <- matrix(NA, nrow=nsamples, ncol=nrow(set)*(p + 1)*length(methods1), 
-#                dimnames=list(paste0("sample", 1:nsamples),
-#                              paste(rep(paste0("set", 1:nrow(set)),
-#                                        each=(p + 1)*length(methods1)),
-#                                    sapply(methods1, function(m) {
-#                                      paste0(paste0("beta", 0:p), ".", m)}),
-#                                    sep=".")))
-# fit2 <- matrix(NA, nrow=nsamples, ncol=nrow(set)*(p + 1)*length(methods2), 
-#                dimnames=list(paste0("sample", 1:nsamples),
-#                              paste(rep(paste0("set", 1:nrow(set)),
-#                                        each=(p + 1)*length(methods2)),
-#                                    sapply(methods2, function(m) {
-#                                      paste0(paste0("beta", 0:p), ".", m)}),
-#                                    sep=".")))
 res1 <- matrix(NA, nrow=nreps, ncol=nrow(set)*length(methods1)*
                  length(measures1), 
                dimnames=list(paste0("rep", (1:nreps)), paste(rep(paste0(
@@ -405,11 +382,14 @@ res1 <- matrix(NA, nrow=nreps, ncol=nrow(set)*length(methods1)*
                  rep(apply(expand.grid(methods1, measures1), 1, function(s) {
                    paste(rev(s), collapse=".")}), times=nrow(set)), sep=".")))
 res2 <- matrix(NA, nrow=nreps, ncol=nrow(set)*length(methods2)*
-                 length(measures2),
+                 length(measures2) - 3*nrow(set),
                dimnames=list(paste0("rep", (1:nreps)), paste(rep(paste0(
-                 "set", 1:nrow(set)), each=length(measures2)*length(methods2)), 
-                 rep(apply(expand.grid(methods2, measures2), 1, function(s) {
-                   paste(rev(s), collapse=".")}), times=nrow(set)), sep=".")))
+                 "set", 1:nrow(set)), each=length(measures2)*length(methods2) - 
+                   3), rep(c(paste0(measures2[1], ".", methods2[
+                     c(1, 2)]), apply(expand.grid(
+                       methods2, measures2[-1]), 1, function(s) {
+                         paste(rev(s), collapse=".")})), times=nrow(set)), 
+                 sep=".")))
 
 for(s in 1:nrow(set)) {
   for(k in 1:nreps) {
@@ -422,169 +402,98 @@ for(s in 1:nrow(set)) {
 
     ctalphainv <- set$ctalphainv[s]
     lambda <- set$lambda[s]
-    ztthetainv <- set$ztthetainv[s]
-    kappa <- set$kappa[s]
     eta <- set$eta[s]
     xi <- set$xi[s]
     
-    fit.nig <- sampling(stan.nig, chains=1, warmup=nwarmup, 
-                        iter=nsamples + nwarmup, cores=1, refresh=0, 
-                        control=list(adapt_delta=0.8, max_treedepth=12),
-                        data=list(n=n, p=p, y=y, x=x, ctalphainv=ctalphainv, 
-                                  lambda=lambda))
+    # MCMC methods
     fit.enig <- sampling(stan.enig, chains=1, warmup=nwarmup, 
                          iter=nsamples + nwarmup, cores=1, refresh=0, 
                          control=list(adapt_delta=0.8, max_treedepth=12),
                          data=list(n=n, p=p, y=y, x=x, 
-                                   ctalphainv=ctalphainv, lambda=lambda))
-    fit.dnig <- sampling(stan.dnig, chains=1, warmup=nwarmup, 
-                         iter=nsamples + nwarmup, cores=1, refresh=0, 
-                         control=list(adapt_delta=0.8, max_treedepth=12),
-                         data=list(n=n, p=p, y=y, x=x, ctalphainv=ctalphainv, 
-                                   lambda=lambda, ztthetainv=ztthetainv, 
-                                   kappa=kappa))
+                                   ctalphainv=rep(ctalphainv, p), 
+                                   lambda=lambda))
     fit.studentst <- sampling(stan.studentst, chains=1, warmup=nwarmup, 
                               iter=nsamples + nwarmup, cores=1, refresh=0, 
                               control=list(adapt_delta=0.8, max_treedepth=12),
                               data=list(n=n, p=p, y=y, x=x, eta=eta, xi=xi))
     
-    # Error in sampler$call_sampler(c(args, dotlist)) : 
-    #   stan::variational::normal_meanfield::calc_grad: The number of dropped 
-    #   evaluations has reached its maximum amount (10). Your model may be 
-    #   either severely ill-conditioned or misspecified.
-    # fit.nig.advi <- vb(stan.nig, output_samples=nsamples, 
-    #                    data=list(n=n, p=p, y=y, x=x, ctalphainv=ctalphainv, 
-    #                              lambda=lambda))
-    # fit.enig.advi <- vb(stan.enig, output_samples=nsamples, 
-    #                     data=list(n=n, p=p, y=y, x=x, ctalphainv=ctalphainv, 
-    #                               lambda=lambda))
-    # fit.dnig.advi <- vb(stan.enig, output_samples=nsamples, 
-    #                     data=list(n=n, p=p, y=y, x=x, ctalphainv=ctalphainv, 
-    #                               lambda=lambda, ztthetainv=ztthetainv, 
-    #                               kappa=kappa))
-    
-    init <- list(aold=rep(1, 2), bold=list(p, p), lambda=lambda, 
-                 alpha=1, Calpha=rep(1/ctalphainv, 2))
+    # variational Bayes methods
+    fit.enig.advi <- vb(stan.enig, output_samples=nsamples,
+                        data=list(n=n, p=p, y=y, x=x, 
+                                  ctalphainv=rep(ctalphainv, p),
+                                  lambda=lambda))
     fit.enig.vb <- enig(list(x, x), cbind(y, y), NULL, mult.lambda=FALSE, 
                         intercept.eb=TRUE, fixed.eb=c("both"), 
-                        full.post=TRUE, init=init,
+                        full.post=TRUE, 
+                        init=list(aold=rep(1, 2), bold=list(p, p), 
+                                  lambda=lambda, alpha=1, 
+                                  Calpha=rep(1/ctalphainv, 2)),
                         control=list(conv.post=TRUE, trace=TRUE,
                                      epsilon.eb=1e-3, epsilon.vb=1e-3, 
                                      epsilon.opt=sqrt(.Machine$double.eps),
                                      maxit.eb=10, maxit.vb=2, maxit.opt=100,
                                      maxit.post=100))
               
-    # fit.nig.map <- optimizing(stan.nig, 
-    #                           data=list(n=n, p=p, y=y, x=x, 
-    #                                     ctalphainv=ctalphainv, lambda=lambda))
-    # fit.enig.map <- optimizing(stan.enig, 
-    #                            data=list(n=n, p=p, y=y, x=x, 
-    #                                      ctalphainv=ctalphainv, lambda=lambda))
-    # fit.dnig.map <- optimizing(stan.enig,
-    #                            data=list(n=n, p=p, y=y, x=x, 
-    #                                      ctalphainv=ctalphainv, lambda=lambda, 
-    #                                      ztthetainv=ztthetainv, kappa=kappa))   
-    # 
-    # fit.glmnet <- glmnet(x, y, alpha=0, lambda=1/(n*ctalphainv*sigma^2))
-    # fit.cv.glmnet <- cv.glmnet(x, y, alpha=0)
+    fit.enig.map <- optimizing(stan.enig, 
+                               data=list(n=n, p=p, y=y, x=x, 
+                                         ctalphainv=rep(ctalphainv, p),
+                                         lambda=lambda))
+    fit.glmnet <- glmnet(x, y, alpha=0, lambda=1/(n*ctalphainv*sigma^2))
+    fit.cv.glmnet <- cv.glmnet(x, y, alpha=0)
     
-    best <- data.frame(nig=c(get_posterior_mean(fit.nig, pars="beta0"),
-                             get_posterior_mean(fit.nig, pars="beta")),
-                       enig=c(get_posterior_mean(fit.enig, pars="beta0"),
+    best <- data.frame(enig=c(get_posterior_mean(fit.enig, pars="beta0"),
                               get_posterior_mean(fit.enig, pars="beta")),
-                       dnig=c(get_posterior_mean(fit.dnig, pars="beta0"),
-                              get_posterior_mean(fit.dnig, pars="beta")),
                        studentst=c(get_posterior_mean(fit.studentst, 
                                                       pars="beta0"),
                                    get_posterior_mean(fit.studentst, 
                                                       pars="beta")),
-                       # nig.advi=c(get_posterior_mean(fit.nig.advi, 
-                       #                               pars="beta0"),
-                       #            get_posterior_mean(fit.nig.advi, 
-                       #                               pars="beta")), 
-                       # enig.advi=c(get_posterior_mean(fit.enig.advi, 
-                       #                                pars="beta0"),
-                       #             get_posterior_mean(fit.enig.advi, 
-                       #                                pars="beta")), 
-                       # dnig.advi=c(get_posterior_mean(fit.dnig.advi, 
-                       #                                pars="beta0"),
-                       #             get_posterior_mean(fit.dnig.advi, 
-                       #                                pars="beta")), 
-                       nig.advi=NA, enig.advi=NA, dnig.advi=NA,
-                       enig.vb=c(0, fit.enig.vb$vb$mpost$beta[, 1]))
-                       # nig.map=fit.nig.map$par[1:(p + 1)],
-                       # enig.map=fit.enig.map$par[1:(p + 1)], 
-                       # dnig.map=fit.dnig.map$par[1:(p + 1)], 
-                       # glmnet=as.numeric(coef(fit.glmnet)),
-                       # cv.glmnet=as.numeric(coef(fit.cv.glmnet, 
-                       #                           s="lambda.min")))
+                       enig.advi=c(get_posterior_mean(fit.enig.advi,
+                                                      pars="beta0"),
+                                   get_posterior_mean(fit.enig.advi,
+                                                      pars="beta")),
+                       enig.vb=c(0, fit.enig.vb$vb$mpost$beta[[1]]),
+                       enig.map=fit.enig.map$par[1:(p + 1)],
+                       glmnet=as.numeric(coef(fit.glmnet)),
+                       cv.glmnet=as.numeric(coef(fit.cv.glmnet,
+                                                 s="lambda.min")))
 
-    samp.nig <- cbind(as.matrix(fit.nig, "beta0"), as.matrix(fit.nig, "beta"))
-    samp.enig <- cbind(as.matrix(fit.enig, "beta0"), as.matrix(fit.enig, "beta"))
-    samp.dnig <- cbind(as.matrix(fit.dnig, "beta0"), as.matrix(fit.dnig, "beta"))
+    samp.enig <- cbind(as.matrix(fit.enig, "beta0"), 
+                       as.matrix(fit.enig, "beta"))
     samp.studentst <- cbind(as.matrix(fit.studentst, "beta0"),
                             as.matrix(fit.studentst, "beta"))
-    # samp.nig.advi <- matrix(unlist(fit.nig.advi@sim$samples[[1]][1:(p + 1)]),
-    #                         ncol=p + 1, byrow=FALSE)
-    # samp.dnig.advi <- matrix(unlist(fit.dnig.advi@sim$samples[[1]][1:(p + 1)]),
-    #                          ncol=p + 1, byrow=FALSE)
-    # samp.enig.advi <- matrix(unlist(fit.enig.advi@sim$samples[[1]][1:(p + 1)]),
-    #                          ncol=p + 1, byrow=FALSE)
-    
     samp.enig.vb <- cbind(0, rmvnorm(nsamples, 
-                                     mean=as.numeric(fit.enig.vb$vb$mu[, 1]),
+                                     mean=as.numeric(fit.enig.vb$vb$mu[[1]]),
                                      sigma=fit.enig.vb$vb$Sigma[[1]]))
+    samp.enig.advi <- matrix(unlist(fit.enig.advi@sim$samples[[1]][1:(p + 1)]),
+                             ncol=p + 1, byrow=FALSE)
+    
     cov.true <- sigma^2*solve(t(x) %*% x + gamma^(-2)*diag(p))
     mean.true <- cov.true %*% t(x) %*% y/sigma^2
     samp.true <- cbind(0, rmvnorm(nsamples, mean.true, cov.true))
-    samp <- data.frame(nig=samp.nig, enig=samp.enig, dnig=samp.dnig, 
-                       studentst=samp.studentst)
 
-    cram1 <- c(nig=cramer.test(samp.nig, samp.true, 
-                               just.statistic=TRUE)$statistic,
-               enig=cramer.test(samp.enig, samp.true,
-                                just.statistic=TRUE)$statistic,
-               dnig=cramer.test(samp.dnig, samp.true,
+    cram1 <- c(enig=cramer.test(samp.enig, samp.true,
                                 just.statistic=TRUE)$statistic,
                studentst=cramer.test(samp.studentst, samp.true,
                                      just.statistic=TRUE)$statistic)
-    # cram2 <- c(nig.advi=cramer.test(samp.nig, samp.nig.advi,
-    #                                 just.statistic=TRUE)$statistic,
-    #            enig.advi=cramer.test(samp.enig, samp.enig.advi,
-    #                                  just.statistic=TRUE)$statistic,
-    #            dnig.advi=cramer.test(samp.dnig, samp.dnig.advi,
-    #                                  just.statistic=TRUE)$statistic,
-    cram2 <- c(nig.advi=NA, enig.advi=NA, dnig.advi=NA,
+    cram2 <- c(enig.advi=cramer.test(samp.enig, samp.enig.advi,
+                                     just.statistic=TRUE)$statistic,
                enig.vb=cramer.test(samp.enig, samp.enig.vb,
                                    just.statistic=TRUE)$statistic)
 
-    corbest1 <- apply(best[, c(1:4)], 2, cor, y=c(0, beta))
-    # corbest2 <- c(nig.advi=cor(best[, 5], best[, 1]),
-    #               enig.advi=cor(best[, 6], best[, 2]),
-    #               dnig.advi=cor(best[, 7], best[, 3]),
-    corbest2 <- c(nig.advi=NA, enig.advi=NA, dnig.advi=NA,
-                  enig.vb=cor(best[, 8], best[, 2]))
-  
-    msebest1 <- apply(best[, c(1:4)], 2, function(b) {
+    corbest1 <- apply(best[, c(1:2)], 2, cor, y=c(0, beta))
+    corbest2 <- apply(best[, -c(1, 2)], 2, cor, y=c(0, beta))
+      
+    msebest1 <- apply(best[, c(1:2)], 2, function(b) {
       mean((b - c(0, beta))^2)})
-    # msebest2 <- c(nig.advi=mean((best[, 5] - best[, 1])^2),
-    #               enig.advi=mean((best[, 6] - best[, 2])^2),
-    #               dnig.advi=mean((best[, 7] - best[, 3])^2),
-    msebest2 <- c(nig.advi=NA, enig.advi=NA, dnig.advi=NA,
-                  enig.vb=mean((best[, 8] - best[, 2])^2))
+    msebest2 <- apply(best[, -c(1:2)], 2, function(b) {
+      mean((b - c(0, beta))^2)})
 
-    ci.nig <- summary(fit.nig, pars=c("beta0", "beta"))$summary[, c(4, 8)]
     ci.enig <- summary(fit.enig, pars=c("beta0", "beta"))$summary[, c(4, 8)]
-    ci.dnig <- summary(fit.dnig, pars=c("beta0", "beta"))$summary[, c(4, 8)]
     ci.studentst <- summary(fit.studentst, 
                             pars=c("beta0", "beta"))$summary[, c(4, 8)]
 
-    cover1 <- c(nig=mean((ci.nig[, 1] < c(0, beta)) & 
-                           (c(0, beta) < ci.nig[, 2])),
-                enig=mean((ci.enig[, 1] < c(0, beta)) & 
+    cover1 <- c(enig=mean((ci.enig[, 1] < c(0, beta)) & 
                             (c(0, beta) < ci.enig[, 2])),
-                dnig=mean((ci.dnig[, 1] < c(0, beta)) & 
-                            (c(0, beta) < ci.dnig[, 2])),
                 studentst=mean((ci.studentst[, 1] < c(0, beta)) & 
                                  (c(0, beta) < ci.studentst[, 2])))
     
@@ -592,20 +501,12 @@ for(s in 1:nrow(set)) {
       c(cram1, corbest1, msebest1, cover1)
     res2[k, substr(colnames(res2), 1, 4)==paste0("set", s)] <- 
       c(cram2, corbest2, msebest2)
-    
-    # store the first replications samples
-    # if(k==1) {
-    #   fit1[, substr(colnames(fit1), 1, 4)==paste0("set", s)] <- 
-    #     samp
-    # }
   
     write.table(res1, file="results/simulations_igaussian_res4.1.csv")
     write.table(res2, file="results/simulations_igaussian_res4.2.csv")
     
   }
 }
-
-# write.table(fit, file="results/simulations_igaussian_fit4.csv")
 
 write.table(set, file="results/simulations_igaussian_set4.csv")
 
@@ -708,7 +609,8 @@ for(s in 1:nrow(set)) {
                          iter=nsamples + nwarmup, cores=1, refresh=0, 
                          control=list(adapt_delta=0.8, max_treedepth=12),
                          data=list(n=n, p=p, y=y, x=x, 
-                                   ctalphainv=ctalphainv, lambda=lambda))
+                                   ctalphainv=rep(ctalphainv, p), 
+                                   lambda=lambda))
     fit.dnig <- sampling(stan.dnig, chains=1, warmup=nwarmup, 
                          iter=nsamples + nwarmup, cores=1, refresh=0, 
                          control=list(adapt_delta=0.8, max_treedepth=12),
@@ -781,74 +683,93 @@ for(s in 1:nrow(set)) {
     res[k, substr(colnames(res), 1, 4)==paste0("set", s)] <- 
       c(cram, corbest, msebest, cover)
     # store the first replications samples
-    if(k==1) {
-      fit[, substr(colnames(fit), 1, 4)==paste0("set", s)] <- 
-        samp
-    }
+    # if(k==1) {
+    #   fit[, substr(colnames(fit), 1, 4)==paste0("set", s)] <- 
+    #     samp
+    # }
+    
+    write.table(res, file="results/simulations_igaussian_res5.csv")
   }
 }
 
 write.table(fit, file="results/simulations_igaussian_fit5.csv")
-write.table(res, file="results/simulations_igaussian_res5.csv")
 write.table(set, file="results/simulations_igaussian_set5.csv")
 
 
+################################################################################
+###############################   simulation 6   ###############################
+################################################################################
+############# investigates empirical Bayes estimation of ENIG model ############
+################################################################################
+# settings
+nreps <- 100
+n <- 100
+p <- 200
+D <- 10
 
+# create fixed parameters
+rho <- 0
+Sigma <- matrix(rho, ncol=p, nrow=p); diag(Sigma) <- 1
+sigma <- rep(1, D)
+lambda <- rep(0.1, D)
+alpha <- c(1, 1:4)
+C <- rep(list(unname(model.matrix(~ as.factor(rep(1:5, each=p/5)))[, -1])), D)
+prior.mean <- 1/sapply(C, function(cC) {cbind(1, cC) %*% alpha})
+set <- data.frame(nreps=nreps, n=n, p=p, D=D, rho=rho, lambda=lambda[1], 
+                  alpha0=alpha[1], alpha1=alpha[2], alpha2=alpha[3],
+                  alpha3=alpha[4], alpha4=alpha[5])
 
-
-
-
-###### ENIG model
-set.seed(2019)
-n <- 200
-D <- 100
-p <- sample(100:200, D, replace=TRUE)
-x <- lapply(1:D, function(d) {matrix(rnorm(p[d]*n), nrow=n, ncol=p[d])})
-C <- lapply(1:D, function(d) {cbind(1, rbinom(p[d], 1, 0.5))})
-gamma <- sqrt(c(0.5, 2))
-beta <- lapply(1:D, function(d) {
-  rnorm(p[d], 0, as.numeric(C[[1]] %*% c(gamma[1], diff(gamma))))})
-y <- sapply(1:D, function(d) {as.numeric(x[[d]] %*% beta[[d]]) + rnorm(n)})
-x, y, C, mult.lambda=FALSE, intercept.eb=TRUE, 
-fixed.eb="none", init=NULL
-control=list(conv.post=TRUE, trace=TRUE,
-             epsilon.eb=1e-3, epsilon.vb=1e-3, 
-             epsilon.opt=sqrt(.Machine$double.eps),
-             maxit.eb=30, maxit.vb=2, maxit.opt=100,
-             maxit.post=100)
-
-
-fit.test <- enig(x, y, C, mult.lambda=mult.lambda, fixed.eb=fixed.eb, init=init,
-                 control=control)
-
-
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.1, 1, 1))
-layout(matrix(rep(rep(1:2, each=2), 2), nrow=2, ncol=4, byrow=TRUE))
-plot(0, type="n", main="(a)", ylab=expression(hat(E)(gamma[d]^2)), 
-     xlab="Iteration", xlim=c(1, fit.test$iter$eb), 
-     ylim=range(fit.test$seq.eb$mprior))
-for(d in 1:D) {
-  for(j in 1:p[d]) {
-    lines(fit.test$seq.eb$mprior[[d]][, j], col=j)
-  }
+res <- matrix(NA, nrow=nreps, ncol=D + 5,
+              dimnames=list(paste0("rep", (1:nreps)), 
+                            c(paste0("alpha", 1:5), paste0("lambda", 1:D))))
+for(k in 1:nreps) {
+  print(paste0("rep ", k))
+  
+  set.seed(2019 + k)
+  x <- rmvnorm(n, rep(0, p), sigma=Sigma)
+  gamma <- sapply(1:D, function(d) {
+    sqrt(rinvgauss(p, prior.mean[, d], lambda[d]))})
+  beta <- sapply(1:D, function(d) {rnorm(p, 0, sigma[d]^2*gamma[, d]^2)})
+  y <- sapply(1:D, function(d) {
+    rnorm(n, as.numeric(x %*% beta[, d]), sigma[d]^2)})
+  
+  fit.enig <- enig(rep(list(x), D), y, C, mult.lambda=TRUE, intercept.eb=TRUE, 
+                   fixed.eb=c("none"), full.post=FALSE, init=NULL,
+                   control=list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, 
+                                epsilon.vb=1e-3, 
+                                epsilon.opt=sqrt(.Machine$double.eps),
+                                maxit.eb=100, maxit.vb=2, maxit.opt=100,
+                                maxit.post=100))
+  res[k, ] <- c(fit.enig$eb$alpha, fit.enig$eb$lambda)
+  write.table(res, file="results/simulations_igaussian_res6.csv")
 }
 
-fit.test$seq.eb$vprior
+write.table(set, file="results/simulations_igaussian_set6.csv")
 
-plot(0, type="n", main="(b)", ylab=expression(hat(V)(gamma[d]^2)), 
-     xlab="Iteration", xlim=c(1, fit.test$iter$eb), 
-     ylim=range(sapply(fit.test$seq.eb$vprior, function(i) {i[-c(1:5), ]})))
-for(d in 1:D) {
-  for(j in 1:p[d]) {
-    lines(fit.test$seq.eb$vprior[[d]][-c(1:5), j], col=j)
-  }
+col <- c(1:5)
+boxplot(res[, substr(colnames(res), 1, 5)=="alpha"], col=col)
+lines(c(0.5, 1.5), rep(alpha[1], 2), lty=2, lwd=2, col=col[1])
+lines(c(1.5, 2.5), rep(alpha[2], 2), lty=2, lwd=2, col=col[2])
+lines(c(2.5, 3.5), rep(alpha[3], 2), lty=2, lwd=2, col=col[3])
+lines(c(3.5, 4.5), rep(alpha[4], 2), lty=2, lwd=2, col=col[4])
+lines(c(4.5, 5.5), rep(alpha[5], 2), lty=2, lwd=2, col=col[5])
+
+
+
+col <- 1:5
+plot(fit.enig.vb$seq.eb$alpha[, 1], type="l", 
+     ylim=range(fit.enig.vb$seq.eb$alpha), col=col[1])
+lines(fit.enig.vb$seq.eb$alpha[, 2], col=col[2])
+lines(fit.enig.vb$seq.eb$alpha[, 3], col=col[3])
+lines(fit.enig.vb$seq.eb$alpha[, 4], col=col[4])
+lines(fit.enig.vb$seq.eb$alpha[, 5], col=col[5])
+
+col <- 1:D
+plot(fit.enig.vb$seq.eb$lambda[, 1], type="l", 
+     ylim=range(fit.enig.vb$seq.eb$lambda), col=col[1])
+for(d in 2:D) {
+  lines(fit.enig.vb$seq.eb$lambda[, d], col=col[d])  
 }
-par(opar)
 
-unique(unlist(fit.test$eb$mprior))
-gamma^2
-unique(unlist(fit.test$eb$vprior))
-
+plot(alpha, fit.enig.vb$eb$alpha)
 

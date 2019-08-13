@@ -1,9 +1,24 @@
+# e <- old.vb$e
+# b <- old.vb$b
+# old.lambda <- old.eb$lambda
+# epsilon <- control$epsilon.opt
+# maxit <- control$maxit.opt
+
 # update EB parameters in ENIG model (not tested)
 .eb.update.enig <- function(e, b, old.lambda, Cmat, p, D, mult.lambda, fixed.eb,
                             epsilon, maxit) {
-    
+  
   # eb parameters
-  alpha <- rowSums(solve(t(Cmat*Reduce("c", e)) %*% Cmat) %*% t(Cmat))
+  mat <- t(Cmat*Reduce("c", e)) %*% Cmat
+  if(!is.finite(determinant(mat)$modulus)) {
+    alpha <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
+                       t(Cmat))
+  } else {
+    alpha <- tryCatch({rowSums(solve(mat) %*% t(Cmat))},
+                      error=function(e) {
+                        rowSums(solve(mat + sqrt(.Machine$double.eps)*
+                                        diag(nrow(mat))) %*% t(Cmat))})
+  }
   if(fixed.eb=="lambda") {
     lambda <- old.lambda
   } else {
@@ -42,13 +57,25 @@
   return(out)
 }
 
+# old.lambda <- new.eb$lambda
+# old.alpha <- new.eb$alpha
+
 # one ENIG eb IRLS iteration (not tested)
 .eb.update.mult.enig <- function(old.lambda, old.alpha, e, b, Cmat, p, D, 
                                  epsilon) {
   
   # create new IRLS updates
-  alpha <- rowSums(solve(t(Cmat*Reduce("c", e)*rep(old.lambda, p)) %*% Cmat) %*%
-                     t(Cmat*rep(old.lambda, p)))
+  mat <- t(Cmat*Reduce("c", e)*rep(old.lambda, p)) %*% Cmat
+  if(!is.finite(determinant(mat)$modulus)) {
+    alpha <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
+                       t(Cmat*rep(old.lambda, p)))
+  } else {
+    alpha <- tryCatch({rowSums(solve(mat) %*% t(Cmat*rep(old.lambda, p)))},
+                      error=function(e) {
+                        rowSums(solve(mat + sqrt(.Machine$double.eps)*
+                                        diag(nrow(mat))) %*% 
+                                  t(Cmat*rep(old.lambda, p)))})
+  }
   Calpha <- unname(split(as.numeric(Cmat %*% alpha), rep(1:D, times=p)))
   lambda <- p/(sapply(b, sum) + sapply(1:D, function(d) {
     sum((sqrt(e[[d]])*Calpha[[d]])^2)}) - 2*sapply(Calpha, sum))
@@ -106,8 +133,14 @@
 .eb.update.mult.lambda <- function(old.lambda, old.alpha, e, b, C, epsilon) {
   
   # create new IRLS updates
-  alpha <- rowSums(solve(t(C*e*old.lambda) %*% C) %*% t(C*old.lambda))
-  lambda <- 1/(b + e*as.numeric(C %*% alpha)^2 - 2*as.numeric(C %*% alpha))
+  mat <- t(C*e*old.lambda) %*% C
+  if(any(eigen(mat, only.values=TRUE)$values <= 0)) {
+    alpha <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
+                       t(C*old.lambda))
+  } else {
+    alpha <- rowSums(solve(mat) %*% t(C*old.lambda))
+    lambda <- 1/(b + e*as.numeric(C %*% alpha)^2 - 2*as.numeric(C %*% alpha))
+  }
   
   # check convergence of IRLS
   conv <- all(abs(c(alpha - old.alpha, lambda - old.lambda)) < epsilon)

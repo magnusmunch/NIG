@@ -1,3 +1,14 @@
+# d <- 1
+# aold <- old.vb$a[[d]]
+# bold <- old.vb$b[[d]]
+# Calpha <- old.eb$Calpha[[d]]
+# lambda <- old.eb$lambda[ifelse(mult.lambda, d, 1)]
+# y <- y[, d]
+# x <- x[[d]]
+# ytx <- ytx[[d]]
+# yty <- yty[d]
+# p <- p[d]
+
 # single VB update in ENIG model (not tested)
 .single.vb.update.enig <- function(aold, bold, Calpha, lambda, y, x, ytx, yty, 
                                    n, p, D) {

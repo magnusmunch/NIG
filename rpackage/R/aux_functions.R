@@ -300,3 +300,78 @@ ridge.mll <- function(par, sv, uty, yty, n, p) {
               lambda=lambda, zeta=rep(zeta, D), a=rep(a, D))
   return(out)
 }
+
+### CPO
+.f.int.cpo <- function(val, y, zeta, n, p, xtmu, xtSigmax) {
+  (val^2/(2*zeta) + 1)^(-(n - length(xtmu) + p + 2)/2)*
+    exp(-(val - xtmu + y)^2/(2*xtSigmax))
+}
+
+.cpoi <- function(model, x, y, n, p, D) {
+  out <- lapply(1:D, function(d) {
+    zeta <- model$vb$zeta[d]
+    xtmu <- as.numeric(x[[d]] %*% model$vb$mu[[d]])
+    xtSigmax <- rowSums((x[[d]] %*% model$vb$Sigma[[d]])*x[[d]])
+    int <- sapply(1:nrow(matrix(y, ncol=D)), function(i) {
+      unlist(integrate(.f.int.cpo, -Inf, Inf, y=matrix(y, ncol=D)[i, d], 
+                       zeta=zeta, n=n, p=p[d], xtmu=xtmu[i], 
+                       xtSigmax=xtSigmax[i])[c(1:2)])})
+    
+    
+    list((2*pi)^(-1)*exp(lgamma((n- nrow(matrix(y, ncol=D)) + p[d] + 2)/2) - 
+                           lgamma((n - nrow(matrix(y, ncol=D)) + p[d] + 1)/2))*
+           (zeta*xtSigmax)^(-1/2)*int[1, ], int[2, ])})
+  
+  return(list(value=unname(sapply(out, "[[", 1)), 
+              abs.error=unname(sapply(out, "[[", 2))))
+}
+
+lpml <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
+                 fixed.eb=c("none", "lambda", "both"), full.post=FALSE, 
+                 init=NULL,
+                 control=list(conv.post=TRUE, trace=TRUE,
+                              epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                              epsilon.opt=sqrt(.Machine$double.eps),
+                              maxit.eb=10, maxit.vb=2, maxit.opt=100,
+                              maxit.post=100),
+                 nfolds, foldid=NULL) {
+  
+  # create the folds
+  p <- sapply(x, ncol)
+  D <- ncol(y)
+  n <- nrow(y)
+  if(is.null(foldid)) {
+    foldid <- sample(rep(1:nfolds, times=round(c(rep(
+      n %/% nfolds + as.numeric((n %% nfolds)!=0), times=n %% nfolds),
+      rep(n %/% nfolds, times=nfolds - n %% nfolds)))))  
+  } else {
+    nfolds <- length(unique(foldid))
+  }
+  
+  # prepare object to store CPOi
+  val <- err <- matrix(NA, ncol=D, nrow=n)
+  
+  # loop over the folds
+  for(k in 1:nfolds) {
+    print(paste0("fold ", k))
+    xtrain <- lapply(x, function(x) {x[foldid!=k, ]})
+    ytrain <- y[foldid!=k, ]
+    xtest <- lapply(x, function(x) {x[foldid==k, ]})
+    ytest <- y[foldid==k, ]
+    
+    # estimate the model on the training data
+    fit <- enig(x=xtrain, y=ytrain, C=C, mult.lambda=mult.lambda, 
+                intercept.eb=intercept.eb, fixed.eb=fixed.eb, 
+                full.post=full.post, init=init, control=control)
+    
+    # estimate CPOi on the test data
+    est <- .cpoi(fit, xtest, ytest, n, p, D)
+    val[foldid==k, ] <- est$value
+    err[foldid==k, ] <- est$abs.error
+    
+  }
+  
+  out <- list(lpml=colSums(log(val))/n, cpoi=val, abs.error=err)
+  return(out)
+  
+}
