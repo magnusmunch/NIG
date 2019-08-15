@@ -36,13 +36,13 @@ if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
   expr <- read.table(gcon(url("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz"),
                           text=TRUE), header=TRUE, stringsAsFactors=FALSE)
 }
-# if(file.exists("data/Cell_Lines_Details.xlsx")) {
-#   cell1 <- read.xls("data/Cell_Lines_Details.xlsx", 
-#                     stringsAsFactors=FALSE)
-# } else {
-#   cell1 <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx", 
-#                     stringsAsFactors=FALSE)
-# }
+if(file.exists("data/Cell_Lines_Details.xlsx")) {
+  cell <- read.xls("data/Cell_Lines_Details.xlsx",
+                   stringsAsFactors=FALSE)
+} else {
+  cell <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx",
+                   stringsAsFactors=FALSE)
+}
 
 # reading in the preformatted list of compounds
 if(file.exists("data/Screened_Compounds.xlsx")) {

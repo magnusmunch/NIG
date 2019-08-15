@@ -11,9 +11,10 @@
 #              maxit.post=100)
 
 # estimate ENIG model (not tested)
-enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
-                 fixed.eb=c("none", "lambda", "both"), full.post=FALSE, 
-                 init=NULL,
+enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE, 
+                 intercept.eb=TRUE, mult.lambda=FALSE, 
+                 fixed.eb=c("none", "lambda", "both"), 
+                 full.post=FALSE, init=NULL,
                  control=list(conv.post=TRUE, trace=TRUE,
                               epsilon.eb=1e-3, epsilon.vb=1e-3, 
                               epsilon.opt=sqrt(.Machine$double.eps),
@@ -23,11 +24,26 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
   # save the arguments
   cl <- match.call()
   
+  # check for unpenalized covariates
+  unp <- intercept | !is.null(unpenalized)
+  
   # fixed parameters
-  n <- nrow(y)
-  p <- sapply(x, ncol)
   D <- ncol(y)
+  n <- nrow(y)
+  u <- sapply(unpenalized, function(s) {
+    ifelse(is.null(s), 0, ncol(s)) + intercept})
+  r <- sapply(x, ncol)
+  p <- sapply(1:D, function(d) {u[d] + p[d]})
   ncd <- ifelse(is.null(C), 0, ncol(C[[1]]))
+  
+  # standardize data and add intercept if need be
+  xr <- x
+  if(standardize) {
+    xr <- scale(xr)
+  }
+  if(intercept) {
+    xu <- cbind(1, xu)
+  }
   
   # add intercept and transform co-data to matrix
   if(intercept.eb & is.null(C)) {
@@ -40,12 +56,14 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
   
   # fixed data functions
   yty <- colSums(y^2)
-  ytx <- lapply(1:D, function(d) {as.numeric(y[, d] %*% x[[d]])})
+  if(!unp) {
+    ytx <- lapply(1:D, function(d) {as.numeric(y[, d] %*% x[[d]])})  
+  }
   
   # set initial values if not given
   if(is.null(init)) {
     init$aold <- rep(1, D)
-    init$bold <- lapply(1:D, function(d) {rep(1, p[d])})
+    init$bold <- lapply(1:D, function(d) {rep(1, r[d])})
     init$lambda <- rep(1, ifelse(mult.lambda, D, 1))
     if(intercept.eb) {
       init$alpha <- c(1, rep(0, ncd))
@@ -53,7 +71,7 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
         as.numeric(C[[d]] %*% init$alpha)})
     } else {
       init$alpha <- rep(0, ncd)
-      init$Calpha <- lapply(1:D, function(d) {rep(1, p[d])})
+      init$Calpha <- lapply(1:D, function(d) {rep(1, r[d])})
     }
   }
   init$mprior <- lapply(1:D, function(d) {1/(init$Calpha[[d]])})
@@ -63,10 +81,17 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
   # set initial values for VB, EB, and ELBO estimates
   old.eb <- list(alpha=init$alpha, lambda=init$lambda, mprior=init$mprior,
                  vprior=init$vprior, Calpha=init$Calpha, conv=FALSE, iter=0)
-  old.vb <- lapply(c(1:D), function(d) {
-    .single.vb.update.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
-                           init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
-                           x[[d]], ytx[[d]], yty[d], n, p[d], D)})
+  if(unp) {
+    old.vb <- lapply(c(1:D), function(d) {
+      .single.vb.update.unp.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
+                                 init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                                 xu[[d]], xr[[d]], yty[d], n, u[d], r[d])})  
+  } else {
+    old.vb <- lapply(c(1:D), function(d) {
+      .single.vb.update.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
+                             init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                             x[[d]], ytx[[d]], yty[d], n, r[d])})  
+  }
   old.vb <- setNames(lapply(names(old.vb[[1]]), function(var) {
     lapply(old.vb, "[[", var)}), names(old.vb[[1]]))
   
@@ -100,7 +125,7 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
       if(control$trace & fixed.eb!="both") {cat("\r", "iteration", iter.eb)}
       
       # update the EB parameters
-      new.eb <- .eb.update.enig(old.vb$e, old.vb$b, old.eb$lambda, Cmat, p, D, 
+      new.eb <- .eb.update.enig(old.vb$e, old.vb$b, old.eb$lambda, Cmat, r, D, 
                                 mult.lambda, fixed.eb, control$epsilon.opt, 
                                 control$maxit.opt) 
       
@@ -138,10 +163,20 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
       iter.vb[iter.eb] <- iter.vb[iter.eb] + 1
       
       # update the VB parameters and elbo
-      new.vb <- lapply(c(1:D), function(d) {
-        .single.vb.update.enig(old.vb$a[[d]], old.vb$b[[d]], old.eb$Calpha[[d]], 
-                               old.eb$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
-                               x[[d]], ytx[[d]], yty[d], n, p[d], D)})
+      if(unp) {
+        new.vb <- lapply(c(1:D), function(d) {
+          .single.vb.update.unp.enig(old.vb$a[[d]], old.vb$b[[d]], 
+                                     old.eb$Calpha[[d]], 
+                                     old.eb$lambda[ifelse(mult.lambda, d, 1)], 
+                                     y[, d], xu[[d]], xr[[d]], yty[d], n, u[d], 
+                                     r[d])})
+      } else {
+        new.vb <- lapply(c(1:D), function(d) {
+          .single.vb.update.enig(old.vb$a[[d]], old.vb$b[[d]], 
+                                 old.eb$Calpha[[d]], 
+                                 old.eb$lambda[ifelse(mult.lambda, d, 1)], 
+                                 y[, d], x[[d]], ytx[[d]], yty[d], n, r[d])})  
+      }
       new.vb <- setNames(lapply(names(new.vb[[1]]), function(var) {
         lapply(new.vb, "[[", var)}), names(new.vb[[1]]))
       
@@ -162,12 +197,26 @@ enig <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
   }
   
   # computing mu and the diagonal of Sigma
-  aux <- lapply(1:D, function(d) {.aux.var.enig(old.vb$a[[d]], old.vb$b[[d]], 
-                                                y[, d], x[[d]], ytx[[d]])})
+  if(unp) {
+    aux <- lapply(1:D, function(d) {
+      .aux.var.unp.enig(old.vb$a[[d]], old.vb$b[[d]], y[, d], xu[[d]], xr[[d]],
+                        u[d], r[d])})
+  } else {
+    aux <- lapply(1:D, function(d) {
+      .aux.var.enig(old.vb$a[[d]], old.vb$b[[d]], y[, d], x[[d]], ytx[[d]])})
+  }
+  
   mu <- lapply(aux, "[[", "mu")
   if(full.post) {
-    Sigma <- lapply(1:D, function(d) {.Sigma.enig(old.vb$a[[d]], old.vb$b[[d]], 
-                                                  x[[d]])})
+    if(unp) {
+      Sigma <- lapply(1:D, function(d) {
+        .Sigma.enig(old.vb$a[[d]], old.vb$b[[d]], x[[d]])})  
+    } else {
+      Sigma <- lapply(1:D, function(d) {
+        .Sigma.unp.enig(old.vb$a[[d]], old.vb$b[[d]], xu[[d]], xr[[d]],
+                        u[d], r[d])})  
+    }
+    
   } else {
     Sigma <- lapply(aux, "[[", "dSigma")  
   }

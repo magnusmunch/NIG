@@ -175,12 +175,10 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	the gene or not) to aid in the estimation. \cite{oman_minimax_2002} uses 
 	empirical Bayes to learn from external data concerning both the outcomes and 
 	the features in a low dimensional chemometrics dataset. Our proposed method,
-	termed [! acronym here],
+	termed \texttt{semnig},
 	extends \cite{kpogbezan_incorporating_2019,kpogbezan_empirical_2017} by 
 	allowing for the inclusion of continuous external information and several 
 	sources of information.
-	
-	- think of acronym
 	
 	The rest of the paper is structured as follows. In Section 
 	\ref{sec:model} we introduce our model, the estimation of which is detailed

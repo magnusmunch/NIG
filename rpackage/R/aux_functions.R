@@ -46,6 +46,30 @@ ratio_besselK <- function(x, nu) {
 #   return(out)
 # }
 
+.Sigma.unp.enig <- function(aold, bold, xu, xr, u, r) {
+  
+  hinv <- 1/bold
+  HinvXrt <- t(xr)*hinv
+  XrHinvXrt <- Om <- xr %*% HinvXrt
+  diag(Om) <- diag(Om) + 1
+  Om <- solve(Om)
+  HinvXrtOm <- HinvXrt %*% Om
+  M11 <- solve(t(xu) %*% Om %*% xu)
+  M12 <- - M11 %*% t(xu) %*% t(HinvXrt) + M11 %*% t(xu) %*% t(XrHinvXrt) %*% 
+    t(HinvXrtOm)
+  M22 <- -HinvXrtOm %*% t(HinvXrt) - HinvXrt %*% xu %*% M12 + HinvXrtOm %*%
+    XrHinvXrt %*% xu %*% M12
+  diag(M22) <- diag(M22) + hinv
+  
+  Sigma <- matrix(NA, nrow=u + r, ncol=u + r)
+  Sigma[c(1:u), c(1:u)] <- M11/aold
+  Sigma[c(1:u), -c(1:u)] <- M12/aold
+  Sigma[-c(1:u), c(1:u)] <- t(M12)/aold
+  Sigma[-c(1:u), -c(1:u)] <- M22/aold
+  
+  return(Sigma)
+}
+
 .Sigma.enig <- function(aold, bold, x) {
   hinv <- 1/bold
   HinvXt <- t(x)*hinv
@@ -55,6 +79,43 @@ ratio_besselK <- function(x, nu) {
   diag(Sigma) <- diag(Sigma) + hinv
   Sigma <- Sigma/aold
   return(Sigma)
+}
+
+# calculates the auxiliary variables in ENIG model with unpenalized variables
+# in the VB step (not tested)
+.aux.var.unp.enig <- function(aold, bold, y, xu, xr, u, r) {
+  
+  hinv <- 1/bold
+  HinvXrt <- t(xr)*hinv
+  XrHinvXrt <- Om <- xr %*% HinvXrt
+  diag(Om) <- diag(Om) + 1
+  Om <- solve(Om)
+  HinvXrtOm <- HinvXrt %*% Om
+  M11 <- solve(t(xu) %*% Om %*% xu)
+  M12 <- - M11 %*% t(xu) %*% t(HinvXrt) + M11 %*% t(xu) %*% t(XrHinvXrt) %*% 
+    t(HinvXrtOm)
+  
+  # auxiliaries
+  dSigma <- c(diag(M11), hinv - rowSums(HinvXrt*HinvXrtOm) - 
+                rowSums((HinvXrt %*% xu)*t(M12)) + 
+                rowSums(HinvXrtOm*(t(M12) %*% t(xu) %*% XrHinvXrt)))
+  mu <- rbind(M11 %*% t(xu) + M12 %*% t(xr),
+              HinvXrt - HinvXrtOm %*% XrHinvXrt -
+                HinvXrt %*% xu %*% M12 %*% t(xr) + HinvXrtOm %*% XrHinvXrt %*%
+                xu %*% M12 %*%t(xr))
+  trXtXSigma <- (sum(xu*(xu %*% M11)) + 2*sum(xu*(xr %*% t(M12))) + 
+                   sum(t(xr)*mu[-c(1:u), ]))/aold
+  mu[-c(1:u), ] <- mu[-c(1:u), ] + t(xu %*% M12)
+  mu <- colSums(t(mu)*y)
+  ytXmu <- cbind(xu, xr) %*% mu
+  mutXtXmu <- as.numeric(t(ytXmu) %*% ytXmu)
+  ytXmu <- sum(as.numeric(ytXmu)*y)
+  trHSigma <- sum(dSigma[-c(1:u)]*bold)
+  mutHmu <- sum(mu[-c(1:u)]^2*bold)
+  
+  out <- list(mu=mu, dSigma=dSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma,
+              mutXtXmu=mutXtXmu, trHSigma=trHSigma, mutHmu=mutHmu)
+  return(out)
 }
 
 # calculates the auxiliary variables in ENIG model in the VB step (not tested)
