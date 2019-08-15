@@ -9,44 +9,8 @@ ratio_besselK <- function(x, nu) {
   return(val)
 }
 
-# calculates the auxiliary variables in DNIG VB step with intercept (not tested)
-# .aux.var.dnig.int <- function(aold, bold, cold, y, x, ytx, csumsx) {
-#   
-#   hinv <- 1/(bold*cold)
-#   HinvXt <- t(x)*hinv
-#   Dinv <- XHinvXt <- x %*% HinvXt
-#   diag(Dinv) <- diag(Dinv) + 1
-#   Dinv <- solve(Dinv)
-#   HinvXt1 <- rowSums(HinvXt)
-#   mat1 <- colSums(t(HinvXt %*% Dinv)*colSums(t(HinvX)*csumsx))
-#   
-#   
-#   q <- 1/(n - sum(HinvXt1) + sum(t(Dinv*HinvXt1)*HinvXt1))
-#   r <- 
-#   
-#   # shared auxiliaries
-#   dSigma <- XHinvXt
-#   diag(dSigma) <- diag(dSigma) + 1
-#   dSigma <- HinvXt %*% solve(dSigma)
-#   mu <- trXtXSigma <- mutXt <-
-#     HinvXt - dSigma %*% XHinvXt
-#   dSigma <- (hinv - rowSums(dSigma*HinvXt))/aold
-#   mu <- as.numeric(mu %*% y)
-#   mutXt <- as.numeric(ytx %*% mutXt)
-#   trXtXSigma <- sum(trXtXSigma*t(x))/aold
-#   
-#   # separate auxiliaries
-#   mutmu <- sum(mu^2)
-#   trSigma <- sum(dSigma)
-#   ytXmu <- as.numeric(ytx %*% mu)
-#   mutXtXmu <- sum(mutXt^2)
-#   
-#   out <- list(mu=mu, dSigma=dSigma, mutmu=mutmu, trSigma=trSigma, 
-#               ytXmu=ytXmu, trXtXSigma=trXtXSigma, mutXtXmu=mutXtXmu)
-#   return(out)
-# }
-
-.Sigma.unp.enig <- function(aold, bold, xu, xr, u, r) {
+# calculate full covariance with unpenalized covariates
+.Sigma.unp <- function(aold, bold, xu, xr, u, r) {
   
   hinv <- 1/bold
   HinvXrt <- t(xr)*hinv
@@ -70,7 +34,8 @@ ratio_besselK <- function(x, nu) {
   return(Sigma)
 }
 
-.Sigma.enig <- function(aold, bold, x) {
+# calculate full covariance
+.Sigma <- function(aold, bold, x) {
   hinv <- 1/bold
   HinvXt <- t(x)*hinv
   Sigma <- x %*% HinvXt
@@ -81,9 +46,8 @@ ratio_besselK <- function(x, nu) {
   return(Sigma)
 }
 
-# calculates the auxiliary variables in ENIG model with unpenalized variables
-# in the VB step (not tested)
-.aux.var.unp.enig <- function(aold, bold, y, xu, xr, u, r) {
+# calculates the auxiliary variables with unpenalized variables (not tested)
+.aux.var.unp <- function(aold, bold, y, xu, xr, u, r) {
   
   hinv <- 1/bold
   HinvXrt <- t(xr)*hinv
@@ -118,8 +82,8 @@ ratio_besselK <- function(x, nu) {
   return(out)
 }
 
-# calculates the auxiliary variables in ENIG model in the VB step (not tested)
-.aux.var.enig <- function(aold, bold, y, x, ytx) {
+# calculates the auxiliary variables (not tested)
+.aux.var <- function(aold, bold, y, x, ytx) {
   
   hinv <- 1/bold
   HinvXt <- t(x)*hinv
@@ -147,228 +111,14 @@ ratio_besselK <- function(x, nu) {
   return(out)
 }
 
-# calculates the auxiliary variables in DNIG in the VB step (tested)
-.aux.var.dnig <- function(aold, bold, cold, y, x, ytx) {
-  
-  hinv <- 1/(bold*cold)
-  HinvXt <- t(x)*hinv
-  XHinvXt <- x %*% HinvXt
-  
-  # shared auxiliaries
-  dSigma <- XHinvXt
-  diag(dSigma) <- diag(dSigma) + 1
-  dSigma <- HinvXt %*% solve(dSigma)
-  mu <- trXtXSigma <- mutXt <-
-    HinvXt - dSigma %*% XHinvXt
-  dSigma <- (hinv - rowSums(dSigma*HinvXt))/aold
-  mu <- as.numeric(mu %*% y)
-  mutXt <- as.numeric(ytx %*% mutXt)
-  trXtXSigma <- sum(trXtXSigma*t(x))/aold
-  
-  # separate auxiliaries
-  mutmu <- sum(mu^2)
-  trSigma <- sum(dSigma)
-  ytXmu <- as.numeric(ytx %*% mu)
-  mutXtXmu <- sum(mutXt^2)
-  
-  out <- list(mu=mu, dSigma=dSigma, mutmu=mutmu, trSigma=trSigma, 
-              ytXmu=ytXmu, trXtXSigma=trXtXSigma, mutXtXmu=mutXtXmu)
-  return(out)
-}
-
-# calculates the auxiliary variables in the VB step (tested)
-.aux.var <- function(cold, aold, sv, uty, n, p) {
-  
-  # auxiliary variables involving mu and Sigma
-  trSigma <- (sum(1/(sv^2 + cold)) + max(p - n, 0)/cold)/aold
-  trXtXSigma <- sum(sv^2/(sv^2 + cold))/aold
-  mutmu <- sum(sv^2*uty^2/(sv^2 + cold)^2)
-  mutXtXmu <- sum(sv^4*uty^2/(sv^2 + cold)^2)
-  logdetSigma <- -p*log(aold) - sum(log(sv^2 + cold)) - 
-    max(p - n, 0)*log(cold)
-  ytXmu <- sum(sv^2*uty^2/(sv^2 + cold))
-  
-  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
-              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
-              ytXmu=ytXmu)
-  return(out)
-}
-
-# calculates the auxiliary variables in the VB step with intercept (not tested)
-.aux.var.int <- function(cold, aold, sv, uty, sumu, sumy, n, p) {
-  
-  s <- 1/(n - sum(sumu^2*sv^2/(sv^2 + cold)))
-  
-  aux1 <- sum(sv^2*sumu^2/(sv^2 + cold))
-  aux2 <- sum(sv^2*uty^2/(sv^2 + cold))
-  aux3 <- sum(sv^2*sumu*uty/(sv^2 + cold))
-  aux4 <- sum(sv^4*sumu^2/(sv^2 + cold)^2)
-  aux5 <- sum(sv^4*uty^2/(sv^2 + cold)^2)
-  aux6 <- sum(sv^4*sumu*uty/(sv^2 + cold)^2)
-  
-  # auxiliary variables involving mu and Sigma
-  trSigma <- (sum(1/(sv^2 + cold)) + s*sum(sv^2*sumu^2/(sv^2 + cold)^2) + 
-                max(p - n, 0)/cold)/aold 
-  trXtXSigma <- (sum(sv^2/(sv^2 + cold)) + s*(n - 2*aux1 + aux4))/aold
-  mutmu <- s^2*(sumy^2 - 2*sumy*aux3 + aux3^2)*
-    sum(sumu^2*sv^2/(sv^2 + cold)^2) + 
-    2*s*(aux3 - sumy)*sum(sumu*uty*sv^2/(sv^2 + cold)^2) + 
-    sum(uty^2*sv^2/(sv^2 + cold)^2)
-  mutXtXmu <- n*sumy^2*s^2 + sumy*s*aux3*(2 - 2*n*s) - 2*sumy^2*s^2*aux1 + 
-    s*aux3^2*(n*s - 2) + 4*sumy*s^2*aux1*aux3 - 2*s^2*aux1*aux3^2 +
-    sumy^2*s^2*aux4 - 2*sumy*s*aux6 - 2*sumy*s^2*aux3*aux4 + 2*s*aux3*aux6 + 
-    s^2*aux3^2*aux4 + aux5
-  logdetSigma <- log(s) - (p + 1)*log(aold) - sum(log(sv^2 + cold)) - 
-    max(p - n, 0)*log(cold)
-  ytXmu <- sumy^2*s - 2*sumy*s*aux3 + aux2 + s*aux3^2
-  
-  out <- list(trSigma=trSigma, trXtXSigma=trXtXSigma, mutmu=mutmu,
-              mutXtXmu=mutXtXmu, logdetSigma=logdetSigma,
-              ytXmu=ytXmu, s=s, aux3=aux3)
-  return(out)
-}
-
-# function to integrate for DGIG density
-.fdint <- function(x, lambda, a, b, sigma, beta, expon.scaled=FALSE) {
-  if(expon.scaled) {
-    exp(-a*beta^2/(2*lambda*sigma^2*x) - sqrt(b^2 - 2*a + a*(x + 1/x)) -
-          2*log(x))*besselK(sqrt(b^2 - 2*a + a*(x+ 1/x)), 0, expon.scaled=TRUE)
-  } else {
-    (1/x^2)*exp(-a*beta^2/(2*lambda*sigma^2*x))*
-      besselK(sqrt(b^2 - 2*a + a*(x + 1/x)), 0)
-  }
-  
-}
-
-# DGIG density function
-ddgig <- function(x, lambda, a, b, sigma, expon.scaled=FALSE) {
-  a*exp(b)/sqrt(2*sigma^2*lambda*pi^3)*
-    sapply(x, function(s) {
-      integrate(.fdint, 0, Inf, lambda=lambda, a=a, b=b, sigma=sigma,
-                beta=s, expon.scaled=expon.scaled)$value})
-}
-
-# calculates the ELBO in the inverse Gaussian model (tested)
-.elbo.inv.gauss <- function(aux, zeta, delta, a, b, c, e, lambda, theta, df, p, 
-                            yty) {
-  
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*aux$logdetSigma -
-    0.5*a*(yty - 2*aux$ytXmu + aux$mutXtXmu + aux$trXtXSigma) +
-    0.5*b*(delta - (a + 1 - b/c)*(aux$mutmu + aux$trSigma)) - 
-    0.5*(df + 1)*log(zeta) + 0.25*(p + 1)*log(lambda) - 
-    0.5*(p + 1)*log(theta) - 0.25*(p + 1)*log(delta) + 
-    gsl::bessel_lnKnu(0.5*(p + 1), sqrt(lambda*delta)/theta) + 
-    0.5*lambda*e/theta^2
-  
-  # total elbo
-  elbo <- elbo.const + lambda/theta + 0.5*log(lambda) - 0.5*lambda*e/theta^2 -
-    0.5*lambda*b
-  
-  out <- list(elbo=elbo, elbo.const=elbo.const)
-  return(out)
-}
-
-# calculates the ELBO in the inverse Gamma model (tested)
-.elbo.inv.gamma <- function(aux, zeta, delta, a, b, c, e, lambda, eta, df, p, 
-                            yty) {
-  
-  # calculate the elbo part that is constant after next eb update
-  elbo.const <- 0.5*aux$logdetSigma -
-    0.5*a*(yty - 2*aux$ytXmu + aux$mutXtXmu + aux$trXtXSigma) +
-    0.5*b*(delta - (a + 1 - b/c)*(aux$mutmu + aux$trSigma)) - 
-    0.5*(df + 1)*log(zeta) - 0.25*(p + 1)*log(delta) + 0.5*eta*e + 
-    0.5*eta*log(2) + lgamma(0.5*(p + eta))
-  
-  # total elbo
-  elbo <- elbo.const - lgamma(0.5*eta) - 0.5*eta*e - 0.5*eta*log(2) + 
-    0.5*eta*log(lambda) - 0.5*lambda*b
-  
-  out <- list(elbo=elbo, elbo.const=elbo.const)
-  return(out)
-  
-}
-
-# ridge marginal log likelihood of ridge model (not tested)
-ridge.mll <- function(par, sv, uty, yty, n, p) {
-  lsigma.sq <- par[1]
-  lgamma.sq <- par[2]
-  mll <- -0.5*n*lsigma.sq - 0.5*p*lgamma.sq - 0.5*yty*exp(-lsigma.sq) -
-    0.5*sum(log(sv^2 + exp(-lgamma.sq))) + max(p - n, 0)*lgamma.sq +
-    0.5*sum(uty^2*sv^2/(sv^2 + exp(-lgamma.sq)))*exp(-lsigma.sq)
-  return(mll)
-}
-
-# ridge marginal log lik for independent beta and sigma^2 prior (not tested)
-.ridge.mll.ind <- function(par, sv, uty, n) {
-  sigma.sq <- par[1]
-  gamma.sq <- par[2]
-  mll <- -0.5*n*log(sigma.sq) - 0.5*n*log(gamma.sq) - 
-    sum(log(sv^2/sigma.sq + 1/gamma.sq)) - 
-    0.5*sum(uty^2/(sv^2*gamma.sq + sigma.sq))
-  return(mll)
-}
-
-# initial values (not tested)
-.init.param.inv.gauss <- function(C, sv, uty, D, n, p) {
-  # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
-  init.mll.est <- t(sapply(c(1:D), function(d) {
-    constrOptim(c(1, 1), .ridge.mll, NULL, ui=diag(2), ci=c(0, 0),
-                sv=sv, uty=uty[, d], n=n, control=list(fnscale=-1))$par}))
-  
-  # consider them samples from prior and estimate one inverse Gaussian prior
-  theta <- mean(init.mll.est[, 2])
-  lambda <- D/sum(1/init.mll.est[, 2] - 1/theta)
-  
-  # use empirical mode of gamma_d^2 to derive one delta
-  d <- density(init.mll.est[, 2])
-  mode <- d$x[which.max(d$y)]
-  delta <- as.numeric(mode^2*lambda/theta^2 + (p + 3)*mode)
-  a <- sqrt(lambda/(theta^2*delta))*
-    ratio_besselK(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
-  
-  # consider sigma_d^2 fixed and estimate inverse Gamma prior
-  zeta <- 0.5*D*(n + p + 1)/sum(1/init.mll.est[, 1])
-  
-  out <- list(theta=rep(theta, D), alpha=c(theta, rep(0, ncol(C) - 1)), 
-              lambda=lambda, zeta=rep(zeta, D), a=rep(a, D))
-  return(out)
-  
-}
-
-# initial values with independent beta and sigma^2 prior (not tested)
-.init.param.inv.gauss.ind <- function(C, sv, uty, D, n, p) {
-  # maximise ridge mll to find gamma_d^2 and sigma_d^2 estimates
-  init.mll.est <- t(sapply(c(1:D), function(d) {
-    constrOptim(c(1, 1), .ridge.mll.ind, NULL, ui=diag(2), ci=c(0, 0),
-                sv=sv, uty=uty[, d], n=n, control=list(fnscale=-1))$par}))
-  
-  # consider them samples from prior and estimate one inverse Gaussian prior
-  theta <- mean(init.mll.est[, 2])
-  lambda <- D/sum(1/init.mll.est[, 2] - 1/theta)
-  
-  # use empirical mode of gamma_d^2 to derive one delta
-  d <- density(init.mll.est[, 2])
-  mode <- d$x[which.max(d$y)]
-  delta <- as.numeric(mode^2*lambda/theta^2 + (p + 3)*mode)
-  a <- sqrt(lambda/(theta^2*delta))*
-    ratio_besselK(sqrt(lambda*delta)/theta, p) + (p + 1)/delta
-  
-  # consider sigma_d^2 fixed and estimate inverse Gamma prior
-  zeta <- 0.5*D*(n + 1)/sum(1/init.mll.est[, 1])
-  
-  out <- list(theta=rep(theta, D), alpha=c(theta, rep(0, ncol(C) - 1)), 
-              lambda=lambda, zeta=rep(zeta, D), a=rep(a, D))
-  return(out)
-}
-
-### CPO
+# to integrate in CPO calculation
 .f.int.cpo <- function(val, y, zeta, n, p, xtmu, xtSigmax) {
   (val^2/(2*zeta) + 1)^(-(n - length(xtmu) + p + 2)/2)*
     exp(-(val - xtmu + y)^2/(2*xtSigmax))
 }
 
-.cpoi <- function(model, x, y, n, p, D) {
+# calculate the conditional predictive ordinates
+.cpo <- function(model, x, y, n, p, D) {
   out <- lapply(1:D, function(d) {
     zeta <- model$vb$zeta[d]
     xtmu <- as.numeric(x[[d]] %*% model$vb$mu[[d]])
@@ -387,7 +137,9 @@ ridge.mll <- function(par, sv, uty, yty, n, p) {
               abs.error=unname(sapply(out, "[[", 2))))
 }
 
-lpml <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
+# calculate log pseudo marginal likelihood
+lpml <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE, 
+                 intercept.eb=TRUE, mult.lambda=FALSE, 
                  fixed.eb=c("none", "lambda", "both"), full.post=FALSE, 
                  init=NULL,
                  control=list(conv.post=TRUE, trace=TRUE,
@@ -421,18 +173,20 @@ lpml <- function(x, y, C, mult.lambda=FALSE, intercept.eb=TRUE,
     ytest <- y[foldid==k, ]
     
     # estimate the model on the training data
-    fit <- enig(x=xtrain, y=ytrain, C=C, mult.lambda=mult.lambda, 
-                intercept.eb=intercept.eb, fixed.eb=fixed.eb, 
-                full.post=full.post, init=init, control=control)
+    fit <- enig(x=xtrain, y=ytrain, C=C, unpenalized=unpenalized, 
+                standardize=standardize, intercept=intercept, 
+                intercept.eb=intercept.eb, mult.lambda=mult.lambda, 
+                fixed.eb=fixed.eb, full.post=full.post, init=init, 
+                control=control)
     
     # estimate CPOi on the test data
-    est <- .cpoi(fit, xtest, ytest, n, p, D)
+    est <- .cpo(fit, xtest, ytest, n, p, D)
     val[foldid==k, ] <- est$value
     err[foldid==k, ] <- est$abs.error
     
   }
   
-  out <- list(lpml=colSums(log(val))/n, cpoi=val, abs.error=err)
+  out <- list(lpml=colSums(log(val))/n, cpo=val, abs.error=err)
   return(out)
   
 }
