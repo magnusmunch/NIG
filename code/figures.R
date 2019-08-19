@@ -212,65 +212,128 @@ library(sp)
 res <- read.table("results/simulations_igaussian_res4.2.csv")
 set <- read.table("results/simulations_igaussian_set4.csv")
 
-plot.data1 <- list(cram=res[, substr(colnames(res), 4, 4) %in% 
-                              c("1", "2", "3") &
-                              substr(colnames(res), nchar(colnames(res)) - 7 
-                                     + 1, nchar(colnames(res)))=="enig.vb" &
-                              substr(colnames(res), 6, 9)=="cram"],
-                   corbest=res[, substr(colnames(res), 4, 4) %in% 
-                                 c("1", "2", "3") &
-                                 substr(colnames(res), nchar(colnames(res)) - 7 
-                                        + 1, nchar(colnames(res)))=="enig.vb" &
-                                 substr(colnames(res), 6, 12)=="corbest"],
-                   msebest=res[, substr(colnames(res), 4, 4) %in% 
-                                 c("1", "2", "3") &
-                                 substr(colnames(res), nchar(colnames(res)) - 7 
-                                        + 1, nchar(colnames(res)))=="enig.vb" &
-                                 substr(colnames(res), 6, 12)=="msebest"])
-plot.data2 <- list(cram=res[, substr(colnames(res), 4, 4) %in% 
-                              c("4", "5", "6") &
-                              substr(colnames(res), nchar(colnames(res)) - 7 
-                                     + 1, nchar(colnames(res)))=="enig.vb" &
-                              substr(colnames(res), 6, 9)=="cram"],
-                   corbest=res[, substr(colnames(res), 4, 4) %in% 
-                                 c("4", "5", "6") &
-                                 substr(colnames(res), nchar(colnames(res)) - 7 
-                                        + 1, nchar(colnames(res)))=="enig.vb" &
-                                 substr(colnames(res), 6, 12)=="corbest"],
-                   msebest=res[, substr(colnames(res), 4, 4) %in% 
-                                 c("4", "5", "6") &
-                                 substr(colnames(res), nchar(colnames(res)) - 7 
-                                        + 1, nchar(colnames(res)))=="enig.vb" &
-                                 substr(colnames(res), 6, 12)=="msebest"])
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"])},
+  simplify=FALSE)
 
-# plot.data <- sapply(1:nrow(set), function(s) {
-#   list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram")],
-#        res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest")],
-#        res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest")])},
-#   simplify=FALSE)
-
-labels1 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
-             expression("MSD"(hat(beta), beta)), "95% coverage")
-labels2 <- list(paste("set", 1:3), paste("set", 4:6))
-col <- list(bpy.colors(6, cutoff.tail=0.3)[1:3], 
-            bpy.colors(6, cutoff.tail=0.3)[4:6]) 
+methods <- c("ADVI", "VB", "MAP")
+labels1.1 <- c("ADVI", "VB")
+labels1.2 <- c("ADVI", "VB", "MAP")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)))
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
 
 opar <- par(no.readonly=TRUE)
-layout(matrix(c(rep(rep(c(1:3), each=2), 2), rep(rep(c(4:6), each=2), 2)), 
-              nrow=4, ncol=6, byrow=TRUE))
 par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(c(rep(rep(c(1:3), each=2), 2),
+                rep(rep(c(4:6), each=2), 2),
+                rep(rep(c(7:9), each=2), 2)), nrow=6, ncol=6, byrow=TRUE))
 for(r in 1:3) {
-  boxplot(plot.data1[[r]], ylab=labels1[r], main=paste0("(", letters[r], ")"), 
-          names=labels2[[1]], las=2, col=col[[1]], outline=FALSE)
-
-}
-for(r in 1:3) {
-  boxplot(plot.data2[[r]], ylab=labels1[r], 
-          main=paste0("(", letters[r + 3], ")"), 
-          names=labels2[[2]], las=2, col=col[[2]], outline=FALSE)
-  
+  for(m in 1:3) {
+    if(m==1) {lab1 <- labels1.1} else {lab1 <- labels1.2}
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 1)*3 + m], ")"),
+            ylab=labels2[m], las=2, names=lab1, col=col, outline=FALSE)
+  }
 }
 par(opar)
+
+# ---- boxplots_igaussian_res4.2_post2 ----  
+library(sp)
+res <- read.table("results/simulations_igaussian_res4.2.csv")
+set <- read.table("results/simulations_igaussian_set4.csv")
+
+plot.data <- sapply(1:nrow(set), function(s) {
+  list(res[, substr(colnames(res), 1, 9)==paste0("set", s, ".cram") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".corbest") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"],
+       res[, substr(colnames(res), 1, 12)==paste0("set", s, ".msebest") &
+             substr(colnames(res), nchar(colnames(res)) - 1, 
+                    nchar(colnames(res)))!="et"])},
+  simplify=FALSE)
+
+methods <- c("ADVI", "VB", "MAP")
+labels1.1 <- c("ADVI", "VB")
+labels1.2 <- c("ADVI", "VB", "MAP")
+labels2 <- c("Cramér-von Mises criterion", expression("Corr"(hat(beta), beta)), 
+             expression("MSD"(hat(beta), beta)))
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1))
+layout(matrix(c(rep(rep(c(1:3), each=2), 2),
+                rep(rep(c(4:6), each=2), 2),
+                rep(rep(c(7:9), each=2), 2)), nrow=6, ncol=6, byrow=TRUE))
+for(r in 4:6) {
+  for(m in 1:3) {
+    if(m==1) {lab1 <- labels1.1} else {lab1 <- labels1.2}
+    boxplot(plot.data[[r]][[m]], main=paste0("(", letters[(r - 4)*3 + m], ")"),
+            ylab=labels2[m], las=2, names=lab1, col=col, outline=FALSE)
+  }
+}
+par(opar)
+
+# ---- hist_igaussian_fit4 ----
+library(sp)
+load("results/simulations_igaussian_fit4.Rdata")
+set <- read.table("results/simulations_igaussian_set4.csv")
+
+beta <- cbind(rstan::extract(fit.enig, pars="beta0")$beta0, 
+              rstan::extract(fit.enig, pars="beta")$beta)
+
+labels1 <- c("VB", "ADVI", "MAP")
+labels2 <- c("density", "point estimate")
+lty <- c(1, 2)
+methods <- labels1
+col <- bpy.colors(length(methods), cutoff.tail=0.3)
+
+set.seed(2019)
+varid <- sample(1:(ncol(beta) - 1), 8)
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.1, 1, 1), lwd=2)
+layout(matrix(c(rep(rep(c(1:3), each=2), 2),
+                rep(rep(c(4:6), each=2), 2),
+                rep(rep(c(7:9), each=2), 2)), nrow=6, ncol=6, byrow=TRUE))
+for(id in 1:length(varid)) {
+  j <- varid[id]
+  h <- hist(beta[, j + 1], plot=FALSE)
+  hist(beta[, j + 1], breaks=30, prob=TRUE, 
+       ylim=range(c(dnorm(fit.enig.vb$vb$mpost$beta[[1]][j], 
+                          fit.enig.vb$vb$mpost$beta[[1]][j],
+                          sqrt(fit.enig.vb$vb$vpost$beta[[1]][j, j])), 
+                    h$density)),
+       xlab=expression(beta), main=bquote(beta[.(j)]))
+  curve(dnorm(x, fit.enig.vb$vb$mpost$beta[[1]][j],
+              sqrt(fit.enig.vb$vb$vpost$beta[[1]][j, j])), add=TRUE, col=col[1])
+  curve(dnorm(x, summary(fit.enig.advi)$summary[substr(rownames(summary(
+    fit.enig.advi)$summary), 1, 4)=="beta" & substr(rownames(summary(
+      fit.enig.advi)$summary), 5, 6)!="sd", 1][j + 1], 
+    summary(fit.enig.advi)$summary[substr(rownames(summary(
+      fit.enig.advi)$summary), 1, 4)=="beta" & substr(rownames(summary(
+        fit.enig.advi)$summary), 5, 6)!="sd", 2][j + 1]^2),
+    add=TRUE, col=col[2])
+  abline(v=summary(fit.enig.advi)$summary[substr(rownames(summary(
+    fit.enig.advi)$summary), 1, 4)=="beta" & substr(rownames(summary(
+      fit.enig.advi)$summary), 5, 6)!="sd", 1][j + 1], lty=2, col=col[2])
+  abline(v=fit.enig.map$par[substr(names(fit.enig.map$par), 1, 4)=="beta"][j + 1], 
+         lty=2, col=col[3])
+}
+plot.new()
+legend("center", legend=c(labels1, labels2), fill=c(col, NA, NA), 
+       border=c(rep(1, 3), NA, NA), lty=c(rep(NA, 3), lty),
+       seg.len=1, merge=TRUE, bg="white")
+par(opar)
+
 
 
 # ---- boxplots_igaussian_res3_vb ----  

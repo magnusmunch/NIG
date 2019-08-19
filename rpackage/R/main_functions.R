@@ -1,25 +1,27 @@
-# x <- rep(list(x), D)
-# mult.lambda=TRUE
-# intercept.eb=TRUE
-# fixed.eb=c("none")
-# full.post=FALSE
-# init=NULL
+# x <- list(x, x); y <- cbind(y, y); C=NULL; unpenalized=NULL;
+# standardize=FALSE; intercept=FALSE; intercept.eb=TRUE;
+# mult.lambda=FALSE; fixed.eb=c("both"); full.post=TRUE;
+# init=list(aold=rep(1, 2), bold=list(p, p),
+#           lambda=lambda, alpha=1,
+#           Calpha=rep(1/ctalphainv, 2));
 # control=list(conv.post=TRUE, trace=TRUE,
 #              epsilon.eb=1e-3, epsilon.vb=1e-3,
 #              epsilon.opt=sqrt(.Machine$double.eps),
 #              maxit.eb=10, maxit.vb=2, maxit.opt=100,
 #              maxit.post=100)
+# detach("package:cambridge", unload=TRUE)
+# library(cambridge)
 
-# estimate ENIG model (not tested)
-enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE, 
-                 intercept.eb=TRUE, mult.lambda=FALSE, 
-                 fixed.eb=c("none", "lambda", "both"), 
-                 full.post=FALSE, init=NULL,
-                 control=list(conv.post=TRUE, trace=TRUE,
-                              epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                              epsilon.opt=sqrt(.Machine$double.eps),
-                              maxit.eb=10, maxit.vb=2, maxit.opt=100,
-                              maxit.post=100)) {
+# estimate SEMNIG model
+semnig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE, 
+                   intercept.eb=TRUE, mult.lambda=FALSE, 
+                   fixed.eb=c("none", "lambda", "both"), 
+                   full.post=FALSE, init=NULL,
+                   control=list(conv.post=TRUE, trace=TRUE,
+                                epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                                epsilon.opt=sqrt(.Machine$double.eps),
+                                maxit.eb=10, maxit.vb=2, maxit.opt=100,
+                                maxit.post=100)) {
   
   # save the arguments
   cl <- match.call()
@@ -30,25 +32,33 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
   # fixed parameters
   D <- ncol(y)
   n <- nrow(y)
-  u <- sapply(unpenalized, function(s) {
-    ifelse(is.null(s), 0, ncol(s)) + intercept})
+  if(is.null(unpenalized)) {
+    u <- rep(0, D)
+  } else {
+    u <- sapply(unpenalized, function(s) {ncol(s) + intercept})
+  }
   r <- sapply(x, ncol)
-  p <- sapply(1:D, function(d) {u[d] + p[d]})
+  p <- sapply(1:D, function(d) {u[d] + r[d]})
   ncd <- ifelse(is.null(C), 0, ncol(C[[1]]))
   
   # standardize data and add intercept if need be
   xr <- x
+  xu <- unpenalized
   if(standardize) {
-    xr <- scale(xr)
+    xr <- lapply(xr, scale)
   }
   if(intercept) {
-    xu <- cbind(1, xu)
+    if(is.null(xu)) {
+      xu <- rep(list(matrix(1, nrow=1, ncol=1)), D)
+    } else {
+      xu <- lapply(xu, function(s) {cbind(1, s)})  
+    }
   }
   
   # add intercept and transform co-data to matrix
   if(intercept.eb & is.null(C)) {
     C <- lapply(1:D, function(d) {
-      m <- matrix(1, nrow=p[d]); colnames(m) <- "intercept"; return(m)})
+      m <- matrix(1, nrow=r[d]); colnames(m) <- "intercept"; return(m)})
   } else if(intercept.eb) {
     C <- lapply(C, function(cc) {cbind(intercept=1, cc)})
   }
@@ -83,14 +93,14 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
                  vprior=init$vprior, Calpha=init$Calpha, conv=FALSE, iter=0)
   if(unp) {
     old.vb <- lapply(c(1:D), function(d) {
-      .single.vb.update.unp.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
-                                 init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
-                                 xu[[d]], xr[[d]], yty[d], n, u[d], r[d])})  
+      .single.vb.update.unp(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
+                            init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                            xu[[d]], xr[[d]], yty[d], n, u[d], r[d])})  
   } else {
     old.vb <- lapply(c(1:D), function(d) {
-      .single.vb.update.enig(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
-                             init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
-                             x[[d]], ytx[[d]], yty[d], n, r[d])})  
+      .single.vb.update(init$aold[d], init$bold[[d]], init$Calpha[[d]], 
+                        init$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                        x[[d]], ytx[[d]], yty[d], n, r[d])})  
   }
   old.vb <- setNames(lapply(names(old.vb[[1]]), function(var) {
     lapply(old.vb, "[[", var)}), names(old.vb[[1]]))
@@ -125,9 +135,9 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
       if(control$trace & fixed.eb!="both") {cat("\r", "iteration", iter.eb)}
       
       # update the EB parameters
-      new.eb <- .eb.update.enig(old.vb$e, old.vb$b, old.eb$lambda, Cmat, r, D, 
-                                mult.lambda, fixed.eb, control$epsilon.opt, 
-                                control$maxit.opt) 
+      new.eb <- .eb.update(old.vb$e, old.vb$b, old.eb$lambda, Cmat, r, D, 
+                           mult.lambda, fixed.eb, control$epsilon.opt, 
+                           control$maxit.opt) 
       
       # paste new hyperparameters to previous
       seq.eb <- lapply(1:length(seq.eb), function(s) {
@@ -165,17 +175,16 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
       # update the VB parameters and elbo
       if(unp) {
         new.vb <- lapply(c(1:D), function(d) {
-          .single.vb.update.unp.enig(old.vb$a[[d]], old.vb$b[[d]], 
-                                     old.eb$Calpha[[d]], 
-                                     old.eb$lambda[ifelse(mult.lambda, d, 1)], 
-                                     y[, d], xu[[d]], xr[[d]], yty[d], n, u[d], 
-                                     r[d])})
+          .single.vb.update.unp(old.vb$a[[d]], old.vb$b[[d]], 
+                                old.eb$Calpha[[d]], 
+                                old.eb$lambda[ifelse(mult.lambda, d, 1)], 
+                                y[, d], xu[[d]], xr[[d]], yty[d], n, u[d], 
+                                r[d])})
       } else {
         new.vb <- lapply(c(1:D), function(d) {
-          .single.vb.update.enig(old.vb$a[[d]], old.vb$b[[d]], 
-                                 old.eb$Calpha[[d]], 
-                                 old.eb$lambda[ifelse(mult.lambda, d, 1)], 
-                                 y[, d], x[[d]], ytx[[d]], yty[d], n, r[d])})  
+          .single.vb.update(old.vb$a[[d]], old.vb$b[[d]], old.eb$Calpha[[d]], 
+                            old.eb$lambda[ifelse(mult.lambda, d, 1)], y[, d], 
+                            x[[d]], ytx[[d]], yty[d], n, r[d])})  
       }
       new.vb <- setNames(lapply(names(new.vb[[1]]), function(var) {
         lapply(new.vb, "[[", var)}), names(new.vb[[1]]))
@@ -199,22 +208,21 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
   # computing mu and the diagonal of Sigma
   if(unp) {
     aux <- lapply(1:D, function(d) {
-      .aux.var.unp.enig(old.vb$a[[d]], old.vb$b[[d]], y[, d], xu[[d]], xr[[d]],
-                        u[d], r[d])})
+      .aux.var.unp(old.vb$a[[d]], old.vb$b[[d]], y[, d], xu[[d]], xr[[d]], u[d], 
+                   r[d])})
   } else {
     aux <- lapply(1:D, function(d) {
-      .aux.var.enig(old.vb$a[[d]], old.vb$b[[d]], y[, d], x[[d]], ytx[[d]])})
+      .aux.var(old.vb$a[[d]], old.vb$b[[d]], y[, d], x[[d]], ytx[[d]])})
   }
   
   mu <- lapply(aux, "[[", "mu")
   if(full.post) {
     if(unp) {
       Sigma <- lapply(1:D, function(d) {
-        .Sigma.enig(old.vb$a[[d]], old.vb$b[[d]], x[[d]])})  
+        .Sigma.unp(old.vb$a[[d]], old.vb$b[[d]], xu[[d]], xr[[d]], u[d], r[d])}) 
     } else {
       Sigma <- lapply(1:D, function(d) {
-        .Sigma.unp.enig(old.vb$a[[d]], old.vb$b[[d]], xu[[d]], xr[[d]],
-                        u[d], r[d])})  
+        .Sigma(old.vb$a[[d]], old.vb$b[[d]], x[[d]])})  
     }
     
   } else {
@@ -245,5 +253,6 @@ enig <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
               seq.eb=seq.eb,
               conv=list(eb=conv.eb, vb=conv.vb, opt=conv.opt),
               iter=list(eb=iter.eb, vb=iter.vb, opt=iter.opt))
+  class(out) <- c("semnig")
   return(out)
 }

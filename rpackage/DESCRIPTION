@@ -8,9 +8,9 @@ Maintainer: Magnus M. Münch <m.munch@vumc.nl>
 Description: Jointly estimates a set of related univariate regression problems.
 Depends: R (>= 3.4.1)
 License: GPL (>= 2)
-Imports: Rcpp (>= 0.12.14), gsl, GeneralizedHyperbolic
+Imports: Rcpp (>= 0.12.14), stats
 LinkingTo: Rcpp, RcppArmadillo
-Suggests: knitr, testthat, parallel
+Suggests: knitr, testthat
 VignetteBuilder: knitr
 URL: https://github.com/magnusmunch/cambridge/
 NeedsCompilation: yes

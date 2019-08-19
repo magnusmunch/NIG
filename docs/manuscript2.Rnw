@@ -175,17 +175,13 @@ xr-hyper,hyperref,enumerate}
 	$i=1,\dots, n$, centred per drug $d$. We predict efficacy from molecular 
 	features 
 	$x_{ij}$, $j=1,\dots, p$, collected in $\x_i = \begin{bmatrix} x_{i1} & 
-	\dots & x_{ip} \end{bmatrix} \tr$. We have an \textit{a priori} (possibly 
-	informative) partitioning 
-	of the omics features into $g=1, \dots, G$ non-overlapping groups.
-	For convenience, we let 
-	$g(j)$ denote the group index of molecular feature $j$. Furthermore, we have 
+	\dots & x_{ip} \end{bmatrix} \tr$. Furthermore, we have 
 	characteristics of the drugs available in the form of external variables 
 	$\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D 
 	\end{bmatrix} \tr$. 
 	
 	We regress the drug efficacies on the molecular feature effects $\beta_{jd}$:
-	\begin{subequations}
+	\begin{subequations}\label{eq:likelihood}
 		\begin{align}
 		  y_{id} & = \x_i \tr \bbeta_d + \epsilon_{id}, \label{eq:linearmodel}\\
 		  \text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
@@ -200,8 +196,8 @@ xr-hyper,hyperref,enumerate}
 	and endow the parameters with the following prior:
 	\begin{subequations}\label{eq:prior}
 		\begin{align}
-		  \beta_{jd} & \sim \mathcal{N}_p (0, \phi^2_{g(j)} \gamma_{jd}^2 
-		  \sigma_d^2), 
+		  \beta_{jd} | \gamma^2_{jd}, \sigma^2_d & \sim \mathcal{N}_p 
+		  (0, \gamma_{jd}^2 \sigma_d^2), 
 		  \label{eq:betaprior}\\
 		  \gamma_{jd}^{2} & \sim \mathcal{IG}( 
 		  [(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1}, \lambda_d), \\
@@ -209,14 +205,31 @@ xr-hyper,hyperref,enumerate}
 		\end{align}
 	\end{subequations}
 	where $\mathcal{IG}(\theta, \lambda)$ denotes an inverse Gaussian distribution 
-	with mean $\theta$ and shape $\lambda$. The different molecular feature types
-	are given their own weights through the $\phi^2_{g}$, while the external 
+	with mean $\theta$ and shape $\lambda$. The external 
 	outcome-feature data comes in through 
 	our mean model for the $\gamma_{jd}^2$ hyperprior model: 
-	$[(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1}$. Both the $\phi^2_{g}$ and
-	$\bm{\alpha}$ are estimated in a data-driven manner. More details on the model
+	$[(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1}$. The
+	$\bm{\alpha}$ and $\lambda_d$ are estimated in a data-driven manner. 
+	More details on the model
 	itself, as well as its estimation, may be found in 
 	the SM and in [! ref to first paper here].
+	
+	\subsection{Tissue effect}
+	The cell lines used in drug response models are often taken from different
+	tissues. In addition, other clinical covariates are often available. 
+	For unbiased omics feature effects, one may wish to account for these, 
+	without shrinkage of their effects. We do that by adding such unpenalized 
+	covariates 
+	$\mathbf{z}_{i} = \begin{bmatrix} z_{i1} & \cdots & z_{iT} \end{bmatrix} \tr$ 
+	to model (\ref{eq:likelihood}):
+  \begin{align*}
+    y_{id} & = \x_i \tr \bbeta_d + \mathbf{z}_i \tr \bm{\psi} + 
+    \epsilon_{id}, \\
+    \text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
+	\end{align*}
+	with $\bm{\psi} = \begin{bmatrix} \psi_1 & \cdots & \psi_T \end{bmatrix} \tr$ 
+	the unpenalized covariates effects. We assign $\bm{\psi}$ a flat prior, which 
+	alters the estimation as described in SM Section [! ref to section here].
 	
 	\section{Data}
 	

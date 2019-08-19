@@ -108,475 +108,64 @@ dsfont,parskip,xr-hyper,hyperref}
 \renewcommand{\]}{\right]}
 
 % settings
-\pgfplotsset{compat=1.13}
+\graphicspath{{../figs/}}
+\pgfplotsset{compat=1.16}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
 \setlength{\textwidth}{15cm}
-\title{Supplementary material to: Drug efficacy prediction in cell lines}
+\title{Supplementary material to: Empirical Bayes estimation of the normal
+inverse Gaussian prior in 
+simultaneous-equation models}
 \date{\today}
-\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
+\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
+\href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, 
+Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
 \begin{document}
 
 	\maketitle
 	
 	\noindent
-	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health research institute, VU University Medical Center, PO Box 7057, 1007 MB
-	Amsterdam, The Netherlands\\
-	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
-	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, United Kingdom \\
+	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health
+	research institute, Amsterdam University medical centers, PO Box 7057, 1007 MB
+	Amsterdam, The Netherlands \\*
+	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\*
+	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, 
+	United Kingdom
 	
 	\section{Content overview}
-	This document contains the Supplementary Material (SM) to the document `Drug efficacy prediction in cell lines'. In the following, this document is referred to as Main Document (MD).
+	This document contains the Supplementary Material (SM) to the document `Drug
+	efficacy prediction in cell lines'. In the following, this document is
+	referred to as Main Document (MD).
 	
-	\section{Model}
-	\subsection{Simultaneous equations model}\label{sec:SEM}
-	We have continuous efficacy measures $y_{id}$ for cell lines $i=1,\dots, n$, 
-	from tissues $t=1, \dots, T$, on drugs $d=1,\dots,D$. Throughout this paper 
-	we assume the $y_{id}$ to be centred per drug and let $\y_d = \begin{bmatrix} 
-	y_{1d} & \dots & y_{nd} \end{bmatrix} \tr$. We predict efficacy with molecular
-	features $x_{ij}$, $j=1,\dots, p$, collected in 
-	$\x_i = \begin{bmatrix} x_{i1} & \dots & x_{ip} \end{bmatrix} \tr$. We have an
-	\textit{a priori} partitioning of the omics features into $g=1, \dots, G$ 
-	non-overlapping groups, which might be informative for the problem at hand For convenience, we let $g(j)$ denote the group index of molecular feature $j$. Furthermore, we have characteristics of the drugs available in the form of `co-data' $\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D \end{bmatrix} \tr$. We code the tissue from which the cell lines were taken as a $T$ binary dummy variables 
-	$$
-	z_{it} = \begin{cases}
-	1 & \text{if } \text{tissue}_i = t, \\
-	0 & \text{otherwise},
-	\end{cases}
-	$$
-	collected in $\mathbf{z}_i = \begin{bmatrix} z_{i1} & \dots & z_{iT} \end{bmatrix} \tr$.
-	
-	We assume that cell lines from the same tissue are related and model this relation through random effects $u_{td}$. We let the molecular feature effects $\beta_{jd}$ vary over the drugs and model drug efficacy as a linear combination of these two effects:
-	\begin{subequations}\label{eq:linearmodel}
-		\begin{align}
-		y_{id} & = \beta_{0d} + \sum_{j=1}^p x_{ij} \beta_{jd} + \sum_{t=1}^T z_{it} u_{td} + \epsilon_{id} \\
-		& = \beta_{0d} + \x_i \tr \bbeta_d + \mathbf{z}_i \tr \mathbf{u}_d + \epsilon_{id},\\
-		\text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
-		\end{align}
-	\end{subequations}
-	where $p$-dimensional $\bbeta_d$ and $T$-dimensional $\bm{u}_d$ are the drug-specific omics feature and tissue effect vectors, respectively. Note that (\ref{eq:linearmodel}) gives rise to a system of $d=1, \dots, D$ linear simultaneous equations.
-	
-	\subsection{Bayesian prior model}
-	We capture the uncertainty in the parameters through a Bayesian prior model. We assign a flat prior to the intercept terms $\beta_{0d}$ and integrate them out. The remaining parameters are endowed with the following priors:
-	\begin{subequations}\label{eq:prior}
-		\begin{align}
-		\beta_{jd} & \sim \mathcal{N}_p (0, \phi^2_{g(j)} \gamma_d^2 \sigma_d^2), \label{eq:betaprior}\\
-		\mathbf{u}_{d} & \sim \mathcal{N}_T (\mathbf{0}, \bm{\Xi}_d \sigma_d^2),
-		\end{align}
-	\end{subequations}
-	and hyper-priors:
-	\begin{subequations}\label{eq:hyperprior}
-		\begin{align}
-			\sigma_d^{2} & \sim 1/\sigma_d^{3} \\
-			\gamma_d^{2} & \sim \mathcal{IG}(\theta_d, \lambda), \\
-			\bm{\Xi}_d & \sim \mathcal{W}^{-1}_T(\bm{\Omega}, \nu),
-		\end{align}
-	\end{subequations}
-	where $\mathcal{IG}(\theta, \lambda)$ is an inverse Gaussian distribution with mean $\theta$ and shape $\lambda$, and $\mathcal{W}^{-1}_T(\bm{\Omega}, \nu)$ is an inverse Wishart distribution with $T \times T$-dimensional positive definite (PD) scale matrix $\bm{\Omega}$ and degrees of freedom $\nu$. Note that for $\nu > T + 1$, this inverse Wishart prior implies an expected prior covariance matrix $(\nu - T - 1)^{-1} \bm{\Omega}$ for the tissue effects, common to all drugs. Likewise, the molecular feature effects are related through the common hyper-prior for the $\gamma_d^2$.
-	
-	- Jeffrey's prior for variance $1/\sigma^{3/2}$ (a priori independent data mean and variance) or $1/\sigma^3$ (joint prior, but only mean and variance, not variance and betas).
-
-	A few remarks on the choice of priors are justified here: many authors endow error variance components with vague gamma priors. \cite{gelman_prior_2006}, among others, advises against this practice. The degree of `vagueness' has a large influence on the posterior, while degree of `vagueness' is a difficult parameter to set. This influence is especially pronounced if the likelihood is relatively flat, as may be reasonably expected in the large $p$, small $n$ setting we are in. We therefore model the error variance with Jeffrey's prior \cite[]{jeffreys_invariant_1946}. 
-	
-	Furthermore, we choose to model the $\gamma^2_d$ by an inverse Gaussian distribution, as has been suggested in \cite{fabrizi_specification_2016} and \cite{caron_sparse_2008}, because it allows to model the mean $\theta_d$ as a function of the drug covariates $\mathbf{c}_d$, as explained in Section \ref{sec:empiricalbayes}. 
-	
-	- IG hyperprior used in finance \cite[]{barndorff-nielsen_normal_1997}, where it is called the NIG prior.
-	
-	\section{Estimation}
-	\subsection{Variational Bayes}\label{sec:variationalbayes}
-	The posterior corresponding to the model described in (\ref{eq:linearmodel}), (\ref{eq:prior}), and (\ref{eq:hyperprior}) is not available in closed form. We therefore approximate the posterior by variational Bayes, where we force the posterior density $Q$ to factorise as:
-	\begin{align}\label{eq:variationalposterior}
-	p(\B,\mathbf{U},\mathbf{\sigma}^2, \bgamma^2,\bm{\Xi}_1, \dots, \bm{\Xi}_D) \approx Q(\cdot) = q(\B) \cdot q(\mathbf{U}) \cdot q(\mathbf{\sigma}^2) \cdot q(\bgamma^2) \cdot q(\bm{\Xi}_1, \dots, \bm{\Xi}_D),
-	\end{align}
-	where $\B = \begin{bmatrix} \bbeta_1 & \cdots & \bbeta_D \end{bmatrix}$ and $\U = \begin{bmatrix} \mathbf{u}_1 & \cdots & \mathbf{u}_D \end{bmatrix}$, are of dimensions $p \times D$ and $T \times D$, respectively. Under the factorisation in (\ref{eq:variationalposterior}), the marginal variational posteriors that minimise the Kullback-Leibler divergence of the true posterior to the variational Bayes approximation \cite[]{neal_view_1998}, are given by:
-	\begin{subequations}\label{eq:variationalposterior2}
-		\begin{align}
-		q_{\B} (\B) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_p (\bmu_d, \bSigma_d), \\
-		q_{\U}(\U) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_T (\mathbf{m}_d, \Sm_d), \\
-		q_{\bgamma^{2}}(\bgamma^{2}) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG} \(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_{d} \), \\
-		q_{\bsigma^{2}}(\bsigma^{2}) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + T + 1}{2}, \zeta_{d} \), \\
-		q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \overset{D}{\propto} \prod_{d=1}^D \mathcal{W}_T^{-1} (\bm{\Psi}_d, \nu + 1).
-		\end{align}
-	\end{subequations}
-	Here $\mathcal{GIG}(\cdot)$ and $\Gamma^{-1}(\cdot)$ denote the generalized inverse Gaussian and inverse gamma distributions, respectively. 
-	
-	
-	The parameters in (\ref{eq:variationalposterior2}) contain cyclic dependencies. We therefore iterate the following estimating equations until convergence to a local optimum:
-	\begin{align*}
-	\bSigma_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \left\{\X \tr \X + a_d^{(h)} \cdot \diag (\phi_{g(j)}^{-2}) \right\}^{-1}, \\
-	\bm{\mu}_d^{(h+1)} & = \left\{\X \tr \X + a_d^{(h)} \cdot \diag (\phi_{g(j)}^{-2}) \right\}^{-1} \X \tr ( \y_d - \Z \mathbf{m}_d^{(h)}), \\
-	\Sm_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \[ \Z \tr \Z + (\nu + 1) \cdot (\bm{\Psi}_d^{(h)})^{-1} \]^{-1}, \\
-	\mathbf{m}_d^{(h+1)} & = \[ \Z \tr \Z + (\nu + 1) \cdot (\bm{\Psi}_d^{(h)})^{-1} \]^{-1} \Z \tr (\y_d - \X \bm{\mu}_d^{(h)}), \\
-	\bm{\Psi}_d^{(h+1)} & = \frac{2\zeta_d^{(h)}}{n+p+T+1} \[ \Sm_d^{(h+1)} + \mathbf{m}_d^{(h+1)} (\mathbf{m}_d^{(h+1)}) \tr \] + \bm{\Omega}, \\
-	\delta_d^{(h+1)} & =  \frac{n+p+T+1}{2\zeta_d^{(h)}} \sum_{j=1}^p \frac{(\mu_{jd}^{(h+1)})^2 + (\bSigma_d^{(h+1)})_{jj}}{\phi^2_{g(j)}} + \lambda, \\
-	\zeta_d^{(h+1)} & = \frac{1}{2} \y_d \tr \y_d - \y_d \tr (\X \bmu_d^{(h+1)} + \Z \mathbf{m}_d^{(h+1)}) + (\bmu_d^{(h+1)}) \tr \X \tr \Z \mathbf{m}_d^{(h+1)} + \frac{1}{2} \trace (\X \tr \X \bSigma_d^{(h+1)}) \\
-	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} (\bmu_d^{(h+1)}) \tr \X \tr \X \bmu_d^{(h+1)} + \frac{1}{2} \trace (\Z \tr \Z \Sm_d^{(h+1)}) + \frac{1}{2} (\mathbf{m}_d^{(h+1)}) \tr \Z \tr \Z \mathbf{m}_d^{(h+1)} \\
-	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} a_d^{(h)} \sum_{j=1}^p \frac{(\mu_{jd}^{(h+1)})^2 + (\bSigma_d^{(h+1)})_{jj}}{\phi^2_{g(j)}} + \frac{1}{2} (\nu + 1) \cdot \trace \[ (\bm{\Psi}_d^{(h+1)})^{-1} \Sm_d^{(h+1)} \] \\
-	& \,\,\,\,\,\,\,\,\,\, + \frac{1}{2} (\nu + 1) \cdot (\mathbf{m}_d^{(h+1)}) \tr (\bm{\Psi}_d^{(h+1)})^{-1} \mathbf{m}_d^{(h+1)},
-	\end{align*}
-	where
-	$$
-	a_d^{(h)} = \sqrt{\frac{\lambda}{\theta^2_d \delta_d^{(h)}}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)}{K_{\frac{p+1}{2}} \( \sqrt{\lambda \delta_d^{(h)}}/\theta_d \)} + \frac{p+1}{\delta_d^{(h)}},
-	$$
-	and $K_{\alpha}(\cdot)$ is the modified Bessel function of the second kind.
-	
-	\subsection{Empirical Bayes}\label{sec:empiricalbayes}
-	A full Bayesian model requires the specification of hyper-parameters $\bm{\eta} = \begin{bmatrix} (\bm{\phi}^2) \tr & \bm{\theta} \tr & \lambda & \text{vec}(\bm{\Omega}) \tr & \nu \end{bmatrix} \tr$. These are abstract and hard to interpret parameters for which we generally lack expert knowledge. They do, however, have a significant influence on the shape of the posterior distribution. We therefore propose to estimate the unspecified hyper parameters $\bm{\eta}$ by empirical Bayes. Simply put, empirical Bayes fits the prior model to the data and is, as such, objective (up to model specification). 
-	
-	The canonical method for empirical Bayes is maximisation of the marginal likelihood with respect to the hyper parameters. In \cite{casella_empirical_2001} the marginal likelihood is maximised by an EM algorithm:
-	$$
-	\bm{\eta}^{(l+1)} = \underset{\bm{\eta}}{\argmax}\E_{\cdot | \Y} [\log p(\Y, \B, \U, \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bgamma^2, \bsigma^2) | \bm{\eta}^{(l)}],
-	$$
-	where the expectation is with respect to the posterior. In our case, this posterior is not available in closed form, which renders the expectation difficult. While \cite{casella_empirical_2001} suggests to approximate the expectation by a Monte Carlo sample, we propose to use the variational Bayes approximation developed in Section \ref{sec:variationalbayes}:
-	\begin{align}\label{eq:variationalbayes}
-	\bm{\eta}^{(l+1)} & = \underset{\bm{\eta}}{\argmax}\E_{Q^{(l)}} [\log p(\Y, \B, \U, \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bgamma^2, \bsigma^2)] \nonumber \\
-	& = \underset{\bm{\eta}}{\argmax} \E_{Q^{(l)}} [\log \pi (\B | \bgamma^2, \bsigma^2)] + \E_{Q^{(l)}} [\log \pi (\bgamma^2)] + \E_{Q^{(l)}} [\log \pi (\bm{\Xi}_1, \dots, \bm{\Xi}_D)].
-	\end{align}
-	where now the expectation is with respect to the converged variational posterior $Q^{(l)}$. Inspection of (\ref{eq:variationalbayes}) learns us that the problem may be decomposed into three separate optimisation problems.
-	
-	\subsubsection{Group-specific variance components}
-	The first sub-problem concerns the group-specific variance components of the molecular feature effects. In order to separate the overall variance of the molecular feature effects from the group-specific deviations, we impose $\prod_{g=1}^G (\phi_g^2)^{|\mathcal{G}_g|} = 1$. As a consequence, the overall level of shrinkage is determined by the $\gamma^2_d$, while the $\phi_g^2$ effectuate differential shrinkage of the groups. Because the $\phi_g^2$ are variance components, we additionally require $\phi^2_1, \dots, \phi^2_G> 0$, such that our first optimisation sub-problem becomes:
-	\begin{align*}
-	(\bm{\phi}^2)^{(l+1)} & = \underset{\bm{\phi}^2}{\argmax} \E_{Q^{(l)}} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
-	& = \underset{\bm{\phi}^2}{\argmax} -\frac{D}{2} \sum_{g=1}^G |\G_g| \log \phi_g^2 - \frac{1}{2} \sum_{g=1}^G b_g^{(l)} \phi_g^{-2} \\
-	& \text{subject to } \prod_{g=1}^G (\phi_g^2)^{|\G_g|} = 1 \text{ and } \phi^2_1, \dots, \phi^2_G> 0.
-	\end{align*}
-	where 
-	$$
-	b_g^{(l)}=\sum_{d=1}^D a_d^{(l)} \frac{n+p+T+1}{2\zeta_d^{(l)}} \sum_{j \in \mathcal{G}_g} \[ (\mu_{jd}^{(l)})^2 + (\bSigma_d^{(l)})_{jj} \].
-	$$
-	This is a convex optimisation problem and easily solved numerically.
-	
-	\subsubsection{Drug-specific variance components}
-	The second sub-problem concerns the prior for the drug-specific variance components $\gamma_d^2$. As explained in Section \ref{sec:SEM}, we may have `covariates' $\mathbf{c}_d$ on the drugs available. We conjecture that these covariates may be informative for the omics effect size and therefore model the prior mean of the $\gamma_d^2$ as a function of these covariates: $\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$. Then, the empirical Bayes estimation of $\bm{\alpha}$ effectively boils down to an inverse Gaussian regression of the $\gamma_d^{-2}$ on the $\mathbf{c}_d$ \cite[]{fries_optimal_1986,whitmore_regression_1983}. The problem may be formulated as:
-	% \begin{align*}\label{eq:optproblem2}
-	\begin{align*}
-	\lambda^{(l+1)}, \bm{\alpha}^{(l+1)} & = \underset{\lambda,\bm{\alpha}}{\argmax} \E_{Q^{(l)}} [\log \pi (\bgamma^2)] \\
-	& = \underset{\lambda,\bm{\alpha}}{\argmax} \frac{D}{2} \log \lambda - \frac{\lambda}{2} \bm{\alpha} \tr \mathbf{C} \tr \diag [\E_{Q^{(l)}}(\gamma_d^2)] \mathbf{C} \bm{\alpha} + \lambda \bm{\alpha} \tr \mathbf{C} \tr \mathbf{1} - \frac{\lambda}{2} \sum_{d=1}^D \E_{Q^{(l)}}(\gamma_d^{-2}),
-	\end{align*}
-	where $\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D \end{bmatrix} \tr$. The solutions to this problem are:
-	\begin{align*}
-	\bm{\alpha}^{(l+1)} & = \left\{ \mathbf{C} \tr \Vm^{(l)} \mathbf{C} \right\}^{-1} \mathbf{C} \tr \mathbf{1}, \\
-	\lambda^{(l+1)} & = \[ \sum_{d=1}^D a_d^{(l)} - (\bm{\alpha}^{(l+1)}) \tr \mathbf{C} \tr \mathbf{1} \]^{-1} D,
-	\end{align*}
-	where 
-	$$
-	\Vm^{(l)} = \diag \[ \sqrt{\frac{\delta_d^{(l)}(\theta_d^{(l)})^2}{\lambda^{(l)}}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta^{(l)}_d \)}{K_{\frac{p + 1}{2}} \( \sqrt{\lambda^{(l)} \delta_d^{(l)}}/\theta^{(l)}_d \)} \].
-	$$
-	
-	- Think about parametrisation of $\mathbf{C}$. Idea: use overall mean and deviations from it in alpha, such that the starting value can be the mean and 0 for alpha. Or: use intercept and code the rest as dummy variables.
-	
-	\subsubsection{Tissue effect covariance}
-	The third sub-problem pertains to the tissue effect covariance prior. To avoid overfitting when freely estimating the $\frac{T(T+1)}{2}$ elements in $\bm{\Omega}$ and $\nu$, we parametrise them as $\bm{\Omega}=  \tau [(\tau - \rho) \I_T + \rho \mathbf{1}_{T \times T}]$ and $\nu = \tau + T + 1$, respectively. The justification for this parametrisation is three-fold: (a) it implies an easy to interpret prior covariance matrix with $\tau$ on its diagonal and $\rho$ on its off-diagonals, (b) it reduces the number of parameters to  estimate to just two, and (c) simplifies the positive definite constraint on  $\bm{\Omega}$. To ensure positive definiteness and a proper covariance matrix, we impose the constraints $\tau > \max\[\rho - T \rho,\rho, 0\]$ (see Appendix \ref{app:priortissuecovariance}). The resulting third sub-problem is a bit more involved than the first two:
-	\begin{align*}
-	\tau^{(l + 1)}, \rho^{(l+1)} & = \underset{\tau, \rho}{\argmax} \frac{D (T^2 + T)}{2} \log \tau + \frac{DT}{2} \tau \log \tau + \frac{D(T+1)}{2} \log \[ \tau - (T - 1) \rho\] \\
-	& \,\,\,\,\,\,\,\,\,\, + \frac{D}{2} \tau \log \[ \tau - (T - 1) \rho\] + \frac{D(T^2 - 1)}{2} \log(\tau - \rho) +\frac{D(T - 1)}{2} \tau  \log(\tau - \rho) \\
-	& \,\,\,\,\,\,\,\,\,\, - D \sum_{t=1}^T \log \Gamma \( \frac{\tau + t + 1}{2} \) - w_1^{(l)} \tau^2 + w_2^{(l)} \tau \rho + w_3^{(l)} \tau, \\
-	& \text{subject to } \tau > \max\[\rho - T \rho,\rho, 0\],
-	\end{align*}
-	where
-	\begin{align*}
-	w_1^{(l)} & =  \frac{\tau^{(l)} + T + 2}{2} \sum_{d=1}^D \trace \[ (\bm{\Psi}_d^{(l)})^{-1}\] > 0,\\
-	w_2^{(l)} & = \frac{\tau^{(l)} + T + 2}{2} \sum_{d=1}^D \left\{\trace \[ (\bm{\Psi}_d^{(l)})^{-1}\] - \trace \[\mathbf{1}_{T \times T} \cdot (\bm{\Psi}_d^{(l)})^{-1}\] \right\} < w_1^{(l)},\\
-	w_3^{(l)} & = \frac{1}{2} \[D \sum_{t=1}^T \psi\(\frac{\tau^{(l)} + t + 2}{2}\) - \sum_{d=1}^D \log |\bm{\Psi}_d^{(l)}| \].
-	\end{align*}
-	
-	- use mathematica to check convexity
-	
-	- we use the ELBO for VB convergence and parameters for EB convergence
-	
-	- we might be lenient for VB convergence. The extreme case would be 1 VB 
-	iteration per EB iteration (corresponds to tolerance of infinity).
-	
-	\section{Prior tissue covariance constraints}\label{app:priortissuecovariance}
-		We parametrise the prior covariance as a matrix with $\tau$ on the diagonal and $\rho$ on its off-diagonals. To that end we set $\nu = \tau + T + 1$ and the $T \times T$-dimensional matrix
-		$$
-		\bm{\Omega} = \tau \begin{bmatrix}
-		\tau &  & \rho \\
-		& \ddots &  \\
-		\rho & & \tau
-		\end{bmatrix},
-		$$
-		such that $\E_{\pi(\mathbf{\Xi}_d)} (\mathbf{\Xi}_d) = (\nu - T - 1)^{-1} \bm{\Omega}$ is of the desired form. To ensure a non-degenerate prior distribution we require $\tau > 0$ and $\bm{\Omega}$ PD. We use $\tau > 0$ to note that a PD $\bm{\Omega}$ implies positive roots $\lambda$ of the characteristic polynomial:
-		\begin{align*}
-		\left| \begin{bmatrix}
-		\tau &  & \rho \\
-		& \ddots &  \\
-		\rho & & \tau
-		\end{bmatrix} -\lambda \I_T \right| = (\tau - \lambda - \rho)^{T-1}[\tau - \lambda - (1-T)\rho] = 0.
-		\end{align*}
-		For $T > 1$, the solutions are:
-		$$
-		(\lambda = \tau - \rho) \lor (\lambda = T \rho - \rho + \tau),
-		$$
-		which are positive if the following condition holds: $\tau > \max(\rho,\rho - T \rho)$. We combine this with $\tau > 0$, to arrive at the full proper prior constraint: $\tau > \max(0,\rho,\rho - T \rho)$. 
-	
-	\section{Variational Bayes derivations}\label{sec:vbderivations}
-	In the following all expectations are with respect to the variational posterior $Q$.
-	\begin{align*}
-	\log q_{\B} (\B) & \propto \E_{\mathbf{U}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\bgamma^2, \bsigma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
-	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\mathbf{u}_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E_{\gamma^2_d, \sigma^2_d} \( \frac{\beta_{jd}^2}{\gamma_d^2 \sigma_d^2} \), \\
-	q_{\B} (\B) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_p (\bmu_d, \bSigma_d), \\
-	& \text{ with } \bSigma_d = \E(\sigma_d^{-2})^{-1} [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1}, \\
-	& \text{ and } \bmu_d = [\X \tr \X + \E(\gamma_d^{-2}) \cdot \diag (\phi_{g(j)}^{-2}) ]^{-1} \X \tr [\y_d - \Z \cdot \E(\mathbf{u}_d)].
-	\end{align*}
-	
-	\begin{align*}
-	\log q_{\U}(\U) & \propto \E_{\mathbf{B}, \bsigma^2} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2} [\log \pi (\U | \mathbf{\Xi}_1, \dots, \mathbf{\Xi}_D, \bsigma^2)] \\
-	& \propto - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E_{\bbeta_d, \sigma_d^2} \[ \frac{(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2}{\sigma_d^2} \] - \frac{1}{2} \sum_{d=1}^D \E_{\bm{\Xi}_d, \sigma_d^2}\( \frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \), \\
-	q_{\U}(\U) & \overset{D}{=} \prod_{d=1}^{D} \mathcal{N}_T (\mathbf{m}_d, \Sm_d), \\
-	& \text{ with } \Sm_d = \E(\sigma_d^{-2})^{-1} [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1}, \\
-	& \text{ and } \mathbf{m}_d = [\Z \tr \Z + \E(\bm{\Xi}_d^{-1}) ]^{-1} \Z \tr [\y_d - \X \cdot \E(\bbeta_d)].
-	\end{align*}
-	
-	\begin{align*}
-	\log q_{\bgamma^{2}}(\bgamma^{2}) & \propto \E_{\B, \bsigma^2} [\log \pi (\B | \bgamma^{2}, \sigma^2)] + \log \pi (\bgamma^{2}) \\
-	& \propto -\frac{p}{2} \sum_{d=1}^D \log \gamma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \phi_{g(j)}^{-2} \E \( \frac{\beta_{jd}^2}{\sigma^{2}_d}\) \gamma_d^{-2} - \frac{3}{2} \sum_{d=1}^D \log \gamma_d^{2} \\
-	& \,\,\,\,\,\,\,\,\,\, - \frac{\lambda}{2 \theta^2} \sum_{d=1}^D (\gamma_d^2 - \theta)^2 \gamma_d^{-2} \\
-	& \propto \sum_{d=1}^D \left\{ \( -\frac{p + 1}{2} - 1\) \log \gamma_d^{2} - \frac{\lambda}{2\theta^2} \gamma_d^2 - \frac{1}{2}\[ \lambda + \E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^{2}}\] \gamma_d^{-2} \right\}, \\
-	q_{\bgamma^{2}}(\bgamma^{2}) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG} \(-\frac{p+1}{2}, \frac{\lambda}{\theta_d^2}, \delta_{d} \), \\
-	& \text{with } \delta_{d} =\E(\sigma_d^{-2}) \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} + \lambda.
-	\end{align*}
-	
-	\begin{align*}
-	\log q_{\bsigma^{2}}(\bsigma^{2}) & \propto \E_{\B,\mathbf{U}} [\log \mathcal{L}(\Y | \B, \U, \bsigma^2 )] + \E_{\B, \bgamma^2} [\log \pi (\B | \bgamma^2, \bsigma^2)] \\
-	& \,\,\,\,\,\,\,\,\,\, + \E_{\mathbf{U}, \bm{\Xi}_1, \dots, \bm{\Xi}_D} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bsigma^{2}) \\
-	& \propto -\frac{n}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \sigma_d^{2} - \frac{p}{2} \sum_{d=1}^D \log \sigma_d^{-2} \\
-	& \,\,\,\,\,\,\,\,\,\, - \frac{1}{2} \sum_{d=1}^D \sum_{j=1}^p \E( \gamma_d^{-2}) \frac{\E ( \beta_{jd}^2)}{\phi_{g(j)}^{2}} \sigma_d^{-2} - \frac{T}{2} \sum_{d=1}^D \log \sigma_d^{2} - \frac{1}{2} \sum_{d=1}^D \E(\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}) \sigma_d^{-2} \\
-	& \,\,\,\,\,\,\,\,\,\, - \frac{3}{2} \sum_{d=1}^D \log \sigma^2_d \\
-	& = -\sum_{d=1}^{D} \(\frac{n + p + T + 3}{2} \) \log \sigma_d^{2} - \sum_{d=1}^{D} \frac{1}{2}\Bigg\{ \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d - \mathbf{z}_i \tr \mathbf{u}_d)^2] \\
-	& \,\,\,\,\,\,\,\,\,\, + \E(\gamma_d^{-2})\sum_{j=1}^p \frac{\E(\beta_{jd}^2)}{\phi_{g(j)}^2} + \E(\mathbf{u}_{d} \tr \bm{\Xi}_d^{-1} \mathbf{u}_d) \Bigg\} \sigma_d^{-2}, \\
-	q_{\bsigma^{2}}(\bsigma^{2}) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + T + 1}{2}, \zeta_{d} \), \\
-	& \text{ with } \zeta_{d} = \frac{\y_d \tr \y_d}{2} - \y_d \tr [\X \E(\bbeta_d) + \Z \E(\mathbf{u}_d)] + \E(\bbeta_d \tr) \X \tr \Z \E (\mathbf{u}_d) \\
-	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\trace [\X \tr \X \V(\bbeta_d)]}{2} + \frac{\E(\bbeta_d \tr) \X \tr \X \E(\bbeta_d)}{2} + \frac{\trace [\Z \tr \Z \V(\mathbf{u}_d)]}{2} \\
-	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{\E(\mathbf{u}_d \tr) \Z \tr \Z \E(\mathbf{u}_d)}{2} + \frac{\E(\gamma_d^{-2})}{2} \sum_{j=1}^p \frac{\E(\beta_{jd})^2 + \V(\beta_{jd})}{\phi_{g(j)}^2} \\
-	& \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,+ \frac{\E(\mathbf{u}_d \tr) \E(\bm{\Xi}_d^{-1}) \E(\mathbf{u}_d)}{2} + \frac{\trace [\E(\bm{\Xi}_d^{-1}) \V(\mathbf{u}_d)]}{2},
-	\end{align*}
-	
-	\begin{align*}
-	\log q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \propto \E_{\mathbf{U}, \bm{\sigma}^2} [\log \pi (\mathbf{U} | \bm{\Xi}_1, \dots, \bm{\Xi}_D, \bsigma^2)] + \log \pi (\bm{\Xi}_1, \dots, \bm{\Xi}_D) \\
-	& \propto -\frac{1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \E \(\frac{\mathbf{u}_d \tr \bm{\Xi}_d^{-1} \mathbf{u}_d}{\sigma_d^2} \) \\
-	& \,\,\,\,\,\,\,\,\,\, - \frac{k + T + 1}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace (\bm{\Omega} \bm{\Xi}_d^{-1}) \\
-	& = -\frac{\tau + T + 2}{2} \sum_{d=1}^D \log |\bm{\Xi}_d| - \frac{1}{2} \sum_{d=1}^D \trace \left\{ \[\E(\sigma_d^{-2}) \E( \mathbf{u}_d \mathbf{u}_d \tr) + \bm{\Omega}\] \bm{\Xi}_d^{-1} \right\}, \\
-	q_{\bm{\Xi}_1, \dots, \bm{\Xi}_D}(\bm{\Xi}_1, \dots, \bm{\Xi}_D) & \overset{D}{\propto} \prod_{d=1}^D \mathcal{W}_T^{-1} (\bm{\Psi}_d, \nu + 1),  \\ 
-	& \text{ with } \bm{\Psi}_d =\E(\sigma^{-2}_d) \[\V(\mathbf{u}_d) + \E(\mathbf{u}_d) \E( \mathbf{u}_d \tr) \] + \bm{\Omega}.
-	\end{align*}
-	
-	\section{Simulations}
-	\subsection{Models}
-	In order to investigate the inverse Gaussian prior model and its estimation, we consider a simpler model. The simpler model ignores tissue effects and fixes $\forall g: \phi_g^2=1$:
-	\begin{align*}
-  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
-  \beta_{jd} | \gamma_d^2, \sigma_d^2 & \sim p(\beta_{jd}), \\
-  \gamma_d^2 & \sim p(\gamma_d^2), \\
-  \sigma_d^2 & \sim 1/\sigma_d^3.
-  \end{align*}
-  
-  \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ and $\sigma_d^2$ should be independent \textit{a priori}. However, in our case that is debatable. The $D$ regressions need not be on the same scale, so some form of calibration of the $\bm{\beta}_d$ posteriors to this scale is required. A simple way of doing this is to include the scales $\sigma_d^2$ in the priors for the $\bm{\beta}_d$. We call the two versions of the model conjugate (with $\bm{\beta}_d$ and $\sigma_d^2$ dependent \textit{a priori}):
+	\section{Unpenalized covariates}
+  Inclusion of an intercept $\beta_0$ and other unpenalized covariates is 
+  achieved by letting $\X = \begin{bmatrix}\X_u & 
+  \X_r\end{bmatrix}$, where $\X_u$ are the $u$
+  unpenalized variables (possibly with a column of ones if an intercept is
+  to be included) and $\X_r$ are the $r$ penalized variables. 
+  Additionally, we let 
   $$
-  \beta_{jd} | \gamma_d^2, \sigma_d^2 \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2)
+  \mathbf{H} = 
+  \begin{bmatrix}
+  \mathbf{0}_{u \times u} & \mathbf{0}_{u \times r} \\
+  \mathbf{0}_{r \times u} & \diag[\E(\gamma_{jd}^{-2})]. \\
+  \end{bmatrix}
   $$
-  and non-conjugate (with $\bm{\beta}_d$ and $\sigma_d^2$ independent \textit{a priori}):
-  $$
-  \beta_{jd} | \gamma_d^2, \sigma_d^2 \sim \beta_{jd} | \gamma_d^2 \sim \mathcal{N} (0, \gamma_d^2),
-  $$
-  and compare them in our simulations.
-	
-	In addition to the inverse Gaussian model for the prior variances $\gamma_d^2$ (introduced in the MD):
-	$$
-  \gamma_d^2 \sim \mathcal{IG}(\theta_d, \lambda_d),
-  $$
-	we investigate a generalisation of the models in \cite{kpogbezan_empirical_2017} and \cite{leday_gene_2017}, where we draw the $\gamma_d^2$ from an inverse Gamma distribution:
-	$$
-	\gamma_d^2 \sim \Gamma^{-1}(\eta_d/2, \lambda_d/2),
-	$$
-	with shape $\eta_d/2$ and scale $\lambda/2$. For the sake of comparability, we
-	have rescaled the inverse Gamma parameters and reparametrised both 
-	distributions as generalized inverse Gaussians:
-	\begin{align*}
-  \gamma_d^2 & \sim \mathcal{GIG}(-1/2, \lambda_d \theta_d^{-2}, \lambda_d), \\
-  \gamma_d^2 & \sim \mathcal{GIG}(-\eta_d/2, 0, \lambda_d).
-  \end{align*}
-	The two models coincide if $\theta_d \to \infty$ and $\eta_d = 1$.
-	
-<<dens_igaussian_igamma, fig.cap="Several densities of the inverse Gaussian and inverse Gamma families", out.width="100%", fig.asp=2/3>>=
-digauss <- function(x, theta, lambda, eta) {
-  sqrt(lambda/(x^3*2*pi))*exp(-lambda*(x - theta)^2/(2*theta^2*x))
-}
-
-digamma <- function(x, theta, lambda, eta) {
-  alpha <- eta/2
-  beta <- lambda/2
-  beta^alpha/gamma(alpha)*x^(-alpha - 1)*exp(-beta/x)
-}
-
-eta <- c(1, 2, 1, 1, 5)
-lambda <- c(1, 1, 2, 1/2, 2)
-theta <- c(1000, 1000, 1, 1, 1)
-
-labels <- c("inv. Gaussian", "inv. Gamma")
-col <- c(1, 2)
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(c(1, 1, 2, 2, 3, 3), 2), rep(c(0, 4, 4, 5, 5, 0), 2)),
-                 nrow=4, ncol=6, byrow=TRUE))
-for(i in 1:length(eta)) {
-  modes <- c(theta[i]*(sqrt(1 + 9*theta[i]^2/
-                            (4*lambda[i]^2)) - 3*theta[i]/(2*lambda[i])),
-             lambda[i]/(eta[i] + 2))
-  ylim <- c(0, max(digauss(modes[1], theta[i], lambda[i], eta[i]),
-                   digamma(modes[2], theta[i], lambda[i], eta[i])))
-  curve(digauss(x, theta[i], lambda[i], eta[i]), 0.001, 5, n=1000,
-        ylim=ylim, ylab="Density", "x", col=col[1], 
-        main=bquote(eta==.(eta[i])*","~lambda==.(lambda[i])*","~theta==.(
-          theta[i])))
-  curve(digamma(x, theta[i], lambda[i], eta[i]), add=TRUE, 
-        col=col[2], n=1000)
-}
-legend("topright", legend=labels, lty=1, col=col, seg.len=1)
-par(opar)
-@
-
-<<dens_igaussian_marginalbeta, fig.cap="Marginal $p(\\beta_j)$ prior for several choices of $p(\\gamma^2_j)$ scaled to $\\V(\\beta_j)=1$.", out.width="60%", fig.asp=1>>=
-library(GeneralizedHyperbolic)
-# all scaled such that variance is one
-sigma <- 1
-theta <- 1/sigma^2
-lambda <- c(0.1, 2)
-lambda1 <- sqrt(2)
-col <- c(1:4)
-lty <- c(1:4)
-labels <- as.expression(c(bquote("IG, "~lambda==.(lambda[1])~", "~
-                                   theta==.(theta)),
-                          bquote("IG, "~lambda==.(lambda[2])~", "~
-                                   theta==.(theta)),
-                          "Point mass (ridge)", "Exponential (lasso)"))
-dprior <- function(x, lambda, theta, sigma) {
-  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
-}
-dlasso <- function(x, lambda1) {
-  0.5*lambda1*exp(-lambda1*abs(x))
-}
-
-curve(dprior(x, lambda[1], theta, sigma), -3, 3, ylab="Density", n=1000, 
-      col=col[1], lty=lty[1])
-curve(dprior(x, lambda[2], theta, sigma), add=TRUE, n=1000, 
-      col=col[2], lty=lty[2])
-curve(dnorm(x, 0, 1), add=TRUE, n=1000, col=col[3], lty=lty[3])
-curve(dlasso(x, lambda1), add=TRUE, n=1000, col=col[4], lty=lty[4])
-legend("topright", legend=labels, col=col, lty=lty)
-@
-	
-	\subsection{Estimation}
-	The variational distributions are as follows:
-	\begin{align*}
-  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
-  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+\eta_d}{2}, \lambda_d \theta_d^{-2}, \delta_d\), \\
-  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{df + 1}{2}, \zeta_d\),
-  \end{align*}
-	where $\eta_d=1$ and $\theta_d \to \infty$ in the inverse Gaussian and inverse Gamma models, respectively. Furthermore, $df=n + p$ in the conjugate model and $df=n$ in the non-conjugate model. The variational parameters contain cyclic dependencies and are, in the conjugate setting, iteratively updated by:
-  \begin{align*}
-  \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} (\X \tr \X + c_d^{(h)} \I)^{-1}, \\
-  \bm{\mu}_d^{(h+1)} & = (\X \tr \X + c_d^{(h)} \I)^{-1} \X \tr \y_d, \\
-  \delta_d^{(h+1)} & = b_d^{(h)} (c_d^{(h)})^{-1} \bmu_d \tr \bmu_d + \lambda_d, \\ 
-  \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
-  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + \frac{b_d^{(h+1)} - c_d^{(h+1)} a_d^{(h+1)}}{1 - a_d^{(h+1)}} \trace ( \bm{\Sigma}_d^{(h+1)}) + \frac{b_d^{(h+1)} - c_d^{(h+1)} a_d^{(h+1)}}{1 - a_d^{(h+1)}} (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)}\bigg].
-  \end{align*}
-  Here, we set
-  \begin{align}
-  a_d^{(h)} & =\E_{Q^{(h)}}(\sigma_d^{-2})=(df+1)/(2 \zeta_d^{(h)}), \nonumber \\
-  b_d^{(h)} & = \E_{Q^{(h)}}(\gamma_d^{-2}) = \sqrt{\frac{\lambda_d}{\theta_d^2 \delta_d^{(h)}}} \frac{K_{\frac{p + \eta_d -2}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)}{K_{\frac{p+\eta_d}{2}} \( \sqrt{\lambda_d \delta_d^{(h)}}/\theta_d \)} + \frac{p+\eta_d^{(h)}}{\delta_d^{(h)}}, \label{eq:auxvar1} \\
-  c_d^{(h)} & = \begin{cases*}
-  b_d^{(h)} & in the conjugate setting \\
-  b_d^{(h)}/a_d^{(h)} & in the non-conjugate setting .
-  \end{cases*} \nonumber
+  Then,
+  \begin{align}\label{eq:unpencov}
+    \bSigma &= \E(\sigma_d^{-2})^{-1}\(\X \X + \mathbf{H} \)^{-1} \nonumber \\
+    & = 
+    \E(\sigma_d^{-2})^{-1}\begin{bmatrix} 
+      \X_u \tr \X_u & \X_u \tr \X_r \\
+      \X_r \tr \X_u & \X_r \tr \X_r + \diag[\E(\gamma_{jd}^{-2})]
+    \end{bmatrix}^{-1}.
   \end{align}
-  Note that in the inverse Gamma model, the computation of (\ref{eq:auxvar1}) simplifies to $b_d^{(h)}=(p+\eta_d)/\delta_d^{(h)}$.
+  With the choice of blocks as in (\ref{eq:unpencov}), blockwise inversion
+  renders the largest required matrix inverse $(\X_r \tr \bOmega \X_r +
+  \diag[\E(\gamma_{jd}^{-2})])^{-1}$, of dimension 
+  $r \times r$. Inversion of this matrix is done efficiently by applying the
+  Woodbury matrix identity.
   
-  \subsection{Empirical Bayes}
-  To avoid subjectivity in our choice of prior, we estimate the hyper-parameters with empirical Bayes. The empirical Bayes procedure differs for the two prior models. In the inverse Gaussian case, we parametrise $\theta_d = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ to allow for the inclusion of drug covariates in the empirical Bayes estimation. The estimating equations are:
-  \begin{align*}
-  \bm{\alpha} & = \[ \mathbf{C} \tr \diag (\lambda_d e_d^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \diag (\lambda_d) \mathbf{1}_{D \times 1}, \\
-  \lambda_d & = \[ b_d^{(l)} + e_d^{(l)} (\mathbf{c}_d \tr \bm{\alpha})^2 - 2\mathbf{c}_d \tr \bm{\alpha} \]^{-1},
-  \end{align*}
-  where $e_d^{(l)} = \E_{Q^{(l)}}(\gamma_d^2) = [b_d^{(l)} - (p + \eta_d^{(h)})/\delta_d^{(l)})] \cdot \delta_d^{(l)} (\theta_d^{(h)})^2/\lambda_d^{(l)}$. Solving the equations is done by iteratively reweighted least squares of responses $(e_d^{(l)})^{-1}$ on predictors $\mathbf{c}_d$ with weights $\lambda_d e_d^{(l)}$. If we use one common $\lambda=\lambda_d$ then the solution is in closed form:
-  \begin{align*}
-	\bm{\alpha}^{(l+1)} & = \[ \mathbf{C} \tr \diag(e_d^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \mathbf{1}_{D \times 1}, \\
-	\lambda^{(l+1)} & = \[ \sum_{d=1}^D b_d^{(l)} - (\bm{\alpha}^{(l+1)}) \tr \mathbf{C} \tr \mathbf{1} \]^{-1} D.
-	\end{align*}
-	This corresponds to the model in the MD.
-	
-  In the inverse Gamma model we use the following empirical Bayes procedure: Suppose we have a partitioning of our drugs into drug classes and we let prior variance components $\gamma_d^2$ and $\gamma^2_{d'}$ be drawn from the same distribution if drug $d$ and drug $d'$ are from the same class. Or simply put: $\gamma^2_{d}, \gamma^2_{d'} \sim \Gamma^{-1}(\eta_c/2, \lambda_c/2)$ if $d, d' \in \text{class}_c$. Empirical bayes estimation of the $\eta_c$ and $\lambda_c$ by maximisation of the (approximated) marginal likelihood amounts to iteratively solving the estimating equations:
-  \begin{subequations}
-    \begin{align}
-      \psi\(\frac{\eta_c}{2}\) & = \log \lambda_c - \frac{\sum_{d \in \text{class}_c} e^{(l)}_d}{|\text{class}_c|} - \log 2, \label{eq:estequation1}\\
-      \lambda_c & = \eta_c \cdot |\text{class}_c| \cdot \(\sum_{d \in \text{class}_c} b_d^{(l)}\)^{-1}, \label{eq:estequation2}
-    \end{align}
-  \end{subequations}
-  until convergence, where $e^{(l)}_d = \E_{Q^{(l)}}(\log \gamma_d^2) = \log \delta_d^{(l)} - \psi [ (p + \eta_d^{(l)})/2] - \log 2$. 
-  We propose to do that by first solving (\ref{eq:estequation2}) for $\lambda_c$, plugging it into (\ref{eq:estequation1}) and bounding the result using \cite{alzer_inequalities_1997} to obtain an interval $( \eta_c^*, 2\eta_c^* )$ containing the solution to (\ref{eq:estequation1}), where:
-  $$
-  \eta_c^* = \left\{ \frac{\sum_{d \in \text{class}_c} e^{(l)}_d}{|\text{class}_c|} + \log \[ \frac{\sum_{d \in \text{class}_c} b_d^{(l)}}{|\text{class}_c|} \]  \right\}^{-1}.
-  $$
-  With this interval it is straightforward to find $\alpha^{(l+1)}_c$ by any root-finding algorithm and plugging the solution into (\ref{eq:estequation2}) to find $\lambda^{(l+1)}_c$. We may use $\eta_c^*$ as a starting value.
-	
-	The inverse Gamma model with independent drug classes allows for more flexible empirical Bayes estimation of the prior means for the different drug classes. As a consequence however, the risk of overfitting is increased. Additionally, it does not allow to include continuous covariates on the drugs.
-	
-	\subsection{Evidence lower bound}
-	We monitor convergence through the evidence lower bound (ELBO). To compute the evidence lower bound after updating the EB parameters from $\eta_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}$ to $\eta_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$, we compute $\text{ELBO}^{(l + 1)} = \sum_{d=1}^D \text{ELBO}_d^{(l + 1)}$, with, in the inverse Gaussian case:
-	\begin{align*}
-	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
-	& + \frac{b_d^{(l)}}{2} \[ \delta_d^{(l)} - (a_d^{(l)} + 1 - b_d^{(l)}/c_d^{(l)})(\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - (a_d^{(l)} + 1 - b_d^{(l)}/c_d^{(l)}) \trace (\bm{\Sigma}_d^{(l)}) \] \\
-	& - \frac{df + 1}{2} \log \zeta_d^{(l)} + \frac{p + 1}{4} \log \lambda_d^{(l)} - \frac{p + 1}{2} \log \theta_d^{(l)} - \frac{p+1}{4} \log \delta_d^{(l)} \\
-	& + \log K_{\frac{p+1}{2}}\(\sqrt{\lambda_d^{(l)} \delta_d^{(l)}}/\theta_d^{(l)}\) + \frac{\lambda_d^{(l)} e_d^{(l)}}{2(\theta_d^{(l)})^2} \\
-	& + \frac{\lambda_d^{(l+1)}}{\theta_d^{(l+1)}} + \frac{1}{2}\log \lambda_d^{(l+1)} - \frac{\lambda_d^{(l+1)} e_d^{(l)}}{2 (\theta_d^{(l + 1)})^2} - \frac{\lambda_d^{(l + 1)} b_d^{(l)}}{2}.
-	\end{align*}
-	
-	In the inverse Gamma setting, we have:
-	\begin{align*}
-	\text{ELBO}_d^{(l + 1)} & = \frac{1}{2} \log |\bm{\Sigma}_d^{(l)}| - \frac{a_d^{(l)}}{2} \[ \y_d \tr \y_d - 2\y_d \tr \X \bm{\mu}_d^{(l)} + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} + \trace ( \X \tr \X \bm{\Sigma}_d^{(l)})\] \\
-	& + \frac{b_d^{(l)}}{2} \[ \delta_d^{(l)} - (a_d^{(l)} + 1 - b_d^{(l)}/c_d^{(l)})(\bm{\mu}_d^{(l)}) \tr \bm{\mu}_d^{(l)} - (a_d^{(l)} + 1 - b_d^{(l)}/c_d^{(l)}) \trace (\bm{\Sigma}_d^{(l)}) \]  \\
-	& - \frac{df + 1}{2} \log \zeta_d^{(l)} - \frac{p + \eta_d^{(l)}}{2} \log \delta_d^{(l)} + \frac{\eta_d^{(l)}}{2} e_d^{(l)} + \frac{\eta_d^{(l)}}{2} \log 2 + \log \Gamma \( \frac{p + \eta_d^{(l)}}{2} \) \\
-	& - \log \Gamma \( \frac{\eta_d^{(l + 1)}}{2} \) - \frac{\eta_d^{(l+1)}}{2} e_d^{(l)} - \frac{\eta_d^{(l+1)}}{2} \log 2 + \frac{\eta_d^{(l + 1)}}{2} \log \lambda_d^{(l+1)} - \frac{\lambda_d^{(l + 1)} b_d^{(l)}}{2}.
-	\end{align*}
-  Note that the computation of $e_d^{(l)}$ differs between the inverse Gaussian and Gamma models. Furthermore, to compute the ELBO after a VB update we simply let $\eta_d^{(l)}, \theta_d^{(l)}, \lambda_d^{(l)}=\eta_d^{(l + 1)}, \theta_d^{(l + 1)}, \lambda_d^{(l + 1)}$. 
-  
-  In practice, there are different options to assess convergence. We may monitor the parameters themselves, the ELBO, or a combination of the two. We may also iterate for an \textit{a priori} fixed number of times. We may also choose to use a different convergence criterium for the EB and VB iterations. Currently we fix the number of EB iterations to 20, while we do 2 VB iterations per EB iteration.
-  
-  \subsection{Efficient computation}
-  The empirical Bayes updates require the following quantities: $\zeta_d$, $a_d$, $\delta_d$, $\trace (\bm{\Sigma}_d)$, $\trace (\X \tr \X \bm{\Sigma}_d)$, $\bm{\mu}_d \tr \bm{\mu}_d$, and $\bm{\mu}_d \tr \X \tr \X \bm{\mu}_d$. In addition, we need $\log|\bm{\Sigma}|$ and $\mathbf{y}_d \tr \X \bm{\mu}_d$ to monitor the ELBO. The first three quantities are obtained by scalar operations of $\mathcal{O}(n)$. Let $c_d^{(h)}=b_d^{(h)}$ in the conjugate setting and $c_d^{(h)}=b_d^{(h)}/a_d^{(h)}$ in the non-conjugate setting. Then, beforementioned quantities are easily calculated using the SVD $\X = \mathbf{U} \mathbf{D} \mathbf{V} \tr$:
-  \begin{align*}
-  \trace (\bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \[\sum_{i=1}^n (v_i^2 + c_d^{(h)})^{-1} + \max (p - n, 0)\cdot (c_d^{(h)})^{-1}\], \\
-  \trace (\X \tr \X \bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} \sum_{i=1}^n v_i^2(v_i^2 + c_d^{(h)})^{-1}, \\
-  (\bm{\mu}_d^{(h+1)}) \tr \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)})^2, \\
-  (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^4 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)})^2, \\
-  \log|\bm{\Sigma}^{(h+1)}| & \propto -p \log a_d^{(h)} - \sum_{i=1} \log (v_i^2 + c_d^{(h)}) - \max(p - n, 0) \cdot \log c_d^{(h)}, \\
-  \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} & = \sum_{i=1}^n v_i^2 [(\mathbf{U} \tr \mathbf{y}_d)_i]^2/(v_i^2 + c_d^{(h)}).
-  \end{align*}
-  where $v_i$ are the singular values of $\X$. The SVD and $\mathbf{U} \tr \mathbf{y}_d$ are $\mathcal{O}(pn^2)$ and $\mathcal{O}(n^2)$ operations, respectively, but have to be calculated only once at the start of the algorithm. The rest of the calculations involve just $n$ scalar multiplications and/or additions. 
-  
-  \section{Simulation setting}
-  - check model with Stan.
-  
-  - make one group of drugs and compare methods
-  
-  - use drug-specific lambda's 
-  
-  - try smaller $p$ to see whether $\sigma_d^2$ become more identifiable.
-  
-  - scale-invariant instead of conjugate.   
-  
-  We simulate from a correctly specified model given in \ref{sec:notissuemodel}. We assume random $y_{id}$, $\x_i$, and $\bm{\beta}_d$, while we fix $\mathbf{C}$, $\gamma_d^2$, $\sigma_d^2$ and $\bm{\alpha}$. We estimate the $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, $\bm{\alpha}$ and $\lambda$, while we fix the $\sigma_d^2$ to their true values.
-  
-  We set $n=100$, $p=200$, and $D=10$. We consider 5 evenly sized classes of drugs, such that $\mathbf{c}_{kd} = \mathbbm{1}(k = \text{class}_d)$ and $\begin{bmatrix} \mathbf{c}_1 & \cdots & \mathbf{c}_D \end{bmatrix} \tr$. From these the $\gamma_d^2 = (\mathbf{c}_d \tr \bm{\alpha})^{-1}$ are created. Next, we simulate $\bm{\beta}_{jd} \sim \mathcal{N} (0, \sigma^2_d \gamma_d^2)$. We fix the mean signal-to noise ratio $\overline{\text{SNR}}_d$, such that the predictor data variance is $s^2 = \V(\mathbf{x}_i) = \overline{\text{SNR}}_d / (\overline{\gamma^2_d} p)$ (NOT CORRECT). The last step consists of simulating the data by $\mathbf{x}_{ij} \sim \mathcal{N}(0,s^2)$ and $y_{id} = \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, \sigma_d^2)$. The remaining parameters are set as follows: $\bm{\alpha} = \begin{bmatrix} 1 & \dots & 5 \end{bmatrix} \tr$, $\sigma_d^2 = 1$ for all $d$, and $\overline{\text{SNR}}_d = 10$. To account for the random data and parameter generation, we repeat the simulation 100 times. We compare the results to the models in \ref{sec:indvarmodel} and \ref{sec:invgammamodel}, and present the results in Figures \ref{fig:boxplot_igaussian_res1_prior_mean}-\ref{fig:boxplot_igaussian_res2_prior_mean}.
-
-<<boxplot_igaussian_res1_prior_mean, fig.cap="Prior mean estimates", out.width="80%", fig.asp=2/3>>=
-@
-
-<<boxplot_igaussian_res2_prior_mean, fig.cap="Prior mean estimates", out.width="80%", fig.asp=2/3>>=
-@
-
   \section{Starting values}
   \subsection{Method 1}
   Starting value for $\sigma_d^2$ as in \cite{chipman_bart:_2010}. They consider a scaled-Chi squared distribution for the error variance with degrees of freedom 3 and scale chosen such that the $q*100$th percentile matches the error variance in the data $s^2(\mathbf{y}_d)$. As starting value for $\sigma_d^2$ we take the mode of this distribution: $\hat{\sigma}_d^2 = 3a/5$, with $a$ the solution to:
@@ -603,66 +192,6 @@ legend("topright", legend=labels, col=col, lty=lty)
   $$
   \hat{\zeta} = \frac{D(n + p + 1)}{2 \sum_{d=1}^D[(\hat{\sigma}_d^2)^{-1}]}.
   $$
-  
-  \section{Ratios of modified Bessel functions}
-  Ratios of modified Bessel functions of the second kind $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be large, this causes numerical issues in the calculation of various quantities. We alleviate the numerical issues through the following.
-  
-  We let $n_1=p/2$ and $n_2=(p-1)/2$ and use the well-known recursive relation:
-  $$
-  K_{\alpha}(x) = K_{\alpha - 2}(x) + \frac{2(\alpha - 1)}{2} K_{\alpha- 1}(x),
-  $$
-  to rewrite the ratio:
-  \begin{align*}
-  \frac{K_{\frac{p - 1}{2}}(x)}{K_{\frac{p + 1}{2}}(x)} = 
-  \begin{cases}
-  \Big( \dots \Big( \( 1 + \frac{2 \cdot 1 - 1}{x} \)^{-1} + \frac{2 \cdot 2-1}{x}\Big)^{-1} + \dots + \frac{2 \cdot n_1 - 1}{x}\Big)^{-1}, & \text{for } p \text{ even}, \\
-  \Big( \dots \Big( \( \frac{K_0(x)}{K_1(x)} + \frac{2}{x} \cdot 1 \)^{-1} + \frac{2}{x} \cdot 2 \Big)^{-1} + \dots + \frac{2}{x} \cdot n_2 \Big)^{-1}, & \text{for } p \text{ odd}.
-  \end{cases}
-  \end{align*} 
-  The ratio $K_0(x)/K_1(x)$ is well-behaved, such that the ratio may be computed without numerical issues.
-  
-  \section{General model}
-  We have drug covariates $\mathbf{c}_d$ and omics feature covariates $\mathbf{z}_j$. The model is now:
-  \begin{align*}
-  y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} (\x_i \tr \bm{\beta}_d, \sigma_d^2), \\
-  \beta_{jd} | \tau_j^2, \gamma_d^2, \sigma_d^2 & \sim \mathcal{N} (0, \sigma_d^2 \gamma_d^2 \tau_j^2), \\
-  \gamma_d^2 & \sim \mathcal{IG}\((\mathbf{c}_d \tr \bm{\alpha})^{-1}, \lambda\), \\
-  \tau_j^2 & \sim \mathcal{IG}\((\mathbf{z}_j \tr \bm{\theta})^{-1}, \nu\), \\
-  \sigma_d^2 & \sim 1/\sigma_d^3.
-  \end{align*}
-  Variational posterior:
-  \begin{align*}
-  q(\bm{\beta}) & \overset{D}{=} \prod_{d=1}^D \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \\
-  q(\bm{\gamma}^2) & \overset{D}{=} \prod_{d=1}^D \mathcal{GIG}\(-\frac{p+1}{2}, \lambda (\mathbf{c}_d \tr \bm{\alpha})^2, \delta_d\), \\
-  q(\bm{\tau}^2) & \overset{D}{=} \prod_{j=1}^p \mathcal{GIG}\(-\frac{D+1}{2}, \nu (\mathbf{z}_j \tr \bm{\theta})^2, \eta_j\), \\
-  q(\bm{\sigma}^2) & \overset{D}{=} \prod_{d=1}^D \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\).
-  \end{align*}
-  Variational parameters:
-  \begin{align*}
-  \bm{\Sigma}_d^{(h+1)} & = \frac{2 \zeta_d^{(h)}}{n+p+1} \[\X \tr \X + a_d^{(h)} \cdot \diag(b_j^{(h)})\]^{-1}, \\
-  \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + a_d^{(h)} \cdot \diag(b_j^{(h)})\]^{-1} \X \tr \y_d, \\
-  \delta_d^{(h+1)} & = \frac{n+p+1}{2 \zeta_d^{(h)}} \left\{\trace \[\diag(b_j^{(h)}) \bm{\Sigma}_d^{(h+1)} \] + (\bm{\mu}_d^{(h+1)}) \tr \diag(b_j^{(h)}) \bm{\mu}_d^{(h+1)}\right\} + \lambda, \\ 
-  \eta_j^{(h+1)} & = \sum_{d=1}^D \frac{a_d^{(h)}(n+p+1)}{2 \zeta_d^{(h)}} \[ (\bmu_{jd}^{(h + 1)})^2 + (\bSigma_d^{(h + 1)})_{jj} \] + \nu, \\ 
-  \zeta_d^{(h+1)} & = \frac{1}{2} \Big( \mathbf{y}_d \tr \mathbf{y}_d -2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + a_d^{(h+1)} \trace \left\{ \[\X \tr \X + \diag(b_j^{(h + 1)})\] \bm{\Sigma}_d^{(h+1)}\right\} \\
-  & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + a_d^{(h+1)} (\bm{\mu}_d^{(h+1)}) \tr \[\X \tr \X + \diag(b_j^{(h + 1)})\]\bm{\mu}_d^{(h+1)}\Big),
-  \end{align*}
-  with
-  \begin{align*}
-  a_d^{(h)} & = \sqrt{\frac{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2}{\delta_d^{(h)}}} \frac{K_{\frac{p-1}{2}} \( \sqrt{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2 \delta_d^{(h)}} \)}{K_{\frac{p+1}{2}} \( \sqrt{\lambda (\mathbf{c}_d \tr \bm{\alpha})^2 \delta_d^{(h)}} \)} + \frac{p+1}{\delta_d^{(h)}} \text{ and} \\
-  b_j^{(h)} & = \sqrt{\frac{\nu (\mathbf{z}_j \tr \bm{\theta})^2}{\eta_j^{(h)}}} \frac{K_{\frac{D-1}{2}} \( \sqrt{\nu (\mathbf{z}_j \tr \bm{\theta})^2 \eta_j^{(h)}} \)}{K_{\frac{D+1}{2}} \( \sqrt{\nu (\mathbf{z}_j \tr \bm{\theta})^2 \eta_j^{(h)}} \)} + \frac{D+1}{\eta_j^{(h)}}.
-  \end{align*}
-  Hyper-parameter updates:
-  \begin{align*}
-  \bm{\alpha}^{(l+1)} & = \left[ \mathbf{C} \tr \diag ( e_d^{(l)} ) \mathbf{C} \right]^{-1} \mathbf{C} \tr \mathbf{1}, \\
-  \lambda^{(l+1)} & = \[ \sum_{d=1}^D a_d^{(l)} - (\bm{\alpha}^{(l+1)}) \tr \mathbf{C} \tr \mathbf{1} \]^{-1} D, \\
-  \bm{\theta}^{(l+1)} & = \left[ \mathbf{Z} \tr \diag ( f_j^{(l)} ) \mathbf{Z} \right]^{-1} \mathbf{Z} \tr \mathbf{1}, \\
-  \nu^{(l+1)} & = \[ \sum_{j=1}^p b_j^{(l)} - (\bm{\theta}^{(l+1)}) \tr \mathbf{Z} \tr \mathbf{1} \]^{-1} p,
-  \end{align*}
-  where 
-  \begin{align*}
-  e_d^{(l)} & = \sqrt{\frac{\delta_d^{(l)}}{\lambda^{(l)}(\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2}} \frac{K_{\frac{p - 1}{2}} \( \sqrt{\lambda^{(l)} (\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2 \delta_d^{(l)}} \)}{K_{\frac{p + 1}{2}} \( \sqrt{\lambda^{(l)} (\mathbf{c}_d \tr \bm{\alpha}^{(l)})^2 \delta_d^{(l)}} \)} \text{ and} \\
-  f_j^{(l)} & = \sqrt{\frac{\eta_j^{(l)}}{\nu^{(l)}(\mathbf{z}_j \tr \bm{\theta}^{(l)})^2}} \frac{K_{\frac{D - 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}{K_{\frac{D + 1}{2}} \( \sqrt{\nu^{(l)} (\mathbf{z}_j \tr \bm{\theta}^{(l)})^2 \eta_j^{(l)}} \)}.
-  \end{align*}
 	
   \bibliographystyle{author_short3}  
 	\bibliography{refs}

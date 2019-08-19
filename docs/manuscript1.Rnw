@@ -291,6 +291,8 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   for the error variance, we jointly consider an unknown mean and variance. This
   joint consideration results in the somewhat unorthodox $1/\sigma^3$ Jeffrey's
   prior.
+  
+  Several extensions of the model are described in [! ref to second paper here].
 	
 	\section{Estimation}\label{sec:estimation}
 	\subsection{Variational Bayes}\label{sec:variationalbayes}
@@ -339,8 +341,8 @@ Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     a_d^{(h)} & =\E_{Q^{(h)}}(\sigma_d^{-2})=(n + p + 1)/(2 \zeta_d^{(h)}), 
     \nonumber\\
     b_{jd}^{(h)} & = \E_{Q^{(h)}}(\gamma_{jd}^{-2}) = 
-    \sqrt{\frac{\delta_{jd}^{(h)}}
-    {\lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2}}
+    \sqrt{\frac{\lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2}
+    {\delta_{jd}^{(h)}}}
     \frac{K_0(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
     [(\mathbf{c}_{d}^j) \tr \bm{\alpha}])}
     {K_1(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
@@ -572,9 +574,8 @@ kableExtra::add_header_above(kableExtra::kable_styling(
   
   In addition to ADVI, \texttt{rstan} allows the user
   to maximise the posterior to obtain the maximum \textit{a posteriori} (MAP)
-  estimates of the model parameters. We compare these MAP estimates together
-  with the ridge estimates obtained from the \texttt{glmnet} \texttt{R} package
-  \cite[]{friedman_regularization_2010}, and the ADVI posterior means,
+  estimates of the model parameters. We compare these MAP estimates, and the 
+  ADVI posterior means,
   to the MAP estimates obtained from our model through the correlation with
   and the mean squared distance (MSD) from the MCMC posterior means.
   
@@ -585,10 +586,23 @@ kableExtra::add_header_above(kableExtra::kable_styling(
   hyperparameters settings (Table \ref{tab:hyper_set1}. For \texttt{glmnet}
   we either cross-validate the penalty parameter $\lambda$ or match it to the
   true prior variance. We
-  repeated the simulations 100 times and report the results in Figure 
-  \ref{fig:boxplots_igaussian_res4.2_post1}.
+  repeated the simulations 100 times and report the results in Figures 
+  \ref{fig:boxplots_igaussian_res4.2_post1}-
+  \ref{fig:boxplots_igaussian_res4.2_post2}.
   
-<<boxplots_igaussian_res4.2_post1, fig.cap="(a) \\& (d) Cramér-von Mises criterion, (b) \\& (e) correlation, and (c) \\& (f) MSD between the $\\beta_j$ point estimates of the MCMC and variational bayes posteriors.", out.width="80%", fig.asp=2/3>>=
+  In addition to the performance measures, we have plotted posterior samples 
+  histograms of 8 randomly selected model parameters in setting 1, 
+  along with the esimated
+  marginal variational Bayes posteriors, and the MAP estimates in Figure 
+  \ref{fig:hist_igaussian_fit4}.
+  
+<<boxplots_igaussian_res4.2_post1, fig.cap="Comparison of different approximations in (a)-(c) simulation setting 1, (d)-(f) setting 2, and (g)-(i) setting 3, through Cramér-von Mises criterion between the approximate and MCMC posteriors, correlation and MSD between the approximate and MCMC posterior means.", out.width="80%", fig.asp=1>>=
+@
+
+<<boxplots_igaussian_res4.2_post2, fig.cap="Comparison of different approximations in (a)-(c) simulation setting 4, (d)-(f) setting 5, and (g)-(i) setting 6, through Cramér-von Mises criterion between the approximate and MCMC posteriors, and correlation and MSD between the approximate and MCMC posterior means.", out.width="80%", fig.asp=1>>=
+@
+  
+<<hist_igaussian_fit4, fig.cap="Histogram of posterior MCMC samples of 8 randomly selected model parameters in setting 1, along with the estimated variational posteriors and MAP estimates.", out.width="80%", fig.asp=1>>=
 @
   
   [! describe results here]

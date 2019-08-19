@@ -422,17 +422,17 @@ for(s in 1:nrow(set)) {
                         data=list(n=n, p=p, y=y, x=x, 
                                   ctalphainv=rep(ctalphainv, p),
                                   lambda=lambda))
-    fit.enig.vb <- enig(list(x, x), cbind(y, y), NULL, mult.lambda=FALSE, 
-                        intercept.eb=TRUE, fixed.eb=c("both"), 
-                        full.post=TRUE, 
-                        init=list(aold=rep(1, 2), bold=list(p, p), 
-                                  lambda=lambda, alpha=1, 
-                                  Calpha=rep(1/ctalphainv, 2)),
-                        control=list(conv.post=TRUE, trace=TRUE,
-                                     epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                                     epsilon.opt=sqrt(.Machine$double.eps),
-                                     maxit.eb=10, maxit.vb=2, maxit.opt=100,
-                                     maxit.post=100))
+    fit.enig.vb <- semnig(list(x, x), cbind(y, y), C=NULL, unpenalized=NULL, 
+                          standardize=FALSE, intercept=FALSE, intercept.eb=TRUE, 
+                          mult.lambda=FALSE, fixed.eb=c("both"), full.post=TRUE, 
+                          init=list(aold=rep(1, 2), bold=list(p, p), 
+                                    lambda=lambda, alpha=1, 
+                                    Calpha=rep(1/ctalphainv, 2)),
+                          control=list(conv.post=TRUE, trace=TRUE,
+                                       epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                                       epsilon.opt=sqrt(.Machine$double.eps),
+                                       maxit.eb=10, maxit.vb=2, maxit.opt=100,
+                                       maxit.post=100))
               
     fit.enig.map <- optimizing(stan.enig, 
                                data=list(n=n, p=p, y=y, x=x, 
@@ -502,6 +502,12 @@ for(s in 1:nrow(set)) {
     res2[k, substr(colnames(res2), 1, 4)==paste0("set", s)] <- 
       c(cram2, corbest2, msebest2)
   
+    if(s==1 & k==1) {
+      save(fit.enig, fit.studentst, fit.enig.advi, fit.enig.vb, fit.enig.map, 
+           fit.glmnet, fit.cv.glmnet, 
+           file="results/simulations_igaussian_fit4.Rdata")
+    }
+    
     write.table(res1, file="results/simulations_igaussian_res4.1.csv")
     write.table(res2, file="results/simulations_igaussian_res4.2.csv")
     

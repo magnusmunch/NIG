@@ -9,7 +9,7 @@ ratio_besselK <- function(x, nu) {
   return(val)
 }
 
-# calculate full covariance with unpenalized covariates
+# calculate full covariance with unpenalized covariates (not tested)
 .Sigma.unp <- function(aold, bold, xu, xr, u, r) {
   
   hinv <- 1/bold
@@ -34,7 +34,7 @@ ratio_besselK <- function(x, nu) {
   return(Sigma)
 }
 
-# calculate full covariance
+# calculate full covariance (not tested)
 .Sigma <- function(aold, bold, x) {
   hinv <- 1/bold
   HinvXt <- t(x)*hinv
@@ -55,14 +55,14 @@ ratio_besselK <- function(x, nu) {
   diag(Om) <- diag(Om) + 1
   Om <- solve(Om)
   HinvXrtOm <- HinvXrt %*% Om
-  M11 <- solve(t(xu) %*% Om %*% xu)
+  M11 <- solve(t(xu) %*% Om %*% xu) ###
   M12 <- - M11 %*% t(xu) %*% t(HinvXrt) + M11 %*% t(xu) %*% t(XrHinvXrt) %*% 
     t(HinvXrtOm)
   
   # auxiliaries
   dSigma <- c(diag(M11), hinv - rowSums(HinvXrt*HinvXrtOm) - 
                 rowSums((HinvXrt %*% xu)*t(M12)) + 
-                rowSums(HinvXrtOm*(t(M12) %*% t(xu) %*% XrHinvXrt)))
+                rowSums(HinvXrtOm*(t(M12) %*% t(xu) %*% XrHinvXrt)))/aold
   mu <- rbind(M11 %*% t(xu) + M12 %*% t(xr),
               HinvXrt - HinvXrtOm %*% XrHinvXrt -
                 HinvXrt %*% xu %*% M12 %*% t(xr) + HinvXrtOm %*% XrHinvXrt %*%
@@ -74,11 +74,9 @@ ratio_besselK <- function(x, nu) {
   ytXmu <- cbind(xu, xr) %*% mu
   mutXtXmu <- as.numeric(t(ytXmu) %*% ytXmu)
   ytXmu <- sum(as.numeric(ytXmu)*y)
-  trHSigma <- sum(dSigma[-c(1:u)]*bold)
-  mutHmu <- sum(mu[-c(1:u)]^2*bold)
   
   out <- list(mu=mu, dSigma=dSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma,
-              mutXtXmu=mutXtXmu, trHSigma=trHSigma, mutHmu=mutHmu)
+              mutXtXmu=mutXtXmu)
   return(out)
 }
 
@@ -103,21 +101,19 @@ ratio_besselK <- function(x, nu) {
   # separate auxiliaries
   ytXmu <- as.numeric(ytx %*% mu)
   mutXtXmu <- sum(mutXt^2)
-  trHSigma <- sum(dSigma*bold)
-  mutHmu <- sum(mu^2*bold)
 
   out <- list(mu=mu, dSigma=dSigma, ytXmu=ytXmu, trXtXSigma=trXtXSigma,
-              mutXtXmu=mutXtXmu, trHSigma=trHSigma, mutHmu=mutHmu)
+              mutXtXmu=mutXtXmu)
   return(out)
 }
 
-# to integrate in CPO calculation
+# to integrate in CPO calculation (not tested)
 .f.int.cpo <- function(val, y, zeta, n, p, xtmu, xtSigmax) {
   (val^2/(2*zeta) + 1)^(-(n - length(xtmu) + p + 2)/2)*
     exp(-(val - xtmu + y)^2/(2*xtSigmax))
 }
 
-# calculate the conditional predictive ordinates
+# calculate the conditional predictive ordinates (not tested)
 .cpo <- function(model, x, y, n, p, D) {
   out <- lapply(1:D, function(d) {
     zeta <- model$vb$zeta[d]
@@ -137,7 +133,7 @@ ratio_besselK <- function(x, nu) {
               abs.error=unname(sapply(out, "[[", 2))))
 }
 
-# calculate log pseudo marginal likelihood
+# calculate log pseudo marginal likelihood (not tested)
 lpml <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE, 
                  intercept.eb=TRUE, mult.lambda=FALSE, 
                  fixed.eb=c("none", "lambda", "both"), full.post=FALSE, 
@@ -173,11 +169,11 @@ lpml <- function(x, y, C, unpenalized=NULL, standardize=TRUE, intercept=TRUE,
     ytest <- y[foldid==k, ]
     
     # estimate the model on the training data
-    fit <- enig(x=xtrain, y=ytrain, C=C, unpenalized=unpenalized, 
-                standardize=standardize, intercept=intercept, 
-                intercept.eb=intercept.eb, mult.lambda=mult.lambda, 
-                fixed.eb=fixed.eb, full.post=full.post, init=init, 
-                control=control)
+    fit <- semnig(x=xtrain, y=ytrain, C=C, unpenalized=unpenalized, 
+                  standardize=standardize, intercept=intercept, 
+                  intercept.eb=intercept.eb, mult.lambda=mult.lambda, 
+                  fixed.eb=fixed.eb, full.post=full.post, init=init, 
+                  control=control)
     
     # estimate CPOi on the test data
     est <- .cpo(fit, xtest, ytest, n, p, D)

@@ -1,5 +1,4 @@
 context("miscellaneous functions")
-
 test_that("ratio of modified Bessel functions", {
   
   # setting parameters
@@ -19,74 +18,206 @@ test_that("ratio of modified Bessel functions", {
   
 })
 
-test_that("low dim. aux. variables in general model without intercept", {
-
-  n <- 20
-  p <- 10
-  y <- rnorm(n)
-  x <- matrix(rnorm(n*p), ncol=p, nrow=n)
-  aold <- rchisq(1, 1)
-  bold <- rchisq(1, 1)
-  cold <- rchisq(p, 1)
-  ytx <- as.numeric(t(y) %*% x)
+context("aux variables without unpenalized covariates")
+test_that("low dim. auxiliary variables calculation", {
   
-  # fast calculation
-  aux <- .aux.var.gen(aold, bold, cold, x, ytx)
-
-  # actual calculation
-  Sigma <- solve(t(x) %*% x + bold*diag(cold))/aold
-  mu <- solve(t(x) %*% x + bold*diag(cold)) %*% t(x) %*% y
-  mutdiagcmu <- as.numeric(t(mu) %*% diag(cold) %*% mu)
-  trdiagcSigma <- sum(diag(diag(cold) %*% Sigma))
-  mutmu <- as.numeric(t(mu) %*% mu)
-  trSigma <- sum(diag(Sigma))
-  ytXmu <- as.numeric(t(y) %*% x %*% mu)
-  trXtXSigma <- sum(diag(t(x) %*% x %*% Sigma))
-  mutXtXmu <- as.numeric(t(mu) %*% t(x) %*% x %*% mu)
-
+  # setting parameters
+  n <- 100
+  p <- 10
+  x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+  y <- rnorm(n)
+  ytx <- as.numeric(t(y) %*% x)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(p, 1) + 1
+  
+  # implemented function
+  test.aux <- .aux.var(aold, bold, y, x, ytx)
+  
+  # actual calculation (see supplement)
+  H <- diag(bold)
+  Sigma <- solve(t(x) %*% x + H)/aold
+  mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
+  aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
+              trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+  
   # check
-  expect_equal(aux$mutdiagcmu, mutdiagcmu)
-  expect_equal(aux$trdiagcSigma, trdiagcSigma)
-  expect_equal(aux$mutmu, mutmu)
-  expect_equal(aux$trSigma, trSigma)
-  expect_equal(aux$ytXmu, ytXmu)
-  expect_equal(aux$trXtXSigma, trXtXSigma)
-  expect_equal(aux$mutXtXmu, mutXtXmu)
-
+  expect_equal(aux, test.aux)
+  
 })
 
-test_that("high dim. aux. variables in general model without intercept", {
+test_that("high dim. auxiliary variables calculation", {
   
+  # setting parameters
   n <- 10
-  p <- 20
+  p <- 100
+  x <- matrix(rnorm(n*p), nrow=n, ncol=p)
   y <- rnorm(n)
-  x <- matrix(rnorm(n*p), ncol=p, nrow=n)
-  aold <- rchisq(1, 1)
-  bold <- rchisq(1, 1)
-  cold <- rchisq(p, 1)
   ytx <- as.numeric(t(y) %*% x)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(p, 1) + 1
   
-  # fast calculation
-  aux <- .aux.var.gen(aold, bold, cold, x, ytx)
+  # implemented function
+  test.aux <- .aux.var(aold, bold, y, x, ytx)
   
-  # actual calculation
-  Sigma <- solve(t(x) %*% x + bold*diag(cold))/aold
-  mu <- solve(t(x) %*% x + bold*diag(cold)) %*% t(x) %*% y
-  mutdiagcmu <- as.numeric(t(mu) %*% diag(cold) %*% mu)
-  trdiagcSigma <- sum(diag(diag(cold) %*% Sigma))
-  mutmu <- as.numeric(t(mu) %*% mu)
-  trSigma <- sum(diag(Sigma))
-  ytXmu <- as.numeric(t(y) %*% x %*% mu)
-  trXtXSigma <- sum(diag(t(x) %*% x %*% Sigma))
-  mutXtXmu <- as.numeric(t(mu) %*% t(x) %*% x %*% mu)
+  # actual calculation (see supplement)
+  H <- diag(bold)
+  Sigma <- solve(t(x) %*% x + H)/aold
+  mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
+  aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
+              trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
   
   # check
-  expect_equal(aux$mutdiagcmu, mutdiagcmu)
-  expect_equal(aux$trdiagcSigma, trdiagcSigma)
-  expect_equal(aux$mutmu, mutmu)
-  expect_equal(aux$trSigma, trSigma)
-  expect_equal(aux$ytXmu, ytXmu)
-  expect_equal(aux$trXtXSigma, trXtXSigma)
-  expect_equal(aux$mutXtXmu, mutXtXmu)
+  expect_equal(aux, test.aux)
+  
+})
+
+context("aux variables with unpenalized covariates")
+test_that("low dim. auxiliary variables calculation", {
+  
+  # setting parameters
+  n <- 100
+  u <- 5
+  r <- 10
+  xu <- matrix(rnorm(n*u), nrow=n, ncol=u)
+  xr <- matrix(rnorm(n*r), nrow=n, ncol=r)
+  y <- rnorm(n)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(r, 1) + 1
+  
+  # implemented function
+  test.aux <- .aux.var.unp(aold, bold, y, xu, xr, u, r)
+  
+  # actual calculation (see supplement)
+  H <- diag(c(rep(0, u), bold))
+  x <- cbind(xu, xr)
+  Sigma <- solve(t(x) %*% x + H)/aold
+  mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
+  aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
+              trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+  
+  # check
+  expect_equal(aux, test.aux)
+  
+})
+
+test_that("high dim. auxiliary variables calculation", {
+  
+  # setting parameters
+  n <- 10
+  u <- 5
+  r <- 100
+  xu <- matrix(rnorm(n*u), nrow=n, ncol=u)
+  xr <- matrix(rnorm(n*r), nrow=n, ncol=r)
+  y <- rnorm(n)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(r, 1) + 1
+  
+  # implemented function
+  test.aux <- .aux.var.unp(aold, bold, y, xu, xr, u, r)
+  
+  # actual calculation (see supplement)
+  H <- diag(c(rep(0, u), bold))
+  x <- cbind(xu, xr)
+  Sigma <- solve(t(x) %*% x + H)/aold
+  mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
+  aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
+              trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+  
+  # check
+  expect_equal(aux, test.aux)
+  
+})
+
+context("full posterior covariance without unpenalized covariates")
+test_that("low dim. full posterior calculation", {
+  
+  # setting parameters
+  n <- 100
+  p <- 10
+  x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(p, 1) + 1
+  
+  # implemented function
+  test.Sigma <- .Sigma(aold, bold, x)
+  
+  # actual calculation (see supplement)
+  Sigma <- solve(t(x) %*% x + diag(bold))/aold
+  
+  # check
+  expect_equal(Sigma, test.Sigma)
+  
+})
+
+test_that("high dim. full posterior calculation", {
+  
+  # setting parameters
+  n <- 10
+  p <- 100
+  x <- matrix(rnorm(n*p), nrow=n, ncol=p)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(p, 1) + 1
+  
+  # implemented function
+  test.Sigma <- .Sigma(aold, bold, x)
+  
+  # actual calculation (see supplement)
+  Sigma <- solve(t(x) %*% x + diag(bold))/aold
+  
+  # check
+  expect_equal(Sigma, test.Sigma)
+  
+})
+
+context("full posterior covariance with unpenalized covariates")
+test_that("low dim. full posterior calculation", {
+  
+  # setting parameters
+  n <- 100
+  u <- 5
+  r <- 10
+  xu <- matrix(rnorm(n*u), nrow=n, ncol=u)
+  xr <- matrix(rnorm(n*r), nrow=n, ncol=r)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(r, 1) + 1
+  
+  # implemented function
+  test.Sigma <- .Sigma.unp(aold, bold, xu, xr, u, r)
+  
+  # actual calculation (see supplement)
+  x <- cbind(xu, xr)
+  H <- diag(c(rep(0, u), bold))
+  Sigma <- solve(t(x) %*% x + H)/aold
+  
+  # check
+  expect_equal(Sigma, test.Sigma)
+  
+})
+
+test_that("high dim. full posterior calculation", {
+  
+  # setting parameters
+  n <- 10
+  u <- 5
+  r <- 100
+  xu <- matrix(rnorm(n*u), nrow=n, ncol=u)
+  xr <- matrix(rnorm(n*r), nrow=n, ncol=r)
+  aold <- rchisq(1, 1) + 1
+  bold <- rchisq(r, 1) + 1
+  
+  # implemented function
+  test.Sigma <- .Sigma.unp(aold, bold, xu, xr, u, r)
+  
+  # actual calculation (see supplement)
+  x <- cbind(xu, xr)
+  H <- diag(c(rep(0, u), bold))
+  Sigma <- solve(t(x) %*% x + H)/aold
+  
+  # check
+  expect_equal(Sigma, test.Sigma)
   
 })
