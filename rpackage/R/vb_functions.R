@@ -1,39 +1,69 @@
-# single VB update in ENIG model with unpenalized covariates (not tested)
-.single.vb.update.unp <- function(aold, bold, Calpha, lambda, y, xu, xr, yty, 
-                                  n, u, r) {
+# single VB update in NIG model with unpenalized covariates (tested)
+.single.vb.update.unp <- function(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
+                                  lambdad, y, xu, xr, yty, n, u, r) {
   
   # auxiliary variables involving mu and Sigma
-  aux <- .aux.var.unp(aold, bold, y, xu, xr, u, r)
+  aux <- .aux.var.unp(aold, gold*bold, y, xu, xr, u, r)  
   
   # vb parameters
-  delta <- aold*(aux$mu[-c(1:u)]^2 + aux$dSigma[-c(1:u)]) + lambda
-  b <- sqrt(lambda*Calpha^2/delta)*
-    ratio_besselK(sqrt(lambda*delta)*Calpha, 1) + 2/delta
-  zeta <- (yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
-             sum(aux$dSigma*c(rep(0, u), b)) + sum(aux$mu^2*c(rep(0, u), b)))/2
+  delta <- aold*gold*(aux$mu[-c(1:u)]^2 + aux$dSigma[-c(1:u)]) + lambdaf
+  if(is.null(Calphaf)) {
+    b <- rep(1, r)  
+  } else {
+    b <- sqrt(lambdaf*Calphaf^2/delta)*
+      ratio_besselK(sqrt(lambdaf*delta)*Calphaf, 1) + 2/delta  
+  }
+  eta <- aold*sum(bold*(aux$mu[-c(1:u)]^2 + aux$dSigma[-c(1:u)])) + lambdad 
+  if(is.null(Zalphad)) {
+    g <- 1
+  } else {
+    g <- sqrt(lambdad*Zalphad^2/eta)*
+      ratio_besselK(sqrt(lambdad*eta)*Zalphad, (r + 1)/2) + (r + 1)/eta
+  }
+  zeta <- 0.5*(yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
+                 g*sum(aux$dSigma[-c(1:u)]*b) + g*sum(aux$mu[-c(1:u)]^2*b))
   a <- (n + u + r + 1)/(2*zeta)
-  e <- (b - 2/delta)*delta/(lambda*Calpha^2)
+  e <- (b - 2/delta)*delta/(lambdaf*Calphaf^2)
+  f <- (g - (r + 1)/eta)*eta/(lambdad*Zalphad^2)
   
-  out <- list(delta=delta, zeta=zeta, a=a, b=b, e=e)
+  out <- list(delta=delta, eta=eta, zeta=zeta, a=a, b=b, g=g, e=e, f=f, aux=aux)
   return(out)
 }
 
-# single VB update in ENIG model (not tested)
-.single.vb.update <- function(aold, bold, Calpha, lambda, y, x, ytx, yty, n, 
-                              p) {
+# aold=init$aold[d]; bold=init$bold[[d]]; gold=init$gold[[d]]; 
+# Calphaf=init$Calphaf[[d]]; Zalphad=init$Zalphad[[d]]; lambdaf=init$lambdaf; 
+# lambdad=init$lambdad; y=y[, d]; x=x[[d]]; ytx=ytx[[d]]; yty=yty[d]; n; 
+# p=r[d]
+
+# single VB update in NIG model (tested)
+.single.vb.update <- function(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
+                              lambdad, y, x, ytx, yty, n, p) {
   
   # auxiliary variables involving mu and Sigma
-  aux <- .aux.var(aold, bold, y, x, ytx)
+  aux <- .aux.var(aold, gold*bold, y, x, ytx)
   
   # vb parameters
-  delta <- aold*(aux$mu^2 + aux$dSigma) + lambda
-  b <- sqrt(lambda*Calpha^2/delta)*
-    ratio_besselK(sqrt(lambda*delta)*Calpha, 1) + 2/delta
+  delta <- aold*gold*(aux$mu^2 + aux$dSigma) + lambdaf
+  if(is.null(Calphaf)) {
+    b <- rep(1, p)  
+  } else {
+    b <- sqrt(lambdaf*Calphaf^2/delta)*
+      ratio_besselK(sqrt(lambdaf*delta)*Calphaf, 1) + 2/delta  
+  }
+  eta <- aold*sum(bold*(aux$mu^2 + aux$dSigma)) + lambdad 
+  if(is.null(Zalphad)) {
+    g <- 1
+  } else {
+    g <- sqrt(lambdad*Zalphad^2/eta)*
+      ratio_besselK(sqrt(lambdad*eta)*Zalphad, (p + 1)/2) + (p + 1)/eta
+  }
   zeta <- (yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
-             sum(aux$dSigma*b) + sum(aux$mu^2*b))/2
+             sum(aux$dSigma*g*b) + sum(aux$mu^2*g*b))/2
   a <- (n + p + 1)/(2*zeta)
-  e <- (b - 2/delta)*delta/(lambda*Calpha^2)
-    
-  out <- list(delta=delta, zeta=zeta, a=a, b=b, e=e)
+  e <- (b - 2/delta)*delta/(lambdaf*Calphaf^2)
+  f <- (g - (p + 1)/eta)*eta/(lambdad*Zalphad^2)
+  
+  out <- list(delta=delta, eta=eta, zeta=zeta, a=a, b=b, g=g, e=e, f=f,
+              aux=aux)
   return(out)
 }

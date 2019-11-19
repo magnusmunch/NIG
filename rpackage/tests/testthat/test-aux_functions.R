@@ -39,7 +39,8 @@ test_that("low dim. auxiliary variables calculation", {
   mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
   aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
               trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
-              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu),
+              ldetSigma=as.numeric(determinant(Sigma)$modulus))
   
   # check
   expect_equal(aux, test.aux)
@@ -66,7 +67,8 @@ test_that("high dim. auxiliary variables calculation", {
   mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
   aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
               trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
-              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu),
+              ldetSigma=as.numeric(determinant(Sigma)$modulus))
   
   # check
   expect_equal(aux, test.aux)
@@ -96,7 +98,8 @@ test_that("low dim. auxiliary variables calculation", {
   mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
   aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
               trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
-              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu),
+              ldetSigma=as.numeric(determinant(Sigma)$modulus))
   
   # check
   expect_equal(aux, test.aux)
@@ -125,7 +128,8 @@ test_that("high dim. auxiliary variables calculation", {
   mu <- as.numeric(solve(t(x) %*% x + H) %*% t(x) %*% y)
   aux <- list(mu=mu, dSigma=diag(Sigma), ytXmu=as.numeric(t(y) %*% x %*% mu),
               trXtXSigma=sum(diag(t(x) %*% x %*% Sigma)), 
-              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu))
+              mutXtXmu=as.numeric(t(mu) %*% t(x) %*% x %*% mu),
+              ldetSigma=as.numeric(determinant(Sigma)$modulus))
   
   # check
   expect_equal(aux, test.aux)

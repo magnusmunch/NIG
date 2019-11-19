@@ -6,21 +6,73 @@
 
 using namespace Rcpp;
 
-// ratio_besselK
-NumericVector cpp_ratio_besselK(arma::vec x, arma::vec nu);
-RcppExport SEXP _cambridge_cpp_ratio_besselK(SEXP xSEXP, SEXP nuSEXP) {
+// Sigma_unp
+arma::mat Sigma_unp(double aold, arma::vec bold, arma::mat xu, arma::mat xr, int u, int r);
+RcppExport SEXP _cambridge_Sigma_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::vec >::type x(xSEXP);
-    Rcpp::traits::input_parameter< arma::vec >::type nu(nuSEXP);
-    rcpp_result_gen = Rcpp::wrap(cpp_ratio_besselK(x, nu));
+    Rcpp::traits::input_parameter< double >::type aold(aoldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type bold(boldSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type xu(xuSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type xr(xrSEXP);
+    Rcpp::traits::input_parameter< int >::type u(uSEXP);
+    Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    rcpp_result_gen = Rcpp::wrap(Sigma_unp(aold, bold, xu, xr, u, r));
+    return rcpp_result_gen;
+END_RCPP
+}
+// Sigma
+arma::mat Sigma(double aold, arma::vec bold, arma::mat x);
+RcppExport SEXP _cambridge_Sigma(SEXP aoldSEXP, SEXP boldSEXP, SEXP xSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type aold(aoldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type bold(boldSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    rcpp_result_gen = Rcpp::wrap(Sigma(aold, bold, x));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aux_var_unp
+List aux_var_unp(double aold, arma::vec bold, arma::vec y, arma::mat xu, arma::mat xr, int u, int r);
+RcppExport SEXP _cambridge_aux_var_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type aold(aoldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type bold(boldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type xu(xuSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type xr(xrSEXP);
+    Rcpp::traits::input_parameter< int >::type u(uSEXP);
+    Rcpp::traits::input_parameter< int >::type r(rSEXP);
+    rcpp_result_gen = Rcpp::wrap(aux_var_unp(aold, bold, y, xu, xr, u, r));
+    return rcpp_result_gen;
+END_RCPP
+}
+// aux_var
+List aux_var(double aold, arma::vec bold, arma::vec y, arma::mat x, arma::rowvec ytx);
+RcppExport SEXP _cambridge_aux_var(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytxSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type aold(aoldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type bold(boldSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::rowvec >::type ytx(ytxSEXP);
+    rcpp_result_gen = Rcpp::wrap(aux_var(aold, bold, y, x, ytx));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_cambridge_cpp_ratio_besselK", (DL_FUNC) &_cambridge_cpp_ratio_besselK, 2},
+    {"_cambridge_Sigma_unp", (DL_FUNC) &_cambridge_Sigma_unp, 6},
+    {"_cambridge_Sigma", (DL_FUNC) &_cambridge_Sigma, 3},
+    {"_cambridge_aux_var_unp", (DL_FUNC) &_cambridge_aux_var_unp, 7},
+    {"_cambridge_aux_var", (DL_FUNC) &_cambridge_aux_var, 5},
     {NULL, NULL, 0}
 };
 

@@ -1,13 +1,10 @@
-% load packages
-<<packages, include=FALSE, echo=FALSE>>=
-library(cambridge)
-@
-
 % set options
 <<settings, include=FALSE, echo=FALSE>>=
 opts_knit$set(root.dir="..", base.dir="../figs")
 opts_chunk$set(fig.align='center', fig.path="../figs/", 
                echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
+knit_hooks$set(document=function(x) {
+  sub('\\usepackage[]{color}', '\\usepackage{xcolor}', x, fixed=TRUE)})
 @
 
 % read figure code
@@ -16,11 +13,11 @@ read_chunk("code/figures.R")
 @
 
 \documentclass[a4paper,hidelinks]{article}
-\usepackage{url,bm,algorithm,algpseudocode,bbm,amsmath,amssymb,amsthm,
-amsfonts,graphics,graphicx,epsfig,rotating,caption,subcaption,natbib,
-titlesec,multicol,verbatim,threeparttable,booktabs,dsfont,parskip,
-xr-hyper,hyperref,enumerate}
-\externaldocument[sm-]{supplement}
+\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,
+rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,
+bbm,algorithm,algpseudocode,pgfplotstable,threeparttable,booktabs,mathtools,
+dsfont,parskip,xr}
+\externaldocument[sm-]{supplement2}
 
 % vectors and matrices
 \newcommand{\bbeta}{\bm{\beta}}
@@ -108,220 +105,670 @@ xr-hyper,hyperref,enumerate}
 \renewcommand{\]}{\right]}
 
 % settings
-\graphicspath{{/Users/magnusmunch/Documents/OneDrive/PhD/project_cambridge/graphs/}}
+\graphicspath{{../figs/}}
+\pgfplotsset{compat=1.16}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
 \setlength{\textwidth}{15cm}
-\title{Drug efficacy prediction in cell lines}
+\title{Empirical Bayes estimation of the normal inverse Gaussian prior in 
+simultaneous-equation models}
 \date{\today}
-\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: \href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
+\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
+\href{mailto:m.munch@vumc.nl}{m.munch@vumc.nl}}, Mark A. van de Wiel$^{1,3}$, 
+Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
 \begin{document}
 
 	\maketitle
 	
 	\noindent
-	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health research institute, VU University Medical Center, PO Box 7057, 1007 MB
-	Amsterdam, The Netherlands\\
-	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
-	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, United Kingdom \\
+	1. Department of Epidemiology \& Biostatistics, Amsterdam Public Health
+	research institute, Amsterdam University medical centers, PO Box 7057, 1007 MB
+	Amsterdam, The Netherlands \\*
+	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\*
+	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge, 
+	United Kingdom
 	
 	\begin{abstract}
 		{...}
 	\end{abstract}
 	
-	\noindent\textbf{Keywords}: 
-	
-	\noindent\textbf{Software available from}:
+	\noindent\textbf{Keywords}: ...
 	
 	\section{Introduction}
-	- motivation: drug response prediction from different omics data types is 
-	promising both for precision medicine and drug target discovery and relates to
-	actual tumor response \cite[]{iorio_landscape_2016}. 
-		
-	- problem: prediction of drug efficacy in cell lines is difficult (DREAM 7 
-	challenge in \cite{costello_community_2014}).	
-
-	- example data: introduction (GDSC, CCLE, NCI-60)
+	Recently, the dimensions of data sets have increased in three directions:
+	(i) samples, (ii) variables, and (iii) outcomes. Here, we will 
+	concern ourselves with directions (ii) and (iii). More spefically, we will 
+	focus on the regression setting
+	where we have multiple outcomes and a medium to high dimensional feature 
+	space, i.e., $p \gtrsim n$. Standard methods
+	underperform or even break down in such medium to high dimensional settings, 
+	so new methodology is required. 
 	
-	- feature information: prior experts, pathways, database summaries, previous 
-	experiments, type of feature (somatic mutations, copy number alterations, DNA 
-	methylation, and gene expression). 
+	As a motivating example, we present an expression quantitative loci (eQTLs)
+	detection problem (see Section \ref{sec:application}). In eQTLs detection, 
+	the aim is to find a set of single nucleotide loci (SNPs) that explains a
+	(part of a) gene's expression. The resulting heritability of the gene 
+	expression traits is thought to be indicative of the relationship between 
+	genotype and phenotype. eQTLs detection is often done for a set of genes 
+	simultaneously and as such comprises a simultaneous-equations model (SEM) with
+	multiple outcomes and a high dimensional feature set (the SNPs). Apart from
+	eQTLs, SEM models are also applied in network reconstruction 
+	\cite[]{kpogbezan_incorporating_2019, leday_gene_2017} 
+	and drug target discovery \cite[]{noh_inferring_2016}, [! ref to second 
+	manuscript].
 	
-	- drugs information: molecular target, drug class, pubchem, 
-	omnipath DB, pharmaco DB
+	In many multi-outcome regression settings, extra information on both the 
+	outcomes and 
+	features is available. In our motivating eQTLs detection example, extra 
+	information may come in the form of (i) gene annotation (e.g., length of the
+	gene), (ii) SNP annotation (e.g., whether the SNP is in the gene or not), 
+	(iii) SNP-gene annotation (e.g., distance of SNP to gene). The presented 
+	method allows for the incorporation of such information to aid in the 
+	estimation, by pooling information both across equations (genes) and 
+	features (SNPs).
 	
-	- drugs x feature information
+	We are not the first to propose to learn from external data 
+	across equations and features. \cite{kpogbezan_incorporating_2019} uses 
+	the presence or absence of edges in a normal tissue apoptosis pathway, to aid 
+	in the estimation of a cancer tissue apoptosis pathway. Furhtermore, in an 
+	eQTLs detection problem they include the location of the SNPs (inside
+	the gene or not) to aid in the estimation. \cite{oman_minimax_2002} uses 
+	empirical Bayes to learn from external data concerning both the outcomes and 
+	the features in a low dimensional chemometrics dataset. Our proposed method,
+	termed \texttt{semnig},
+	extends \cite{kpogbezan_incorporating_2019,kpogbezan_empirical_2017} by 
+	allowing for the inclusion of continuous external information and several 
+	sources of information.
 	
-	- current literature: reviews in \cite{azuaje_computational_2017} and
-	\cite{ali_machine_2019}, 
-	full multivariate approach by Oslo people in \cite{mai_composite_2019}, 
-	TANDEM \cite[]{aben_tandem:_2016}, DeltaNet 
-	by \cite{noh_inferring_2016}, patient-derived tumor cell lines 
-	in \cite{gao_high-throughput_2015}, 
-	multiple kernel learning approach in \cite{costello_community_2014},
-	\cite{ammad-ud-din_drug_2016} combine a 
-	multiple kernel learning approach with matrix factorization, using the model 
-	to uncover the latent 
-	relationships between drug targets and intracellular pathways, and
-	structured penalized regression in \cite{zhao_structured_2019}
-
+	The rest of the paper is structured as follows. In Section 
+	\ref{sec:model} we introduce our model, the estimation of which is detailed
+	in Section \ref{sec:estimation}. In Sections \ref{sec:simulations} and
+	\ref{sec:application} we demonstrate the method in simulations and an 
+  eQTLs detection problem, respectively. We end with a discussion in Section 
+  \ref{sec:discussion}.
 	
-	- our solution: adaptive borrowing of information through empirical Bayes, 
-	guided by external feature and drug information.
-	
-	\section{Methods}
+	\section{Model}\label{sec:model}
 	\subsection{Simultaneous equations model}\label{sec:SEM}
-	Assume we have continuous efficacy measures $y_{id}$ for cell lines 
-	$i=1,\dots, n$, centred per drug $d$. We predict efficacy from molecular 
-	features 
-	$x_{ij}$, $j=1,\dots, p$, collected in $\x_i = \begin{bmatrix} x_{i1} & 
-	\dots & x_{ip} \end{bmatrix} \tr$. Furthermore, we have 
-	characteristics of the drugs available in the form of external variables 
-	$\mathbf{C} = \begin{bmatrix} \mathbf{c}_1 & \dots & \mathbf{c}_D 
-	\end{bmatrix} \tr$. 
+	We have continuous measurements $y_{id}$ for observation $i=1,\dots, n$ on 
+	outcome $d=1,\dots,D$. Throughout this paper we assume the $y_{id}$ to be 
+	centred per outcome and let $\y_d = \begin{bmatrix} y_{1d} & \dots & y_{nd} 
+	\end{bmatrix} \tr$. We predict the $y_{id}$ with features $x_{ij}$, 
+	$j=1,\dots, p$, collected in $\x_i = \begin{bmatrix} x_{i1} & \dots & x_{ip} 
+	\end{bmatrix} \tr$ and centered per feature. We have $|\bm{\alpha}|$ 
+	external variables available that describes the outcome $d$, feature $j$, or
+	relationship between feature $j$ and outcome $d$, collected in 
+  $\mathbf{C} = \begin{bmatrix} \mathbf{c}_{1}^1 & \cdots &
+	\mathbf{c}_{1}^p & \cdots & \mathbf{c}_{D}^1 & \cdots & \mathbf{c}_{D}^p
+  \end{bmatrix}_{|\bm{\alpha}| \times pD} \tr$. An example of such an external
+  variable from eQTL detection is the distance between SNP and gene.
 	
-	We regress the drug efficacies on the molecular feature effects $\beta_{jd}$:
-	\begin{subequations}\label{eq:likelihood}
+	We model the outcomes $y_{id}$ as a linear function of the features $x_{ij}$:
+	\begin{subequations}\label{eq:linearmodel}
 		\begin{align}
-		  y_{id} & = \x_i \tr \bbeta_d + \epsilon_{id}, \label{eq:linearmodel}\\
-		  \text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
+		y_{id} & = \beta_{0d} + \x_i \tr \bbeta_d + \epsilon_{id},\\
+		\text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
 		\end{align}
 	\end{subequations}
-	where $p$-dimensional $\bbeta_d$ are the drug-specific omics feature effects. 
-	Note that (\ref{eq:linearmodel}) gives rise to a system of $d=1, \dots, D$ 
-	linear simultaneous equations.
+	where the $p$-dimensional $\bbeta_d$ are the outcome-specific feature effects.
+	Note that (\ref{eq:linearmodel}) gives rise to a system of 
+	$D$ linear simultaneous equations.
 	
 	\subsection{Bayesian prior model}
-	We capture the uncertainty in the parameters through a Bayesian prior model
-	and endow the parameters with the following prior:
-	\begin{subequations}\label{eq:prior}
-		\begin{align}
-		  \beta_{jd} | \gamma^2_{jd}, \sigma^2_d & \sim \mathcal{N}_p 
-		  (0, \gamma_{jd}^2 \sigma_d^2), 
-		  \label{eq:betaprior}\\
-		  \gamma_{jd}^{2} & \sim \mathcal{IG}( 
-		  [(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1}, \lambda_d), \\
-		  \sigma_d^{2} & \sim 1/\sigma_d^{3},
-		\end{align}
-	\end{subequations}
-	where $\mathcal{IG}(\theta, \lambda)$ denotes an inverse Gaussian distribution 
-	with mean $\theta$ and shape $\lambda$. The external 
-	outcome-feature data comes in through 
-	our mean model for the $\gamma_{jd}^2$ hyperprior model: 
-	$[(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1}$. The
-	$\bm{\alpha}$ and $\lambda_d$ are estimated in a data-driven manner. 
-	More details on the model
-	itself, as well as its estimation, may be found in 
-	the SM and in [! ref to first paper here].
-	
-	\subsection{Tissue effect}
-	The cell lines used in drug response models are often taken from different
-	tissues. In addition, other clinical covariates are often available. 
-	For unbiased omics feature effects, one may wish to account for these, 
-	without shrinkage of their effects. We do that by adding such unpenalized 
-	covariates 
-	$\mathbf{z}_{i} = \begin{bmatrix} z_{i1} & \cdots & z_{iT} \end{bmatrix} \tr$ 
-	to model (\ref{eq:likelihood}):
-  \begin{align*}
-    y_{id} & = \x_i \tr \bbeta_d + \mathbf{z}_i \tr \bm{\psi} + 
-    \epsilon_{id}, \\
-    \text{with } & \epsilon_{id} \sim \mathcal{N}(0, \sigma_d^2),
-	\end{align*}
-	with $\bm{\psi} = \begin{bmatrix} \psi_1 & \cdots & \psi_T \end{bmatrix} \tr$ 
-	the unpenalized covariates effects. We assign $\bm{\psi}$ a flat prior, which 
-	alters the estimation as described in SM Section [! ref to section here].
-	
-	\section{Data}
-	
-	\subsection{GDSC}
-	The GDSC project's \cite[]{yang_genomics_2013} aim is "to improve cancer 
-	treatments by discovering therapeutic biomarkers that can be used to identify 
-	patients most likely to respond to anticancer drug". Part of the project is to
-	screen $>1000$ human cancer cell lines with drugs. The cell lines have been
-	genetically characterised and several drug sensitivity measures are recorded.
-	The data is freely available from \cite{garnett_systematic_2012} and consist 
-	of: (i) the sensitivity measures 
-	(mainly half maximal inhibitory concentration, i.e., IC50) of the cell lines 
-	to the drugs, (ii) annotation of the 
-	screened compounds, and (iii) the cell lines' genomic profile (mutations, 
-	copy numbers, methylation profiles, and expression). We will attempt to 
-	predict drug sensitivity of the cell lines, as quantified by IC50, using the
-	genomic data. Other choices of efficacy measures than IC50 are possible, 
-	but a discussion on the pros and cons of these different choices is not the 
-	aim of this paper. 
-	
-	\subsubsection{Primary data}
-	We took the logarithm of the IC50 values and took the average if there were
-	multiple measurements per cell line-drug combination. In the following, if we 
-	refer to IC50, it denotes the log-transformed values. After iteratively 
-	removing the cell line or drug with the highest proportion 
-	of missings until there are no more missing values, we end up with IC50 
-	estimates for 482 cell lines on 168 drugs. For the gene expression 
-	data, we fit a lasso with IC50 as response to the drugs separately and 
-	adjusted the penalty parameter to select approximately 300 genes per drug.
-	
-	- From Oslo:
-	1.2) Preselecting GEX features: we selected gene expression features
-	explaining 50\% variations over all cell lines, since this results in not too
-	features and probably remains those important features.
-	1.3) Preselecting CNV: we used the same strategy as Garnett et al. (2012)
-	where the GDSC data are from.
-	1.4) Preselecting MUT: we deleted mutated genes with less than two cell lines.
-	
-	- check out selection method in \cite{zhao_structured_2019}.
-	
-	- how to transform the data and deal with missingness? Read GDSC papers.
-	
-	\subsubsection{External data}
-	Several external drug variables are available: (i) the developmental stage
-	(experimental, in clinical development, or clinically approved) and (ii)
-	the action (cytotoxic or targeted). We also have a external variable 
-	available that relates the drugs to the features: a binary indicator whether 
-	a gene is in the target pathway of the drug or not.
+	We capture the uncertainty in the parameters through a Bayesian prior model. 
+	We assign a flat prior to the intercept terms $\beta_{0d}$ and integrate 
+	them out. The remaining parameters are endowed with priors such that we end
+	up with the following model:
+	\begin{subequations}\label{eq:priormodel}
+    \begin{align}
+      y_{id} | \bm{\beta}_d, \sigma_d^2 & \sim \mathcal{N} 
+      \(\x_i \tr \bm{\beta}_d, \sigma_d^2\), \\
+      \beta_{jd} | \gamma_{jd}^2, \sigma_d^2 & \sim \mathcal{N} 
+      \(0, \sigma_d^2 \gamma_{jd}^2 \), \label{eq:betaprior} \\
+      \gamma_{jd}^2 & \sim \mathcal{IG}
+      \( [(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^{-1}, \lambda_{d} \), \\
+      \sigma_d^2 & \sim 1/\sigma_d^3,
+    \end{align}
+  \end{subequations}
+  where $\mathcal{IG} ([(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^{-1}, \lambda_{d})$ 
+  denotes the inverse Gaussian distribution with mean 
+  $[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^{-1}$ and shape $\lambda_d$.
   
-  - check whether compounds are PAINS \cite[]{baell_new_2010} or not. 
-  PAINS indicates whether compound is frequent false hitter.
-  
-  - clinical trials database CTRP might contain info
+  The normal inverse Gaussian (NIG) prior model for $\beta_{jd}$ and 
+  $\gamma^2_{jd}$ in (\ref{eq:priormodel}) was introduced in 
+  \cite{barndorff-nielsen_hyperbolic_1978} and is, since 
+  \cite{barndorff-nielsen_normal_1997}, routinely applied in mathematical 
+  finance (see, e.g., \cite{kalemanova_normal_2007}). Supplementary Material
+  (SM) Section \ref{sm-sec:nigprior} contains more details on this prior.
+  In Figure \ref{fig:dens_igaussian_marginalbeta}, the NIG 
+  prior distribution, marginalised over $\gamma_{jd}^2$, is depicted together 
+  with three other common choices,
+  the Student's $t$ (see Section \ref{sec:inversegammamodel} for more details on 
+  this prior), normal (ridge) and Laplace (lasso) priors, 
+  all scaled to variance one. 
+  From this Figure we see that, depending on the choice
+  of hyperparameters, the NIG prior can vary from heavier tails than the lasso, 
+  to more Gaussian tails like the ridge, but behaves similarly to the 
+  Student's $t$ prior. Our argumentation to model the 
+  $\gamma^2_{jd}$ by an inverse Gaussian 
+  distribution, as has been suggested in \cite{fabrizi_specification_2016} and 
+  \cite{caron_sparse_2008}, is two-fold: (i) the NIG model is more flexible than
+  the standard ridge and lasso priors (as seen from Figure 
+  \ref{fig:dens_igaussian_marginalbeta}), and (ii) the NIG prior allows to model
+  the mean as a 
+  function of the external variables $\mathbf{c}_{d}^j$ more conveniently than 
+  the Student's $t$ prior, as explained in Section 
+  \ref{sec:empiricalbayes}. 
+<<dens_igaussian_marginalbeta, fig.cap="Several choices of marginal $\\beta_j$ prior, scaled to $\\V(\\beta_j)=1$.", out.width="60%", fig.asp=3/4>>=
+@
 
-  - extra data on GDSC might be in PharamcoGx R-package. Also contains bunch 
-  of functions.
+  \cite{moran_variance_2018} argue that in regression models, $\bm{\beta}_d$ 
+  and $\sigma_d^2$ should be independent \textit{a priori}, i.e.
+  $\beta_{jd} | \gamma_{jd}^2, \sigma_d^2 \sim \beta_{jd} | 
+  \gamma_{jd}^2$. However, in our case
+  that is debatable. The $D$ regressions need not be on the same scale, so in
+  order to jointly consider the $\bm{\beta}_d$ some 
+  form of calibration is required. A straightforward way 
+  of doing this is to scale the $\bm{\beta}_d$ prior with 
+  $\sigma_d^2$ as in (\ref{eq:betaprior}), resulting in a 
+  scale-free prior with respect to the response. Apart from the scaling,
+  in this setting, the conjugate prior model is preferred
+  over the non-conjugate model, because the variational Bayes approximation 
+  (see Section \ref{sec:estimation}) assumes independent $\sigma_d^2$ and 
+  $\bm{\beta}_d$ in the posterior, which is actually true for 
+  the conjugate model. Therefore, the approximate expectation used in the 
+  empirical Bayes step (see Section \ref{sec:estimation}) is more accurate.
+	
+  A few remarks on the choice of error variance prior are justified here: 
+  many authors endow error variance components with vague gamma priors. 
+  \cite{gelman_prior_2006}, 
+  among others, advises against this practice. The degree of `vagueness' has a 
+  large influence on the posterior, while degree of `vagueness' is a difficult 
+  parameter to set. This influence is especially pronounced if the likelihood is
+  relatively flat, as may be reasonably expected in the large $p$, small $n$ 
+  setting we are in. We therefore model the error variance with Jeffrey's 
+  objective prior 
+  \cite[]{jeffreys_invariant_1946}. In the derivation of our Jeffrey's prior
+  for the error variance, we jointly consider an unknown mean and variance. This
+  joint consideration results in the somewhat unorthodox $1/\sigma^3$ Jeffrey's
+  prior.
   
-  - check GSK open target EBI or ask Chris Wallace about it. Database that links
-	targets to drugs and diseases. Might be useful for drugs co-data.
+  Several extensions of the model are described in [! ref to second paper here].
 	
-	- try non-negative matrix factorisation/independent component analysis on 
-	binary fingerprints to get principal components that characterise the 
-	different drugs.  
+	\section{Estimation}\label{sec:estimation}
+	\subsection{Variational Bayes}\label{sec:variationalbayes}
+	The posterior corresponding to the model described in (\ref{eq:linearmodel})
+	and (\ref{eq:priormodel}) is not available in closed form. We therefore 
+	approximate the posterior by variational Bayes, where we force the approximate
+	posterior 
+	density to factorise as: $p(\bbeta_d, \sigma_d^2, \gamma_{1d}^2, \dots, 
+	\gamma_{pd}^2) \approx 
+	Q_d(\cdot) = q(\bbeta_d) \cdot q(\sigma_d^2) \cdot \prod_{j=1}^p 
+	q(\gamma_{jd}^2)$. For
+	notational convenience, we slightly abuse notation and let $q(\cdot)$ denote
+	different densities for different inputs.
+	Under such a factorisation, the marginal variational posteriors that 
+	minimise the Kullback-Leibler divergence of the true posterior to the 
+	variational Bayes approximation \cite[]{neal_view_1998} are given by:
+	\begin{align*}
+    q(\bm{\beta}_d) & \overset{D}{=} \mathcal{N}_p 
+    (\bm{\mu}_d, \bm{\Sigma}_d), \\
+    q(\gamma_{jd}^2) & \overset{D}{=} \mathcal{GIG}
+    \(-1, \lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2, \delta_{jd}\), \\
+    q(\sigma^2_d) & \overset{D}{=} \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_d\).
+  \end{align*}
+	See SM Section \ref{sm-sec:vbderivations} for the derivations. The variational
+	parameters $\bm{\mu}_d$, $\bm{\Sigma}_d$, $\delta_d$, and
+	$\zeta_d$ contain cyclic dependencies and are iteratively 
+	updated by:
+  \begin{align*}
+    \bm{\Sigma}_d^{(h+1)} & = (a_d^{(h)})^{-1} 
+    \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1}, \\
+    \bm{\mu}_d^{(h+1)} & = \[\X \tr \X + \diag(b_{jd}^{(h)})\]^{-1} 
+    \X \tr \y_d, \\
+    \delta_{jd}^{(h+1)} & = a_d^{(h)} \[(\bmu^{(h+1)}_{jd})^2 + 
+    (\bSigma_d)_{jj}\] + \lambda_{d}, \\ 
+    \zeta_d^{(h+1)} & = \frac{1}{2} \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
+    2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(h+1)} + 
+    \trace ( \X \tr \X \bm{\Sigma}_d^{(h+1)}) + 
+    (\bm{\mu}_d^{(h+1)}) \tr \X \tr \X \bm{\mu}_d^{(h+1)} \\
+    & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
+    \trace \[ \diag (b_{jd}^{(h+1)}) \bm{\Sigma}_d^{(h+1)}\] + 
+    (\bm{\mu}_d^{(h+1)}) \tr \diag (b_{jd}^{(h+1)}) 
+    \bm{\mu}_d^{(h+1)}\bigg],
+  \end{align*}
+  until convergence. Here, we set
+  \begin{align}
+    a_d^{(h)} & =\E_{Q^{(h)}}(\sigma_d^{-2})=(n + p + 1)/(2 \zeta_d^{(h)}), 
+    \nonumber\\
+    b_{jd}^{(h)} & = \E_{Q^{(h)}}(\gamma_{jd}^{-2}) = 
+    \sqrt{\frac{\lambda_{d}[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2}
+    {\delta_{jd}^{(h)}}}
+    \frac{K_0(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
+    [(\mathbf{c}_{d}^j) \tr \bm{\alpha}])}
+    {K_1(\sqrt{\delta_{jd}^{(h)}\lambda_{d}}
+    [(\mathbf{c}_{d}^j) \tr \bm{\alpha}])} + 
+    \frac{2}{\delta_{jd}^{(h)}}, \label{eq:ratiomodifiedbessel}
+  \end{align}
+  where $K_{\nu}(x)$ denotes the modified Bessel function of the second kind.
+  A method for fast and numerically stable calculation of ratios of
+  modified Bessel functions of the second kind, as in 
+  (\ref{eq:ratiomodifiedbessel}), is given in SM Section 
+  \ref{sm-sec:ratiosmodifiedbessels}.
+  
+  \subsection{Empirical Bayes}\label{sec:empiricalbayes}
+  To make use of the external data, we parametrise the prior mean of the
+  $\gamma_{jd}^2$ as $[(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^{-1}$. 
+  This allows us to
+  include continuous external variables $\mathbf{c}_{d}^j$ into the model. 
+  Additionally, it reduces the number of hyperparameters from $pD$ to 
+  $|\bm{\alpha}| + D$. A full Bayesian model
+  then requires the specification of the hyperparameters 
+  $\bm{\alpha}$ and $\blambda = \begin{bmatrix} \lambda_1 & \cdots & \lambda_D 
+  \end{bmatrix} \tr$. These are abstract and hard to interpret parameters 
+  for which we generally lack expert knowledge. They do, however, have a 
+  significant influence on the shape of the posterior distribution. We 
+  therefore propose to estimate these hyperparameters by empirical Bayes. 
+  Simply put, empirical Bayes fits the prior model to the data and is, as such, 
+  objective Bayes (up to model specification). In our case, this results in an   
+  objective and data-driven inclusion of the external data.
 	
-	\subsection{CCLE}
-	- extra data on CCLE might be in PharamcoGx R-package
-	
-	\subsection{NCI-50}
-	
-	\subsection{CMap}
-	- Cmap \cite[]{subramanian_next_2017,lamb_connectivity_2006} contains 
-	pharma-genomic data (similar to CCLE and GDSC). 
-	
-	- Data available at: 
-	https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92742. 
-	
-	- Cmap website: https://clue.io/cmap.
-	
-	\section{Results}
-	\subsection{GDSC}
-	
-	
-	\section{Discussion}
-	- use copula's and marginal posteriors to find multivariate posteriors for 
-	contrast testing.
-	
-	- empirical Bayes gives extra information via estimation of the 
-	hyperparameters, such as informativeness of the drug information (via model 
-	for the $\gamma_d$) and relatedness of the tissues (via $\bm{\Omega}$ and 
-	$\nu$)
-	
-	- regression on drug covariates very intuitive.
+	The canonical method for empirical Bayes is maximisation of the marginal 
+	likelihood with respect to the hyper parameters. In 
+	\cite{casella_empirical_2001} the marginal likelihood is maximised by an EM 
+	algorithm:
+	\begin{align*}
+	  \bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} & = \underset{\bm{\alpha},
+	  \bm{\lambda}}{\argmax}\E_{\cdot | \Y} 
+	  [\log p(\Y, \B, \bm{\Gamma}^2, \bsigma^2) | \bm{\alpha}^{(l)},
+	  \bm{\lambda}^{(l)}] \\
+	  & = \underset{\bm{\alpha},\bm{\lambda}}{\argmax} 
+	  \E_{\cdot | \Y} [\log \pi (\bm{\Gamma}^2) | \bm{\alpha}^{(l)},
+	  \bm{\lambda}^{(l)}],
+	\end{align*}
+	where $\Y = \begin{bmatrix} \y_1 & \cdots & \y_D \end{bmatrix}$,
+	$\B = \begin{bmatrix} \bbeta_1 & \cdots & \bbeta_D \end{bmatrix}$, 
+	$\bsigma^2 = \begin{bmatrix} \sigma^2_1 & \cdots & 
+	\sigma^2_D \end{bmatrix} \tr$,
+	and $\bm{\Gamma}^2 = \begin{bmatrix} \bgamma^2_1 & \cdots & \bgamma^2_D 
+	\end{bmatrix}\tr$, with 
+	$\bgamma^2_d = \begin{bmatrix} \gamma^2_{1d} & \cdots & \gamma^2_{pd} 
+	\end{bmatrix}\tr$,
+	and the expectation is with respect to the joint posterior. In our case, this 
+	posterior is not available in closed form, which renders the expectation 
+	difficult. While \cite{casella_empirical_2001} suggests to approximate the 
+	expectation by a Monte Carlo sample, we propose to use the variational Bayes 
+	approximation developed in Section \ref{sec:variationalbayes}:
+	$$
+	\bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} = 
+	\underset{\bm{\alpha},\bm{\lambda}}{\argmax}\E_{Q^{(l)}} 
+	[\log \pi(\bm{\Gamma}^2)],
+	$$
+	where now the expectation is with respect to the converged variational 
+	posterior $Q^{(l)}=\prod_{d=1}^D Q_d^{(l)}$. The resulting estimating 
+	equations are:
+  \begin{align*}
+    \bm{\alpha} & = \[ \mathbf{C} \tr \bLambda \diag 
+    (e_{jd}^{(l)}) \mathbf{C} \]^{-1} \mathbf{C} \tr \bLambda
+    \mathbf{1}_{pD \times 1}, \\
+    \lambda_{d} & = p \left\{ \sum_{j=1}^p b_{jd}^{(l)} + 
+    \sum_{j=1}^p e_{jd}^{(l)} [(\mathbf{c}_{d}^j) \tr \bm{\alpha}]^2 - 
+    2 \sum_{j=1}^p (\mathbf{c}_{d}^j) \tr \bm{\alpha} \right\}^{-1},
+  \end{align*}
+  where $\bLambda=\diag(\lambda_d) \otimes \I_p$
+  and $e_{jd}^{(l)} = \E_{Q^{(l)}}(\gamma_{jd}^2) = (b_{jd}^{(l)} - 
+  2/\delta_{jd}^{(l)}) \cdot \delta_{jd}^{(l)}/[\lambda_{d}^{(l)}
+  \left\{(\mathbf{c}_{d}^j) \tr \bm{\alpha}^{(l)}]^2\right\}$. 
+  Solving the equations is done by 
+  iteratively reweighted least squares.
+  
+  Variaional Bayes approximations are known to underestimate posterior 
+  variances \cite[]{rue_approximate_2009,consonni_mean-field_2007,
+  bishop_pattern_2006,wang_inadequacy_2005}. If posterior variances are 
+  required, 
+  we suggest generating samples from the posterior after the empirical Bayes 
+  iterations have converged. A Gibbs sampler to do so is described in 
+  the SM Section \ref{sm-sec:gibbssampler}. Alternatively, the \texttt{R} 
+  package \texttt{rstan} \cite[]{guo_rstan:_2018} allows the user to sample
+  from a generic posterior. An implementation of model
+  (\ref{eq:priormodel}) in \texttt{stan} code may be found on 
+  \url{https://github.com/magnusmunch/cambridge}.
+  
+  Note that so far, the design matrix $\X$ is assumed to be shared across the
+  equations. This is not a requirement. That is, we may have D different design 
+  matrices $\X^d$ that need not have the same number of 
+  columns, i.e., we have $p_d$ instead of $p$. This becomes useful in, e.g. 
+  eQTLs detection, where we regress genes on a gene-specific selection
+  of SNPs, often based on SNP-gene distance.
+
+  \section{Simulations}\label{sec:simulations}
+  We conducted a simulation study consisting of three parts investigating (i) 
+  the NIG prior performance, (ii) the variational Bayes approximation, and (iii)
+  the empirical Bayes estimation.
+  
+  \subsection{NIG prior performance}
+  \label{sec:inversegammamodel}
+  The aim of this part is to investigate the 
+  performance of the NIG prior model. Since we may do so in the univariate 
+  setting, so we drop all $d$ indices in the following. 
+  A common default prior for latent variance components is the inverse Gamma 
+  prior:
+  $$
+  \gamma_j^2 \sim \Gamma^{-1}(\eta/2,\xi/2),
+  $$
+  with shape $\eta/2$ and scale $\xi/2$, both rescaled to match our 
+  inverse Gaussian prior formulation. The resulting marginal prior for the model
+  parameters
+  (conditional on the error variance $\sigma^2$) is then a scaled Student's 
+  $t$-distribution:
+  $$
+  \beta_j | \sigma^2 \sim \text{Student's } 
+  t\(\eta,\sigma \sqrt{\xi/\eta}\),
+  $$
+  with degrees of freedom $\eta$ and scale $\sigma \sqrt{\xi/\eta}$.
+  See SM Section \ref{sm-sec:inversegamma} for more details on this prior. 
+  We compare the 
+  posteriors of the proposed NIG to the scaled Student's 
+  $t$-distribution prior in a simulated setting. 
+  
+  We compare the posterior distributions to the true posterior for a 
+  number of measures. Divergence between the distributions
+  is quantified through a multivariate extension of the Cram{\'e}r-von Mises
+  criterion \cite[]{baringhaus_new_2004}, where smaller values of the criterion
+  indicate a better fit. We also assess 95\% coverage of the 
+  posterior credible intervals. The accuracy of the 
+  point estimates of $\beta_j$ in the form of posterior means is assessed by
+  the mean squared error (MSE) and correlation between the point estimates 
+  and the true $\beta_j$. 
+  
+  We studied two settings: one dense and one sparse. In the dense setting, 
+  we simulated $n=100$ features $\x_i$ from a $p=200$ dimensional Gaussian 
+  distribution with zero mean vector, variances equal to one, and all 
+  covariances set to $\rho=0.5$. The outcomes were generated through $y_i = 
+  \x_i\tr \bbeta + \epsilon_i$, with the $\epsilon_i$ from the standard normal 
+  distribution. 
+  Likewise, we generated the model parameters $\beta_j$ from a standard normal
+  distribution. 
+  
+  We choose the hyperparameters such that we get all combinations of marginal
+  prior variances and kurtoses $\V(\beta_{j} | \sigma^2) \in 
+  \{ 1/2, 1, 2 \}$ and $\mathcal{K}(\beta_{j} | \sigma^2) \in 
+  \{ 4, 10 \}$. This leads to the settings in Table \ref{tab:hyper_set1}. For 
+  all priors, we generated 1000 draws (after 1000 burnin) from the 
+  posteriors using an MCMC sampler implemented in \texttt{rstan}. We repeated
+  the simulation 100 times and report 
+  results in Figures \ref{fig:boxplots_igaussian_res4.1_post1} and 
+  \ref{fig:boxplots_igaussian_res4.1_post2}. 
+<<hyper_set1>>= 
+set <- read.table("results/simulations_igaussian_set4.csv")
+kableExtra::add_header_above(kableExtra::kable_styling(
+  knitr::kable(set[, c("ctalphainv", "lambda", "eta", "xi", "vars", "kurts")],
+               col.names=c("$(\\mathbf{c} \\tr \\bm{\\alpha})^{-1}$",
+                           "$\\lambda$", "$\\eta$", "$\\xi$",
+                           "$\\V(\\beta_{j} | \\sigma^2)$",
+                           "$\\mathcal{K}(\\beta_{j} | \\sigma^2)$"),
+               caption="Hyperparameter settings",
+               "latex", booktabs=TRUE, escape=FALSE, digits=2),
+  latex_options=c("HOLD_position")),
+  header=c(" "=1, "NIG"=2, "Student's t"=2, "Prior"=2))
+@
+  
+<<boxplots_igaussian_res4.1_post1, fig.cap="Comparison of the NIG and Student's t priors in the dense setting in (a)-(d) simulation setting 1, (e)-(h) setting 2, and (i)-(l) setting 3, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+
+<<boxplots_igaussian_res4.1_post2, fig.cap="Comparison of the NIG and Student's t priors in the dense setting in (a)-(d) simulation setting 4, (e)-(h) setting 5, and (i)-(l) setting 6, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+  
+  [! describe results here]
+  
+  In the sparse setting, the observed data generating process is the same as in
+  the dense setting. The
+  model parameters are simulated from an (absolutely continuous) spike-and-slab 
+  prior with both Gaussian spike and slab:
+  \begin{align*}
+    w & \sim \text{Beta}(\phi, \chi), \\
+    z_j | w & \sim \text{Bernoulli}(w), \\
+    \beta_j | z_j & \sim z_j \mathcal{N} \( 0, 1 + 0.99 \frac{\chi}{\phi}\) +
+    (1 - z_j)\mathcal{N} \( 0, 0.01\).
+  \end{align*}
+  The slab is chosen
+  such that the we have marginal prior variance $\V(\beta_j)=1$. The sparsity 
+  level is determined by the proportion of zero $\beta_j$: 
+  $s=1 - \phi/(\phi + \chi)$. Note that the resulting marginal prior for
+  $\beta_j$ is:
+  $$
+  \beta_j \sim (1 - s)\mathcal{N} \( 0, \frac{1 - 0.01 s}{1 - s}\) + 
+  s \mathcal{N} \( 0, 0.01\).
+  $$
+  We use two settings, $s=0.5$ and $s=0.9$. The 
+  hyperparameters for estimation are set the same as in the dense setting, 
+  resulting in a total of 12 different simulation settings 
+  (6 per sparsity setting).
+  To mitigate the effect of random variation, we
+  repeated the simulations 100 times and report the results in Figures 
+  \ref{fig:boxplots_igaussian_res5_post1} and 
+  \ref{fig:boxplots_igaussian_res5_post2}.
+  
+<<boxplots_igaussian_res5_post1, fig.cap="Comparison of the NIG and Student's t priors in the sparse setting in (a)-(d) simulation setting 1, (e)-(h) setting 2, and (i)-(l) setting 3, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+
+<<boxplots_igaussian_res5_post2, fig.cap="Comparison of the NIG and Student's t priors in the sparse setting in (a)-(d) simulation setting 4, (e)-(h) setting 5, and (i)-(l) setting 6, through Cramér-von Mises criterion between the model and true posteriors, correlation and MSD between the posterior means and true parameters, and 95\\% credible interval coverage of the true values.", out.width="100%", fig.asp=1>>=
+@
+  
+  [! describe results here]
+  
+  \subsection{Variational Bayes approximation}
+  To investigate the accuracy of the variational Bayes approximation we compare 
+  the variational Bayes posterior to 1000 (after 1000 burn-in) MCMC samples from
+  the posterior obtained with \texttt{rstan}. Since the MCMC
+  samples represent the exact posterior (up to Monte Carlo error), we use it as 
+  a proxy for the true posterior. We include the comparison of our variational
+  Bayes approximation to the approximate posterior from the
+  automatic differentiation variational inference (ADVI)
+  algorithm in \texttt{rstan} \cite[]{kucukelbir_automatic_2015}. ADVI is a
+  variational Bayes algorithm that assumes a full factorization of the posterior
+  and is fit through gradient based optimization of the variational objective.
+  \texttt{rstan} offers an ADVI algorithm that assumes a fullrank posterior
+  covariance, but this algorithm often failed to converge or resulted in errors, 
+  so we do not include it in the comparisons. We measure divergence between the 
+  MCMC and variational posteriors with the Cram{\'e}r-von Mises criterion.
+  
+  In addition to ADVI, \texttt{rstan} allows the user
+  to maximise the posterior to obtain the maximum \textit{a posteriori} (MAP)
+  estimates of the model parameters. We compare these MAP estimates, and the 
+  ADVI posterior means,
+  to the MAP estimates obtained from our model through the correlation with
+  and the mean squared distance (MSD) from the MCMC posterior means.
+  
+  The interest of this simulation lies in the variational Bayes approximation, 
+  so we restrict ourselves to the univariate setting again (i.e., $D=1$). The
+  simulation setup is the same as in the dense setting 
+  in Section \ref{sec:inversegammamodel}. Similarly, we use the same 
+  hyperparameters settings (Table \ref{tab:hyper_set1}. For \texttt{glmnet}
+  we either cross-validate the penalty parameter $\lambda$ or match it to the
+  true prior variance. We
+  repeated the simulations 100 times and report the results in Figures 
+  \ref{fig:boxplots_igaussian_res4.2_post1}-
+  \ref{fig:boxplots_igaussian_res4.2_post2}.
+  
+  In addition to the performance measures, we have plotted posterior samples 
+  histograms of 8 randomly selected model parameters in setting 1, 
+  along with the esimated
+  marginal variational Bayes posteriors, and the MAP estimates in Figure 
+  \ref{fig:hist_igaussian_fit4}.
+  
+<<boxplots_igaussian_res4.2_post1, fig.cap="Comparison of different approximations in (a)-(c) simulation setting 1, (d)-(f) setting 2, and (g)-(i) setting 3, through Cramér-von Mises criterion between the approximate and MCMC posteriors, correlation and MSD between the approximate and MCMC posterior means.", out.width="80%", fig.asp=1>>=
+@
+
+<<boxplots_igaussian_res4.2_post2, fig.cap="Comparison of different approximations in (a)-(c) simulation setting 4, (d)-(f) setting 5, and (g)-(i) setting 6, through Cramér-von Mises criterion between the approximate and MCMC posteriors, and correlation and MSD between the approximate and MCMC posterior means.", out.width="80%", fig.asp=1>>=
+@
+  
+<<hist_igaussian_fit4, fig.cap="Histogram of posterior MCMC samples of 8 randomly selected model parameters in setting 1, along with the estimated variational posteriors and MAP estimates.", out.width="80%", fig.asp=1>>=
+@
+  
+  [! describe results here]
+  
+  \subsection{Empirical Bayes estimation}
+  To assess the empirical Bayes estimation of the inverse Gaussian prior, 
+  we conduct a small simulation study where we simulate from
+  model (\ref{eq:priormodel}), while keeping $\forall d: \sigma^2_d=1$ fixed. 
+  More specifically, we simulate 
+  $\gamma_{jd}^2 \sim \mathcal{IG}([(\mathbf{c}_d^j) \tr \bm{\alpha}]^{-1},
+  \lambda_d)$, for $j=1,\dots,200$, $d=1,\dots,10$, where we set 
+  $\bm{\alpha}= \begin{bmatrix} 1 & 1 & 2 & 3 & 4 \end{bmatrix}$. We use 
+  balanced dummy coding for the $\mathbf{c}_d^j$, such that we end up with
+  $\E(\gamma_{jd}) \in \{ 1, 0.5, 0.33, 0.25, 0.2 \}$, and fix 
+  $\forall d: \lambda_d=1$.  
+  Next, we simulate $\beta_{jd} \sim \mathcal{N} 
+  (0, \gamma_{jd}^2)$.
+  The observed data is generated from $x_{ij} \sim \mathcal{N} (0, 1)$ and 
+  $y_{id} \sim \mathcal{N} (\mathbf{x}_i \tr \bm{\beta}_d, 1)$, for $i=100$. 
+  We repeat the simulation 100 times and, for each simulation, estimate the 
+  hyperparameters by the method described in Section \ref{sec:empiricalbayes} 
+  and present the results in Figure \ref{fig:boxplots_igaussian_res6_eb}.
+
+<<boxplots_igaussian_res6_eb, fig.cap="Empirical Bayes $\\hat{\\bm{\\alpha}}$ estimates", out.width="80%", fig.asp=2/3>>=
+@
+
+  [! describe results here]
+  
+  - seems to be an overall scaling issue, relative to each other the estimates
+  are not so bad.
+
+  - investigate convergence: (i) look at both error and prior variance 
+  convergence and (ii) look at actual prior distribution convergence 
+  (plot true distribution and estimated prior every 5 iterations or so)
+  
+  \section{Application in eQTLs mapping}\label{sec:application}
+  This application concerns eQTLs detection from the GEUVADIS data
+  \cite[]{lappalainen_transcriptome_2013}. After the removal of 9 genes due to
+  missing SNP information, we have 99 genes (outcomes) from the p38MAPK pathway. 
+  After removal of the subjects without any expression or SNP data, 373 subjects
+  remained. For each gene, we selected SNPs with minor alles frequency (MAF) 
+  larger than 0.05 and within 105 bases up- or downstream from the gene. This 
+  resulted in 99 sets of SNPs (one for each gene) from the 373 subjects, where 
+  the number of SNPs per gene ranges from 56 to 1169.
+  
+  We used Ensembl \cite[]{hunt_ensembl_2018} to create several external 
+  variables: (i) SNP location 1 (binary, in- or outside of the gene),
+  (ii) SNP location 2 (binary, in an exon or an intron), (iii) 
+  genelength (continuous), (iv) minor allele frequency of the SNP
+  (continuous), and (v) squared MAF. We expect that SNPs that are in the gene 
+  and/or in an exon are more important in eQTLs detection. Since a larger gene
+  might depend on more SNPs, we expect that longer genes yield lower 
+  regression parameter estimates. We predict a positive correlation between
+  the regression parameters and the MAF.
+  
+  We fit five different models to a subset of the subjects and 
+  estimated performance measures on the rest of the subjects. The five models we
+  fit differed only in the included external variables. The intercept only model
+  is considered a reference model. The other four models all included the 
+  genelengths and MAFs (variables (iii) and (iv)). 
+  Models 1 and 2 included variable 
+  (i), while models 1, 3, and 4 included variable (ii). In addition, model 4
+  included the squared MAFs (v).
+  
+  For each model, we ran the algorithm for 100 EB iterations and obtained 
+  the $\hat{\bm{\alpha}}$ hyperparameter estimates in Table 
+  \ref{tab:hyperparameters_eQTL}. In addition, we calculated posterior means
+  for the $\bm{\beta}_d$ from MCMC samples from the posterior with the estimated
+  hyperparameters. We estimated mean squared error (MSE) for these posterior 
+  means. A common measure 
+  of Bayesian model fit is the log pseudo marginal likelihood
+  (LPML) \cite[]{gelfand_model_1992}, the Bayesian version of the leave-one-out 
+  cross-validated log likelihood (see Section \ref{sm-sec:lpml} for more 
+  details). We estimated LPML for the different models and added them,
+  together with the MSEs to Table \ref{tab:hyperparameters_eQTL}.
+<<hyperparameters_eQTL>>= 
+load("results/eQTL_fit1.Rdata")
+seq.mse <- c(2.0699, 2.0629, 2.0649, 2.0628, 2.0638)
+seq.lpml <- round(c(mean(lpml.ienig$lpml), mean(lpml1.enig$lpml),
+                    mean(lpml2.enig$lpml), mean(lpml3.enig$lpml), 
+                    mean(lpml4.enig$lpml)), 5)
+tab <- cbind(round(rbind(c(fit.ienig$eb$alpha, rep(NA, 5)),
+                         c(fit1.enig$eb$alpha, NA),
+                         c(fit2.enig$eb$alpha[c(1:2)], NA, 
+                           fit2.enig$eb$alpha[-c(1:2)], NA),
+                         c(fit3.enig$eb$alpha[1], NA, 
+                           fit3.enig$eb$alpha[-1], NA),
+                         c(fit4.enig$eb$alpha[1], NA, 
+                           fit4.enig$eb$alpha[-1])), 2),
+             seq.mse, seq.lpml)
+tab[which.min(tab[, 7]), 7] <- kableExtra::cell_spec(
+  tab[which.min(tab[, 7]), 7], format="latex", bold=TRUE)
+tab[which.max(tab[, 8]), 8] <- kableExtra::cell_spec(
+  tab[which.min(tab[, 8]), 8], format="latex", bold=TRUE)
+rownames(tab) <- c("intercept only", paste("model", 1:4))
+options(knitr.kable.NA = '')
+kableExtra::kable_styling(kableExtra::column_spec(
+  knitr::kable(tab, align=rep("r", ncol(tab)),
+               col.names=c("intercept", "in gene", "in exon", "length", 
+                           "MAF", "MAF$^2$", "MSE", "LPML"),
+               caption="Estimated $\\hat{\\bm{\\alpha}}$ hyperparameters, 
+               MSE (lowest in bold), and LPML (highest in bold).", 
+               "latex", booktabs=TRUE, escape=FALSE, 
+               digits=c(rep(2, 6), 4, 4)), 8, border_left=TRUE),
+  latex_options=c("HOLD_position"))
+@
+  
+  - show influence of co-data with standardized $\bm{\alpha}$'s.
+
+  A quantity that is often of interest in eQTLs detection studies, is the 
+  gene expression heritability. It is the proportion of a gene's expression that
+  is explained with the SNPs and a measure of the relationship between trait 
+  phenotypic variation and genetic variation. Heritability (per gene) is 
+  given by $h_d^2 = (\sigma^2_d \sum_{j=1}^{p_d} \gamma_{jd}^2)/
+  (\sigma^2_d \sum_{j=1}^{p_d} \gamma_{jd}^2 + \sigma_d^2)$. We assess 
+  mean heritability of the five models for a rank-based selection of SNPs.
+  We present MCMC-based posterior means and one standard deviation error bars in
+  Figure \ref{fig:lines_eqtl_hsq}.
+<<lines_eqtl_hsq, fig.cap="Mean heritability in the eQTL detection data.", out.width="80%", fig.asp=2/3>>=
+@
+  
+  [! describe results here]
+  
+  - maybe use explained heritability (fraction of full model heritability)
+  
+  - AUC of curve as overal measure
+  
+  % Annotation is from GRCh37 reference genome: 
+  % \url{https://www.ncbi.nlm.nih.gov/assembly/GCF_000001405.13/}. 
+  % Annotation file that Gino used: 
+  % \url{https://www.gencodegenes.org/human/release_12.html}.
+  % Ensembl version of this genome:
+  % \url{https://grch37.ensembl.org/Homo_sapiens/Info/Index}.
+  % Possibly use GeuvadisTranscriptExpr R package.
+  
+  \section{Discussion}\label{sec:discussion}
+  In this paper we have introduced a normal inverse Gaussian prior for 
+  multivariate high dimensional linear regression models that is estimated by
+  empirical-variational Bayes. The estimation is adaptive to external data
+  that describes the relation between the outcomes and features in a data-driven
+  manner. In simulations we have shown that the inverse Gaussian model 
+  does not perform worse, and often bettern, than a common alternative, 
+  the Student's $t$ prior. in addition, the Student's $t$ prior does not admit 
+  relatively straightforward estimation, compared to the inverse Gaussian 
+  prior, as explained in Section \ref{sec:estimation}. The 
+  simulations also show that the model is reasonably well approximated and 
+  estimated using empirical-variational Bayes. An eQTL detection application 
+  shows that external data may indeed benefit prior estimation and prediction
+  performance.
+  
+  Apart from eQTL detection, the model may be used for network reconstruction as 
+  in \cite{leday_gene_2017}, drug response prediction (manuscript in 
+  preparation by the current authors), and other applications with multiple
+  outcomes, large feature space, and available external information.
+  
+  A drawback of the method is the fact that the external data is required to
+  be positive. That may not always be the case in practice. We note, however,
+  that the $\mathbf{c}_d^j$ may be translated to be positive by adding a 
+  constant. In the usual predictive feature sense this doesn't work, since one
+  might still encounter negative future values. Here, the external data is
+  only used for estimation and not for prediction, so this issue is 
+  non-existent.
+  
+  \section*{Software}
+	A (developmental) \texttt{R} package is available from 
+	\url{https://github.com/magnusmunch/cambridge}. 
 
 	\section*{Supplementary Material}
 	Supplementary Material is available online from 
@@ -332,11 +779,11 @@ xr-hyper,hyperref,enumerate}
 	\url{https://github.com/magnusmunch/cambridge}.
 	
 	\section*{Acknowledgements}
-	We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
-	Biostatistics and Epidemiology for help with the pre-processing of the data. 
+	We thank Gino Kpogbezan for providing the pre-processed data in Section 
+	\ref{sec:application}.
 	\textit{Conflict of Interest}: None declared.
-	
-	\bibliographystyle{author_short3} 
+
+	\bibliographystyle{author_short3.bst}
 	\bibliography{refs}
 	
 	\section*{Session info}

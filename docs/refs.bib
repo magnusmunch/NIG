@@ -17,6 +17,22 @@
 	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/P2MKEW54/Jeffreys - 1946 - An Invariant Form for the Prior Probability in Est.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/45SXDDNE/453.html:text/html}
 }
 
+@incollection{bernardo_shrink_2011,
+	title = {Shrink {Globally}, {Act} {Locally}: {Sparse} {Bayesian} {Regularization} and {Prediction}},
+	isbn = {978-0-19-969458-7},
+	shorttitle = {Shrink {Globally}, {Act} {Locally}},
+	url = {http://www.oxfordscholarship.com/view/10.1093/acprof:oso/9780199694587.001.0001/acprof-9780199694587-chapter-17},
+	urldate = {2016-10-25},
+	booktitle = {Bayesian {Statistics} 9},
+	publisher = {Oxford University Press},
+	author = {Polson, Nicholas G. and Scott, James G.},
+	editor = {Bernardo, José M. and Bayarri, M. J. and Berger, James O. and Dawid, A. P. and Heckerman, David and Smith, Adrian F. M. and West, Mike},
+	month = oct,
+	year = {2011},
+	pages = {501--538},
+	file = {Bayes1.pdf:/Users/magnusmunch/Zotero/storage/HQPRWEJJ/Bayes1.pdf:application/pdf}
+}
+
 @article{hahn_decoupling_2015,
 	title = {Decoupling {Shrinkage} and {Selection} in {Bayesian} {Linear} {Models}: {A} {Posterior} {Summary} {Perspective}},
 	volume = {110},
@@ -121,6 +137,18 @@
 	file = {146.pdf:/Users/magnusmunch/Zotero/storage/Q2IBHA3Q/146.pdf:application/pdf}
 }
 
+@inproceedings{carvalho_handling_2009,
+	title = {Handling {Sparsity} via the {Horseshoe}.},
+	volume = {5},
+	url = {http://www.jmlr.org/proceedings/papers/v5/carvalho09a/carvalho09a.pdf},
+	urldate = {2016-12-14},
+	booktitle = {{AISTATS}},
+	author = {Carvalho, Carlos M. and Polson, Nicholas G. and Scott, James G.},
+	year = {2009},
+	pages = {73--80},
+	file = {carvalho09a.pdf:/Users/magnusmunch/Zotero/storage/ZVMGX2QT/carvalho09a.pdf:application/pdf}
+}
+
 @article{consonni_mean-field_2007,
 	title = {Mean-field variational approximate {Bayesian} inference for latent variable models},
 	volume = {52},
@@ -137,6 +165,39 @@
 	keywords = {Bayesian inference, Bayesian probit model, Gibbs sampling, Latent variable models, Marginal distribution, Mean-field variational methods},
 	pages = {790--798},
 	file = {ScienceDirect Full Text PDF:/Users/magnusmunch/Zotero/storage/9RRQZZAM/Consonni and Marin - 2007 - Mean-field variational approximate Bayesian infere.pdf:application/pdf;ScienceDirect Snapshot:/Users/magnusmunch/Zotero/storage/95F884TQ/S0167947306003951.html:text/html}
+}
+
+@article{kucukelbir_automatic_2015,
+	title = {Automatic {Variational} {Inference} in {Stan}},
+	url = {http://arxiv.org/abs/1506.03431},
+	abstract = {Variational inference is a scalable technique for approximate Bayesian inference. Deriving variational inference algorithms requires tedious model-specific calculations; this makes it difficult to automate. We propose an automatic variational inference algorithm, automatic differentiation variational inference (ADVI). The user only provides a Bayesian model and a dataset; nothing else. We make no conjugacy assumptions and support a broad class of models. The algorithm automatically determines an appropriate variational family and optimizes the variational objective. We implement ADVI in Stan (code available now), a probabilistic programming framework. We compare ADVI to MCMC sampling across hierarchical generalized linear models, nonconjugate matrix factorization, and a mixture model. We train the mixture model on a quarter million images. With ADVI we can use variational inference on any model we write in Stan.},
+	urldate = {2017-08-01},
+	journal = {arXiv:1506.03431 [stat]},
+	author = {Kucukelbir, Alp and Ranganath, Rajesh and Gelman, Andrew and Blei, David M.},
+	month = jun,
+	year = {2015},
+	note = {arXiv: 1506.03431},
+	keywords = {Statistics - Machine Learning},
+	file = {arXiv\:1506.03431 PDF:/Users/magnusmunch/Zotero/storage/SD28TT5X/Kucukelbir et al. - 2015 - Automatic Variational Inference in Stan.pdf:application/pdf;arXiv\:1506.03431 PDF:/Users/magnusmunch/Zotero/storage/AGRZSAMM/Kucukelbir et al. - 2015 - Automatic Variational Inference in Stan.pdf:application/pdf;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/UUE6QG6U/1506.html:text/html;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/EAE25QPC/1506.html:text/html}
+}
+
+@article{blei_variational_2017,
+	title = {Variational {Inference}: {A} {Review} for {Statisticians}},
+	volume = {112},
+	issn = {0162-1459},
+	shorttitle = {Variational {Inference}},
+	url = {https://doi.org/10.1080/01621459.2017.1285773},
+	doi = {10.1080/01621459.2017.1285773},
+	abstract = {One of the core problems of modern statistics is to approximate difficult-to-compute probability densities. This problem is especially important in Bayesian statistics, which frames all inference about unknown quantities as a calculation involving the posterior density. In this article, we review variational inference (VI), a method from machine learning that approximates probability densities through optimization. VI has been used in many applications and tends to be faster than classical methods, such as Markov chain Monte Carlo sampling. The idea behind VI is to first posit a family of densities and then to find a member of that family which is close to the target density. Closeness is measured by Kullback–Leibler divergence. We review the ideas behind mean-field variational inference, discuss the special case of VI applied to exponential family models, present a full example with a Bayesian mixture of Gaussians, and derive a variant that uses stochastic optimization to scale up to massive data. We discuss modern research in VI and highlight important open problems. VI is powerful, but it is not yet well understood. Our hope in writing this article is to catalyze statistical research on this class of algorithms. Supplementary materials for this article are available online.},
+	number = {518},
+	urldate = {2018-03-23},
+	journal = {Journal of the American Statistical Association},
+	author = {Blei, David M. and Kucukelbir, Alp and McAuliffe, Jon D.},
+	month = apr,
+	year = {2017},
+	keywords = {Computer Science - Learning, Statistics - Computation, Statistics - Machine Learning, Algorithms, Computationally intensive methods, Statistical computing},
+	pages = {859--877},
+	file = {arXiv\:1601.00670 PDF:/Users/magnusmunch/Zotero/storage/JPZ2BADG/Blei et al. - 2016 - Variational Inference A Review for Statisticians.pdf:application/pdf;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/Z9PF9AIP/1601.html:text/html;Full Text PDF:/Users/magnusmunch/Zotero/storage/7XISFUAE/Blei et al. - 2017 - Variational Inference A Review for Statisticians.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/ZR4DPV3P/01621459.2017.html:text/html}
 }
 
 @article{iorio_landscape_2016,
@@ -186,12 +247,31 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {en},
 	number = {5},
 	urldate = {2018-06-19},
-	journal = {Briefings in Bioinformatics},
+	journal = {Brief Bioinform},
 	author = {Azuaje, Francisco},
 	month = sep,
 	year = {2017},
 	pages = {820--829},
 	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/Z5TZJQC9/Azuaje - 2017 - Computational models for predicting drug responses.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/GQNZDSU3/2562791.html:text/html}
+}
+
+@article{kanehisa_kegg:_2000,
+	title = {{KEGG}: {Kyoto} {Encyclopedia} of {Genes} and {Genomes}},
+	volume = {28},
+	issn = {0305-1048},
+	shorttitle = {{KEGG}},
+	url = {https://www.ncbi.nlm.nih.gov/pmc/articles/PMC102409/},
+	abstract = {KEGG (Kyoto Encyclopedia of Genes and Genomes) is a knowledge base for systematic analysis of gene functions, linking genomic information with higher order functional information. The genomic information is stored in the GENES database, which is a collection of gene catalogs for all the completely sequenced genomes and some partial genomes with up-to-date annotation of gene functions. The higher order functional information is stored in the PATHWAY database, which contains graphical representations of cellular processes, such as metabolism, membrane transport, signal transduction and cell cycle. The PATHWAY database is supplemented by a set of ortholog group tables for the information about conserved subpathways (pathway motifs), which are often encoded by positionally coupled genes on the chromosome and which are especially useful in predicting gene functions. A third database in KEGG is LIGAND for the information about chemical compounds, enzyme molecules and enzymatic reactions. KEGG provides Java graphics tools for browsing genome maps, comparing two genome maps and manipulating expression maps, as well as computational tools for sequence comparison, graph comparison and path computation. The KEGG databases are daily updated and made freely available (http://www.genome.ad.jp/kegg/ ).},
+	number = {1},
+	urldate = {2018-08-08},
+	journal = {Nucleic Acids Res},
+	author = {Kanehisa, Minoru and Goto, Susumu},
+	month = jan,
+	year = {2000},
+	pmid = {10592173},
+	pmcid = {PMC102409},
+	pages = {27--30},
+	file = {PubMed Central Full Text PDF:/Users/magnusmunch/Zotero/storage/G8KKWH3R/Kanehisa and Goto - 2000 - KEGG Kyoto Encyclopedia of Genes and Genomes.pdf:application/pdf}
 }
 
 @article{hahn_regularization_2018,
@@ -251,7 +331,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {EN},
 	number = {1},
 	urldate = {2018-09-11},
-	journal = {The Annals of Applied Statistics},
+	journal = {Ann. Appl. Stat.},
 	author = {Peng, Jie and Zhu, Ji and Bergamaschi, Anna and Han, Wonshik and Noh, Dong-Young and Pollack, Jonathan R. and Wang, Pei},
 	month = mar,
 	year = {2010},
@@ -343,7 +423,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {en},
 	number = {3},
 	urldate = {2018-10-03},
-	journal = {Statistics and Computing},
+	journal = {Stat Comput},
 	author = {Piironen, Juho and Vehtari, Aki},
 	month = may,
 	year = {2017},
@@ -362,7 +442,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {en-US},
 	number = {3},
 	urldate = {2018-10-05},
-	journal = {Proceedings of the American Mathematical Society},
+	journal = {Proc. Amer. Math. Soc.},
 	author = {Guo, Bai-Ni and Qi, Feng},
 	year = {2013},
 	keywords = {Refinement, lower bound, polygamma function, inequality, mean, open problem},
@@ -379,7 +459,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	abstract = {To date, several methods exist in the statistical literature for model assessment, which purport themselves specifically as Bayesian predictive methods. The decision theoretic assumptions on which these methods are based are not always clearly stated in the original articles, however. The aim of this survey is to provide a unified review of Bayesian predictive model assessment and selection methods, and of methods closely related to them. We review the various assumptions that are made in this context and discuss the connections between different approaches, with an emphasis on how each method approximates the expected utility of using a Bayesian model for the purpose of predicting future data.},
 	language = {EN},
 	urldate = {2018-10-11},
-	journal = {Statistics Surveys},
+	journal = {Statist. Surv.},
 	author = {Vehtari, Aki and Ojanen, Janne},
 	year = {2012},
 	mrnumber = {MR3011074},
@@ -399,7 +479,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {EN},
 	number = {3},
 	urldate = {2018-10-31},
-	journal = {Bayesian Analysis},
+	journal = {Bayesian Anal.},
 	author = {Gelman, Andrew},
 	month = sep,
 	year = {2006},
@@ -574,7 +654,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	year = {2017},
 	keywords = {Empirical Bayes, Statistics - Methodology, Variational approximation, High-dimensional Bayesian inference, Prior information, Undirected network},
 	pages = {932--947},
-	file = {arXiv\:1605.07514 PDF:/Users/magnusmunch/Zotero/storage/T6G8XUUJ/Kpogbezan et al. - 2016 - An empirical Bayes approach to network recovery us.pdf:application/pdf;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/CN9NRWDP/1605.html:text/html;Full Text PDF:/Users/magnusmunch/Zotero/storage/TXZ6JNSR/Kpogbezan et al. - 2017 - An empirical Bayes approach to network recovery us.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/GAXAWSSG/bimj.html:text/html}
+	file = {arXiv\:1605.07514 PDF:/Users/magnusmunch/Zotero/storage/T6G8XUUJ/Kpogbezan et al. - 2016 - An empirical Bayes approach to network recovery us.pdf:application/pdf;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/CN9NRWDP/1605.html:text/html;bimj201600090-sup-0001-SuppMaterial.pdf:/Users/magnusmunch/Zotero/storage/GKWNDLTE/bimj201600090-sup-0001-SuppMaterial.pdf:application/pdf;Full Text PDF:/Users/magnusmunch/Zotero/storage/TXZ6JNSR/Kpogbezan et al. - 2017 - An empirical Bayes approach to network recovery us.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/GAXAWSSG/bimj.html:text/html}
 }
 
 @article{leday_gene_2017,
@@ -587,7 +667,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {EN},
 	number = {1},
 	urldate = {2018-12-06},
-	journal = {The Annals of Applied Statistics},
+	journal = {Ann. Appl. Stat.},
 	author = {Leday, Gwenaël G. R. and Gunst, Mathisca C. M. de and Kpogbezan, Gino B. and Vaart, Aad W. van der and Wieringen, Wessel N. van and Wiel, Mark A. van de},
 	month = mar,
 	year = {2017},
@@ -672,7 +752,7 @@ Systematic studies of cancer genomes have provided unprecedented insights into t
 	language = {en},
 	number = {W1},
 	urldate = {2019-01-10},
-	journal = {Nucleic Acids Research},
+	journal = {Nucleic Acids Res},
 	author = {Ravikumar, Balaguru and Alam, Zaid and Peddinti, Gopal and Aittokallio, Tero},
 	month = jul,
 	year = {2017},
@@ -712,7 +792,7 @@ Knowledge of the full target space of bioactive substances, approved and investi
 	language = {en},
 	number = {1},
 	urldate = {2019-01-29},
-	journal = {Molecular Cancer Research},
+	journal = {Mol Cancer Res},
 	author = {Goodspeed, Andrew and Heiser, Laura M. and Gray, Joe W. and Costello, James C.},
 	month = jan,
 	year = {2016},
@@ -864,20 +944,6 @@ The original SMILES specification was initiated in the 1980s. It has since been 
 	keywords = {Bayesian}
 }
 
-@article{kucukelbir_automatic_2015,
-	title = {Automatic {Variational} {Inference} in {Stan}},
-	url = {http://arxiv.org/abs/1506.03431},
-	abstract = {Variational inference is a scalable technique for approximate Bayesian inference. Deriving variational inference algorithms requires tedious model-specific calculations; this makes it difficult to automate. We propose an automatic variational inference algorithm, automatic differentiation variational inference (ADVI). The user only provides a Bayesian model and a dataset; nothing else. We make no conjugacy assumptions and support a broad class of models. The algorithm automatically determines an appropriate variational family and optimizes the variational objective. We implement ADVI in Stan (code available now), a probabilistic programming framework. We compare ADVI to MCMC sampling across hierarchical generalized linear models, nonconjugate matrix factorization, and a mixture model. We train the mixture model on a quarter million images. With ADVI we can use variational inference on any model we write in Stan.},
-	urldate = {2019-04-18},
-	journal = {arXiv:1506.03431 [stat]},
-	author = {Kucukelbir, Alp and Ranganath, Rajesh and Gelman, Andrew and Blei, David M.},
-	month = jun,
-	year = {2015},
-	note = {arXiv: 1506.03431},
-	keywords = {Statistics - Machine Learning},
-	file = {arXiv\:1506.03431 PDF:/Users/magnusmunch/Zotero/storage/AGRZSAMM/Kucukelbir et al. - 2015 - Automatic Variational Inference in Stan.pdf:application/pdf;arXiv.org Snapshot:/Users/magnusmunch/Zotero/storage/EAE25QPC/1506.html:text/html}
-}
-
 @article{baringhaus_new_2004,
 	title = {On a new multivariate two-sample test},
 	volume = {88},
@@ -967,7 +1033,7 @@ The original SMILES specification was initiated in the 1980s. It has since been 
 	language = {en},
 	number = {D1},
 	urldate = {2019-07-08},
-	journal = {Nucleic Acids Research},
+	journal = {Nucleic Acids Res},
 	author = {Yang, Wanjuan and Soares, Jorge and Greninger, Patricia and Edelman, Elena J. and Lightfoot, Howard and Forbes, Simon and Bindal, Nidhi and Beare, Dave and Smith, James A. and Thompson, I. Richard and Ramaswamy, Sridhar and Futreal, P. Andrew and Haber, Daniel A. and Stratton, Michael R. and Benes, Cyril and McDermott, Ultan and Garnett, Mathew J.},
 	month = jan,
 	year = {2013},
@@ -1001,7 +1067,7 @@ The original SMILES specification was initiated in the 1980s. It has since been 
 	abstract = {Abstract.  The major goal of sequencing humans and many other species is to understand the link between genomic variation, phenotype and disease. There are nume},
 	language = {en},
 	urldate = {2019-08-02},
-	journal = {Database},
+	journal = {Database (Oxford)},
 	author = {Hunt, Sarah E. and McLaren, William and Gil, Laurent and Thormann, Anja and Schuilenburg, Helen and Sheppard, Dan and Parton, Andrew and Armean, Irina M. and Trevanion, Stephen J. and Flicek, Paul and Cunningham, Fiona},
 	month = jan,
 	year = {2018},
@@ -1109,7 +1175,7 @@ Comparison of mRNAs evoked by small molecules in human cells to mRNA expressed i
 	language = {en},
 	number = {1},
 	urldate = {2019-08-09},
-	journal = {Biophysical Reviews},
+	journal = {Biophys Rev},
 	author = {Ali, Mehreen and Aittokallio, Tero},
 	month = feb,
 	year = {2019},
@@ -1167,4 +1233,95 @@ Comparison of mRNAs evoked by small molecules in human cells to mRNA expressed i
 	year = {2012},
 	pages = {570--575},
 	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/CAYSFQPH/Garnett et al. - 2012 - Systematic identification of genomic markers of dr.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/THC9R632/nature11005.html:text/html}
+}
+
+@article{li_landscape_2019,
+	title = {The landscape of cancer cell line metabolism},
+	volume = {25},
+	copyright = {2019 The Author(s), under exclusive licence to Springer Nature America, Inc.},
+	issn = {1546-170X},
+	url = {https://www.nature.com/articles/s41591-019-0404-8},
+	doi = {10.1038/s41591-019-0404-8},
+	abstract = {Systematic metabolite profiling across cancer cell lines uncovers patterns associated with genetic and epigenetic features and reveals dysregulated metabolic states that can be exploited for anticancer therapy},
+	language = {en},
+	number = {5},
+	urldate = {2019-09-18},
+	journal = {Nat Med},
+	author = {Li, Haoxin and Ning, Shaoyang and Ghandi, Mahmoud and Kryukov, Gregory V. and Gopal, Shuba and Deik, Amy and Souza, Amanda and Pierce, Kerry and Keskula, Paula and Hernandez, Desiree and Ann, Julie and Shkoza, Dojna and Apfel, Verena and Zou, Yilong and Vazquez, Francisca and Barretina, Jordi and Pagliarini, Raymond A. and Galli, Giorgio G. and Root, David E. and Hahn, William C. and Tsherniak, Aviad and Giannakis, Marios and Schreiber, Stuart L. and Clish, Clary B. and Garraway, Levi A. and Sellers, William R.},
+	month = may,
+	year = {2019},
+	pages = {850--860},
+	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/H66573XL/Li et al. - 2019 - The landscape of cancer cell line metabolism.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/KCFVU3DM/s41591-019-0404-8.html:text/html}
+}
+
+@article{shoemaker_nci60_2006,
+	title = {The {NCI}60 human tumour cell line anticancer drug screen},
+	volume = {6},
+	copyright = {2006 Nature Publishing Group},
+	issn = {1474-1768},
+	url = {https://www.nature.com/articles/nrc1951},
+	doi = {10.1038/nrc1951},
+	abstract = {The US National Cancer Institute (NCI) 60 human tumour cell line anticancer drug screen (NCI60) was developed nearly 20 years ago, and is a valuable source of information about anticancer drug leads and mechanisms of growth inhibition.},
+	language = {en},
+	number = {10},
+	urldate = {2019-09-18},
+	journal = {Nat Rev Cancer},
+	author = {Shoemaker, Robert H.},
+	month = oct,
+	year = {2006},
+	pages = {813--823},
+	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/MTPCK5YJ/Shoemaker - 2006 - The NCI60 human tumour cell line anticancer drug s.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/XDEK3UHF/nrc1951.html:text/html}
+}
+
+@article{fabregat_reactome_2018,
+	title = {The {Reactome} {Pathway} {Knowledgebase}},
+	volume = {46},
+	issn = {0305-1048},
+	url = {https://academic.oup.com/nar/article/46/D1/D649/4626770},
+	doi = {10.1093/nar/gkx1132},
+	abstract = {Abstract.  The Reactome Knowledgebase (https://reactome.org) provides molecular details of signal transduction, transport, DNA replication, metabolism, and othe},
+	language = {en},
+	number = {D1},
+	urldate = {2019-09-19},
+	journal = {Nucleic Acids Res},
+	author = {Fabregat, Antonio and Jupe, Steven and Matthews, Lisa and Sidiropoulos, Konstantinos and Gillespie, Marc and Garapati, Phani and Haw, Robin and Jassal, Bijay and Korninger, Florian and May, Bruce and Milacic, Marija and Roca, Corina Duenas and Rothfels, Karen and Sevilla, Cristoffer and Shamovsky, Veronica and Shorser, Solomon and Varusai, Thawfeek and Viteri, Guilherme and Weiser, Joel and Wu, Guanming and Stein, Lincoln and Hermjakob, Henning and D’Eustachio, Peter},
+	month = jan,
+	year = {2018},
+	pages = {D649--D655},
+	file = {Full Text PDF:/Users/magnusmunch/Zotero/storage/L4TM8JIP/Fabregat et al. - 2018 - The Reactome Pathway Knowledgebase.pdf:application/pdf;Snapshot:/Users/magnusmunch/Zotero/storage/5QP4PEFE/4626770.html:text/html}
+}
+
+@article{kass_selection_1996,
+	title = {The {Selection} of {Prior} {Distributions} by {Formal} {Rules}},
+	volume = {91},
+	issn = {0162-1459},
+	url = {https://www.jstor.org.ezproxy.leidenuniv.nl:2048/stable/2291752},
+	doi = {10.2307/2291752},
+	abstract = {Subjectivism has become the dominant philosophical foundation for Bayesian inference. Yet in practice, most Bayesian analyses are performed with so-called "noninformative" priors, that is, priors constructed by some formal rule. We review the plethora of techniques for constructing such priors and discuss some of the practical and philosophical issues that arise when they are used. We give special emphasis to Jeffreys's rules and discuss the evolution of his viewpoint about the interpretation of priors, away from unique representation of ignorance toward the notion that they should be chosen by convention. We conclude that the problems raised by the research on priors chosen by formal rules are serious and may not be dismissed lightly: When sample sizes are small (relative to the number of parameters being estimated), it is dangerous to put faith in any "default" solution; but when asymptotics take over, Jeffreys's rules and their variants remain reasonable choices. We also provide an annotated bibliography.},
+	number = {435},
+	urldate = {2019-10-04},
+	journal = {Journal of the American Statistical Association},
+	author = {Kass, Robert E. and Wasserman, Larry},
+	year = {1996},
+	pages = {1343--1370},
+	file = {JSTOR Full Text PDF:/Users/magnusmunch/Zotero/storage/TUJ2CZW5/Kass and Wasserman - 1996 - The Selection of Prior Distributions by Formal Rul.pdf:application/pdf}
+}
+
+@article{wiel_learning_2019,
+	title = {Learning from a lot: {Empirical} {Bayes} for high‐dimensional model‐based prediction},
+	volume = {46},
+	issn = {0303-6898, 1467-9469},
+	shorttitle = {Learning from a lot},
+	url = {https://onlinelibrary.wiley.com/doi/abs/10.1111/sjos.12335},
+	doi = {10.1111/sjos.12335},
+	abstract = {Empirical Bayes is a versatile approach to “learn from a lot” in two ways: first, from a large number of variables and, second, from a potentially large amount of prior information, for example, stored in public repositories. We review applications of a variety of empirical Bayes methods to several well-known model-based prediction methods, including penalized regression, linear discriminant analysis, and Bayesian models with sparse or dense priors. We discuss “formal” empirical Bayes methods that maximize the marginal likelihood but also more informal approaches based on other data summaries. We contrast empirical Bayes to cross-validation and full Bayes and discuss hybrid approaches. To study the relation between the quality of an empirical Bayes estimator and p, the number of variables, we consider a simple empirical Bayes estimator in a linear model setting. We argue that empirical Bayes is particularly useful when the prior contains multiple parameters, which model a priori information on variables termed “co-data”. In particular, we present two novel examples that allow for co-data: first, a Bayesian spike-and-slab setting that facilitates inclusion of multiple co-data sources and types and, second, a hybrid empirical Bayes–full Bayes ridge regression approach for estimation of the posterior predictive interval.},
+	language = {en},
+	number = {1},
+	urldate = {2019-11-15},
+	journal = {Scandinavian Journal of Statistics},
+	author = {Wiel, Mark A. and Te Beest, Dennis E. and Münch, Magnus M.},
+	month = mar,
+	year = {2019},
+	pages = {2--25},
+	file = {Wiel et al. - 2019 - Learning from a lot Empirical Bayes for high‐dime.pdf:/Users/magnusmunch/Zotero/storage/8BS2WJ56/Wiel et al. - 2019 - Learning from a lot Empirical Bayes for high‐dime.pdf:application/pdf}
 }

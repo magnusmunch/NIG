@@ -2,7 +2,8 @@
 # exportPattern("^[^\\.]")
 exportPattern("^[[:alpha:]]+")
 
-importFrom(stats, rnorm, rbeta, rbinom, rgamma, setNames, integrate)
-importFrom(Rcpp, sourceCpp, evalCpp)
+importFrom(stats, setNames)
+importFrom(gsl, bessel_lnKnu)
+import(Rcpp)
 
 useDynLib(cambridge, .registration=TRUE)

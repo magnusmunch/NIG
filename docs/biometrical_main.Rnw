@@ -12,37 +12,119 @@ knit_hooks$set(document=function(x) {
 read_chunk("code/figures.R")
 @
 
-\documentclass[a4paper,hidelinks]{article}
-\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,
-rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,
+\documentclass[bimj,fleqn]{w-art}
+\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,epsfig,
+rotating,appendix,titlesec,multicol,hyperref,verbatim,
 bbm,algorithm,algpseudocode,pgfplotstable,threeparttable,booktabs,mathtools,
-dsfont,parskip,xr,tikz}
+dsfont,parskip,xr,tikz,times,w-thm}
+\usepackage[]{graphicx}
+\usepackage[authoryear]{natbib}
 \externaldocument[sm-]{supplement1}
 \usetikzlibrary{bayesnet}
 
+\setlength{\bibsep}{2pt}
+\setlength{\bibhang}{2em}
+\newcommand{\J}{J\"{o}reskog}
+\newcommand{\So}{S\"{o}rbom}
+\newcommand{\bcx}{{\bf X}}
+\newcommand{\bcy}{{\bf Y}}
+\newcommand{\bcz}{{\bf Z}}
+\newcommand{\bcu}{{\bf U}}
+\newcommand{\bcv}{{\bf V}}
+\newcommand{\bcw}{{\bf W}}
+\newcommand{\bci}{{\bf I}}
+\newcommand{\bch}{{\bf H}}
+\newcommand{\bcb}{{\bf B}}
+\newcommand{\bcr}{{\bf R}}
+\newcommand{\bcm}{{\bf M}}
+\newcommand{\bcf}{{\bf F}}
+\newcommand{\bcg}{{\bf G}}
+\newcommand{\bcs}{{\bf S}}
+\newcommand{\bca}{{\bf A}}
+\newcommand{\bcd}{{\bf D}}
+\newcommand{\bcc}{{\bf C}}
+\newcommand{\bce}{{\bf E}}
+\newcommand{\ba}{{\bf a}}
+\newcommand{\bb}{{\bf b}}
+\newcommand{\bc}{{\bf c}}
+\newcommand{\bd}{{\bf d}}
+\newcommand{\bx}{{\bf x}}
+\newcommand{\by}{{\bf y}}
+\newcommand{\bz}{{\bf z}}
+\newcommand{\bu}{{\bf u}}
+\newcommand{\bv}{{\bf v}}
+\newcommand{\bh}{{\bf h}}
+\newcommand{\bl}{{\bf l}}
+\newcommand{\be}{{\bf e}}
+\newcommand{\br}{{\bf r}}
+\newcommand{\bw}{{\bf w}}
+\newcommand{\de}{\stackrel{D}{=}}
+\newcommand{\bt}{\bigtriangleup}
+\newcommand{\bfequiv}{\mbox{\boldmath $\equiv$}}
+\newcommand{\bmu}{\mbox{\boldmath $\mu$}}
+\newcommand{\bnu}{\mbox{\boldmath $\nu$}}
+\newcommand{\bxi}{\mbox{\boldmath $\xi$}}
+\newcommand{\btau}{\mbox{\boldmath $\tau$}}
+\newcommand{\bgamma}{\mbox{\boldmath $\Gamma$}}
+\newcommand{\bphi}{\mbox{\boldmath $\Phi$}}
+\newcommand{\bfphi}{\mbox{\boldmath $\varphi$}}
+\newcommand{\bfeta}{\mbox{\boldmath $\eta$}}
+\newcommand{\bpi}{\mbox{\boldmath $\Pi$}}
+\newcommand{\bequiv}{\mbox{\boldmath $\equiv$}}
+\newcommand{\bvarepsilon}{\mbox{\boldmath $\varepsilon$}}
+\newcommand{\btriangle}{\mbox{\boldmath $\triangle$}}
+\newcommand{\bdelta}{\mbox{\boldmath $\Delta$}}
+\newcommand{\beps}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\btheta}{\mbox{\boldmath $\theta$}}
+\newcommand{\balpha}{\mbox{\boldmath $\alpha$}}
+\newcommand{\bsphi}{\mbox{\boldmath $\varphi$}}
+\newcommand{\bsig}{\mbox{\boldmath $\sigma$}}
+\newcommand{\bfpsi}{\mbox{\boldmath $\psi$}}
+\newcommand{\bfdelta}{\mbox{\boldmath $\delta$}}
+\newcommand{\bsigma}{{\bf \Sigma}}
+\newcommand{\bzero}{{\bf 0}}
+\newcommand{\bpsi}{\mbox{\boldmath $\Psi$}}
+\newcommand{\bep}{\mbox{\boldmath $\epsilon$}}
+\newcommand{\bomega}{\mbox{\boldmath $\Omega$}}
+\newcommand{\bfomega}{\mbox{\boldmath $\omega$}}
+\newcommand{\blambda}{\mbox{\boldmath $\Lambda$}}
+\newcommand{\bflambda}{\mbox{\boldmath $\lambda$}}
+\newcommand{\bfsigma}{\mbox{\boldmath $\sigma$}}
+\newcommand{\bfpi}{{\mbox{\boldmath $\pi$}}}
+\newcommand{\bupsilon}{\mbox{\boldmath $\upsilon$}}
+\newcommand{\obs}{{\rm obs}}
+\newcommand{\mis}{{\rm mis}}
+\theoremstyle{plain}
+\newtheorem{criterion}{Criterion}
+\theoremstyle{definition}
+\newtheorem{condition}[theorem]{Condition}
+
+\pgfplotsset{compat=1.16}
+\chardef\bslash=`\\ % p. 424, TeXbook
+\newcommand{\ntt}{\normalfont\ttfamily}
+\newcommand{\cn}[1]{{\protect\ntt\bslash#1}}
+\newcommand{\pkg}[1]{{\protect\ntt#1}}
+\let\fn\pkg
+\let\env\pkg
+\let\opt\pkg
+\hfuzz1pc % Don't bother to report overfull boxes if overage is < 1pc
+\newcommand{\envert}[1]{\left\lvert#1\right\rvert}
+\let\abs=\envert
+
 % vectors and matrices
 \newcommand{\bbeta}{\bm{\beta}}
-\newcommand{\btau}{\bm{\tau}}
-\newcommand{\bsigma}{\bm{\sigma}}
-\newcommand{\balpha}{\bm{\alpha}}
+
 \newcommand{\bepsilon}{\bm{\epsilon}}
-\newcommand{\bomega}{\bm{\omega}}
 \newcommand{\bOmega}{\bm{\Omega}}
 \newcommand{\bSigma}{\bm{\Sigma}}
 \newcommand{\bkappa}{\bm{\kappa}}
-\newcommand{\btheta}{\bm{\theta}}
-\newcommand{\bmu}{\bm{\mu}}
-\newcommand{\bpsi}{\bm{\psi}}
-\newcommand{\blambda}{\bm{\lambda}}
 \newcommand{\bLambda}{\bm{\Lambda}}
 \newcommand{\bPsi}{\bm{\Psi}}
-\newcommand{\bphi}{\bm{\phi}}
 \newcommand{\Y}{\mathbf{Y}}
 \newcommand{\y}{\mathbf{y}}
 \newcommand{\X}{\mathbf{X}}
 \newcommand{\x}{\mathbf{x}}
 \newcommand{\I}{\mathbf{I}}
-\newcommand{\bgamma}{\bm{\gamma}}
 \newcommand{\T}{\mathbf{T}}
 \newcommand{\Z}{\mathbf{Z}}
 \newcommand{\W}{\mathbf{W}}
@@ -105,28 +187,39 @@ dsfont,parskip,xr,tikz}
 \renewcommand{\[}{\left[}
 \renewcommand{\]}{\right]}
 
-% settings
-\pgfplotsset{compat=1.16}
-\graphicspath{{../figs/}}
-\setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
-\setlength{\textwidth}{15cm}
-\title{Drug sensitivity prediction with the normal inverse Gaussian prior 
-informed by external data}
-\date{\today}
-\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
-\href{mailto:m.munch@amsterdamumc.nl}{m.munch@amsterdamumc.nl}}, Mark A. van de 
-Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
-
 \begin{document}
 
-	\maketitle
-	
-	\noindent
-	1. Department of Epidemiology \& Biostatistics, Amsterdam UMC, VU University, 
-	PO Box 7057, 1007 MB Amsterdam, The Netherlands \\
-	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
-	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge,
-	United Kingdom
+  \DOIsuffix{bimj.200100000}\Volume{XX}\Issue{XX}\Year{XXX}
+  \pagespan{1}{}
+  \keywords{Drug sensitivity; Empirical Bayes; 
+  Genomics of Drug Sensitivity in Cancer (GDSC); Variational Bayes\\[1pc]
+  \noindent\hspace*{-4.2pc} Supporting Information for this article is available
+  from the author or on the WWW under\break \hspace*{-4pc} 
+  \underline{http://dx.doi.org/10.1022/bimj.XXXXXXX} (please delete if not
+  applicable)}  %%% semicolon and fullpoint added here for keyword style
+
+  \title[Drug sensitivity prediction with NIG prior]
+  {Drug sensitivity prediction with the normal inverse Gaussian prior 
+  informed by external data}
+
+  %% Institutes
+  \address[\inst{1}]{Department of Epidemiology \& Biostatistics, 
+  Amsterdam UMC, VU University, PO Box 7057, 1007 MB Amsterdam, The Netherlands}
+  \address[\inst{2}]{Mathematical Institute, Leiden University, Leiden, 
+  The Netherlands}
+  \address[\inst{3}]{MRC Biostatistics Unit, 
+  Cambridge Institute of Public Health, Cambridge, United Kingdom}
+
+  %% Authors
+  \author[M\"unch]{Magnus M. M\"unch
+  \footnote{Corresponding author: {\sf{e-mail: m.munch@amsterdamumc.nl}}, 
+  Phone: +31 71 527 4844}\inst{,1,2}} 
+  \author[van de Wiel]{Mark A. van de Wiel\inst{1,3}}
+  \author[Richardson]{Sylvia Richardson\inst{3}}
+  \author[Leday]{Gwena{\"e}l G. R. Leday\inst{3}}
+
+  %%%%    \dedicatory{This is a dedicatory.}
+  \Receiveddate{zzz} \Reviseddate{zzz} \Accepteddate{zzz} 
 	
 	\begin{abstract}
 		{In precision medicine, a common problem is drug sensitivity prediction from
@@ -143,11 +236,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 		Genomics of Drug Sensitivity in Cancer data.}
 	\end{abstract}
 	
-	\noindent\textbf{Keywords}: Drug sensitivity; Empirical Bayes; 
-	Genomics of Drug Sensitivity in Cancer (GDSC); Variational Bayes
-	
-	\noindent\textbf{Software available from}: 
-	\url{https://github.com/magnusmunch/cambridge}
+	\maketitle 
 	
 	\section{Introduction}
 	Recently, promising results in precision medicine 
@@ -282,7 +371,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   implies full shrinkage towards zero. Figure 
   \ref{fig:dens_kappa} depicts the prior on $\kappa_{jd}$ implied by 
   several choices of $\beta_{jd}$ prior.
-<<dens_kappa, fig.cap="Implied prior densities $\\pi(\\kappa_{jd})$ for the (a) NIG, (b) Student's $t$, and (c) lasso priors. Different line types correspond to different hyperparameter settings. The hyperparameter settings were chosen to show some possible, distinct shapes that each of the priors can take.", out.width="100%", fig.asp=1/3>>=
+<<dens_kappa, fig.cap="Implied prior densities $\\pi(\\kappa_{jd})$ for the (a) NIG, (b) Student's $t$, and (c) lasso priors. Different line types correspond to different hyperparameter settings. The hyperparameter settings were chosen to show some possible, distinct shapes that each of the priors can take.", out.width="90%", fig.asp=1/3>>=
 @  
   
   Figure \ref{fig:dens_kappa} shows that, depending on the choice
@@ -1064,22 +1153,9 @@ kable(tab,
 	Supplementary Material is available online from 
 	\url{https://github.com/magnusmunch/cambridge}. 
 	
-	\section*{Reproducible Research}
-	All results and documents may be recreated from 
-	\url{https://github.com/magnusmunch/cambridge}.
+	\section*{Conflict of interest}
+	The authors have declared no conflict of interest.
 	
-	\section*{Acknowledgements}
-	We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
-	Biostatistics and Epidemiology for their suggestions on the pre-processing of 
-	the GDSC data. \textit{Conflict of Interest}: None declared.
-	
-	\bibliographystyle{author_short3} 
 	\bibliography{refs}
-	
-	\section*{Session info}
-
-<<r session-info, eval=TRUE, echo=TRUE, tidy=TRUE>>=
-devtools::session_info()
-@
 
 \end{document}

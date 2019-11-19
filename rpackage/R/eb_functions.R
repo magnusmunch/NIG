@@ -1,78 +1,64 @@
 # update EB parameters (not tested)
-.eb.update <- function(e, b, old.lambda, Cmat, p, D, mult.lambda, fixed.eb,
-                       epsilon, maxit) {
+.eb.updated <- function(f, g, Z, D, lambdad=NULL) {
+  
+  # eb parameters
+  mat <- t(Z*f) %*% Z
+  if(!is.finite(determinant(mat)$modulus)) {
+    alphad <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
+                        t(Z))
+  } else {
+    alphad <- tryCatch({
+      rowSums(solve(mat) %*% t(Z))}, error=function(e) {
+        rowSums(solve(mat + sqrt(.Machine$double.eps)*
+                        diag(nrow(mat))) %*% t(Z))})
+  }
+  
+  # if lambdad is fixed we do not estimate
+  if(is.null(lambdad)) {
+    lambdad <- D/(sum(g) + sum(colSums(t(Z*sqrt(f))*alphad)^2) - 
+                    2*sum(t(Z)*alphad))    
+  }
+  
+  
+  # compute inner product, mean and variance
+  Zalphad <- ifelse(as.numeric(Z %*% alphad) < 0, abs(as.numeric(Z %*% alphad)),
+                    as.numeric(Z %*% alphad))
+  mpriord <- 1/Zalphad
+  vpriord <- 1/(Zalphad^3*lambdad)
+  
+  out <- list(alphad=alphad, lambdad=lambdad, mpriord=mpriord, vpriord=vpriord, 
+              Zalphad=Zalphad)
+  return(out)
+}
+
+# update EB parameters (not tested)
+.eb.updatef <- function(e, b, Cmat, p, D, lambdaf=NULL) {
   
   # eb parameters
   mat <- t(Cmat*Reduce("c", e)) %*% Cmat
   if(!is.finite(determinant(mat)$modulus)) {
-    alpha <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
-                       t(Cmat))
+    alphaf <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
+                        t(Cmat))
   } else {
-    alpha <- tryCatch({rowSums(solve(mat) %*% t(Cmat))},
-                      error=function(e) {
-                        rowSums(solve(mat + sqrt(.Machine$double.eps)*
-                                        diag(nrow(mat))) %*% t(Cmat))})
+    alphaf <- tryCatch({
+      rowSums(solve(mat) %*% t(Cmat))}, error=function(e) {
+        rowSums(solve(mat + sqrt(.Machine$double.eps)*
+                        diag(nrow(mat))) %*% t(Cmat))})
   }
-  if(fixed.eb=="lambda") {
-    lambda <- old.lambda
-  } else {
-    lambda <- sum(p)/(sum(Reduce("c", b)) + 
-                        sum(colSums(t(Cmat*sqrt(Reduce("c", e)))*alpha)^2) - 
-                        2*sum(t(Cmat)*alpha))  
-  }
-  
-  # IRLS
-  if(mult.lambda & fixed.eb=="none") {
-    new.eb <-  list(alpha=alpha, lambda=rep(lambda, D), conv=FALSE)
-    iter <- 0
-    while(!(new.eb$conv | iter >= maxit)) {
-      
-      # update iteration number and EB parameters
-      iter <- iter + 1
-      new.eb <- .eb.update.mult(new.eb$lambda, new.eb$alpha, e, b, Cmat, 
-                                p, D, epsilon)
-    }
-    alpha <- new.eb$alpha
-    lambda <- new.eb$lambda
-    conv <- new.eb$conv
-  } else {
-    conv <- TRUE
-    iter <- 1
+  if(is.null(lambdaf)) {
+    lambdaf <- sum(p)/
+      (sum(Reduce("c", b)) + sum(colSums(t(Cmat*sqrt(Reduce("c", e)))*
+                                           alphaf)^2) - 2*sum(t(Cmat)*alphaf))    
   }
   
   # compute inner product, mean and variance
-  Calpha <- unname(split(as.numeric(Cmat %*% alpha), rep(1:D, times=p)))
-  mprior <- lapply(1:D, function(d) {1/Calpha[[d]]})
-  vprior <- lapply(1:D, function(d) {
-    1/(Calpha[[d]]^3*ifelse(mult.lambda, lambda[d], lambda))})
+  Calphaf <- unname(split(as.numeric(Cmat %*% alphaf), rep(1:D, times=p)))
+  Calphaf <- lapply(Calphaf, function(ca) {ifelse(ca < 0, abs(ca), ca)})
+  mpriorf <- lapply(1:D, function(d) {1/Calphaf[[d]]})
+  vpriorf <- lapply(1:D, function(d) {
+    1/(Calphaf[[d]]^3*lambdaf)})
   
-  out <- list(alpha=alpha, lambda=lambda, mprior=mprior, vprior=vprior, 
-              Calpha=Calpha, conv=conv, iter=iter)
-  return(out)
-}
-
-# one EB IRLS iteration (not tested)
-.eb.update.mult <- function(old.lambda, old.alpha, e, b, Cmat, p, D, epsilon) {
-  
-  # create new IRLS updates
-  mat <- t(Cmat*Reduce("c", e)*rep(old.lambda, p)) %*% Cmat
-  if(!is.finite(determinant(mat)$modulus)) {
-    alpha <- rowSums(solve(mat + sqrt(.Machine$double.eps)*diag(nrow(mat))) %*% 
-                       t(Cmat*rep(old.lambda, p)))
-  } else {
-    alpha <- tryCatch({rowSums(solve(mat) %*% t(Cmat*rep(old.lambda, p)))},
-                      error=function(e) {
-                        rowSums(solve(mat + sqrt(.Machine$double.eps)*
-                                        diag(nrow(mat))) %*% 
-                                  t(Cmat*rep(old.lambda, p)))})
-  }
-  Calpha <- unname(split(as.numeric(Cmat %*% alpha), rep(1:D, times=p)))
-  lambda <- p/(sapply(b, sum) + sapply(1:D, function(d) {
-    sum((sqrt(e[[d]])*Calpha[[d]])^2)}) - 2*sapply(Calpha, sum))
-  
-  # check convergence of IRLS
-  conv <- all(abs(c(alpha - old.alpha, lambda - old.lambda)) < epsilon)
-  
-  out <- list(alpha=unname(alpha), lambda=unname(lambda), conv=unname(conv))
+  out <- list(alphaf=alphaf, lambdaf=lambdaf, mpriorf=mpriorf, vpriorf=vpriorf, 
+              Calphaf=Calphaf)
   return(out)
 }
