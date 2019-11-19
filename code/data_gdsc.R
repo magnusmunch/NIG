@@ -2,8 +2,6 @@
 
 ### libraries
 library(gdata)
-library(MASS)
-library(biomaRt)
 
 ################################## data prep ###################################
 # loading the data either from a local file or from the GDSC website
