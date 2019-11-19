@@ -30,11 +30,6 @@
   return(out)
 }
 
-# aold=init$aold[d]; bold=init$bold[[d]]; gold=init$gold[[d]]; 
-# Calphaf=init$Calphaf[[d]]; Zalphad=init$Zalphad[[d]]; lambdaf=init$lambdaf; 
-# lambdad=init$lambdad; y=y[, d]; x=x[[d]]; ytx=ytx[[d]]; yty=yty[d]; n; 
-# p=r[d]
-
 # single VB update in NIG model (tested)
 .single.vb.update <- function(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
                               lambdad, y, x, ytx, yty, n, p) {

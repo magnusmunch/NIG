@@ -15,21 +15,25 @@ data {
   int<lower=1> n;
   matrix[n, p] x;
   vector[n] y; 
-  vector<lower=0>[p] ctalphainv;
-  real<lower=0> lambda;
+  real<lower=0> thetac;
+  real<lower=0> lambdac;
+  real<lower=0> thetaz;
+  real<lower=0> lambdaz;
 }
 
 parameters {
   real beta0;
   vector[p] beta;
   real<lower=0> sigmasq;
-  vector<lower=0>[p] gammasq;
+  real<lower=0> gammasq;
+  vector<lower=0>[p] tausq;
 }
 
 transformed parameters {
   real<lower=0> sigma = sqrt(sigmasq);
-  vector<lower=0>[p] gamma = sqrt(gammasq);
-  vector<lower=0>[p] betasd = sigma*gamma;
+  real<lower=0> gamma = sqrt(gammasq);
+  vector<lower=0>[p] tau = sqrt(tausq);
+  vector<lower=0>[p] betasd = sigma*gamma*tau;
   vector[n] mu;
   mu = beta0 + x*beta;
 }
@@ -37,11 +41,12 @@ transformed parameters {
 model {
   // priors
   target += jeffreys_lpdf(sigmasq);   
+  target += igauss_lpdf(gammasq | thetac, lambdac);
   for(j in 1:p) {
-    beta[j] ~ normal(0., betasd[j]);
-    target += igauss_lpdf(gammasq[j] | ctalphainv[j], lambda);
+    target += igauss_lpdf(tausq[j] | thetaz, lambdaz);
   }
-
+  beta ~ normal(0., betasd);
+  
   // likelihood
   y ~ normal(mu, sigma);
 }

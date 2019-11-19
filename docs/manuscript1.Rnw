@@ -262,7 +262,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	shrinkage models it is important  to account for 
   different noise levels $\sigma_d^2$ by scaling the $\beta_{jd}$ variances 
   accordingly.
-	
+
 	The normal inverse Gaussian (NIG) prior model was introduced in 
   \cite{barndorff-nielsen_hyperbolic_1978} and since 
   \cite{barndorff-nielsen_normal_1997} it is routinely applied in mathematical 
@@ -300,7 +300,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \ref{sec:empiricalbayes}, and (iii) like the horseshoe, the NIG shrinkage
   weights prior can put mass both near 0 and 1, a desirable property of 
   shrinkage priors.
-	
+
   A few remarks on the choice of error variance prior are justified here: 
   many authors endow error variance components with vague gamma priors. 
   \cite{gelman_prior_2006}, 
@@ -422,7 +422,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     hyperparameters.}
     \label{fig:dag}
   \end{figure}
-	
+
 	\section{Estimation}\label{sec:estimation}
 	\subsection{Variational Bayes}\label{sec:variationalbayes}
 	The posterior corresponding to the model described in (\ref{eq:likelihood})
@@ -435,7 +435,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	Q_d(\cdot) = q(\bbeta_d) \cdot q(\bm{\gamma}_{d}^2) \cdot q(\tau_{d}^2) 
 	\cdot q(\sigma_d^2)$, where $\bm{\gamma}_{d}^2 = 
 	\begin{bmatrix} \gamma_{1d}^2 & \cdots & \gamma_{pd}^2 \end{bmatrix} \tr$. For
-	notational convenience, we slightly abuse notation and let $q(\cdot)$ denote
+  notational convenience, we slightly abuse notation and let $q(\cdot)$ denote
 	different densities for different inputs.
 	Under such a factorisation, the marginal variational posteriors that 
 	minimise the Kullback-Leibler divergence of the true posterior to the 
@@ -520,7 +520,6 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   therefore propose to estimate these hyperparameters by empirical Bayes.
   In our case, this results in an   
   objective and data-driven inclusion of the feature and drug covariates.
-	
 	The canonical method for empirical Bayes is to maximise the marginal 
 	likelihood with respect to the hyperparameters. In 
 	\cite{casella_empirical_2001} the marginal likelihood is maximised by an EM 
@@ -883,21 +882,6 @@ kable(tab,
 	are more predictive than genes that are not, i.e., 
 	they have larger prior $\beta_{jd}$ variances than drugs that are not in 
 	the pathway.
-  
-%   - check whether compounds are PAINS \cite[]{baell_new_2010} or not. 
-%   PAINS indicates whether compound is frequent false hitter.
-%   
-%   - clinical trials database CTRP might contain info
-% 
-%   - extra data on GDSC might be in PharamcoGx R-package. Also contains bunch 
-%   of functions.
-%   
-%   - check GSK open target EBI or ask Chris Wallace about it. Database that links
-% 	targets to drugs and diseases. Might be useful for drugs co-data.
-% 	
-% 	- try non-negative matrix factorisation/independent component analysis on 
-% 	binary fingerprints to get principal components that characterise the 
-% 	different drugs.  
 	
 	\subsection{Results}
 	To compute performance measures, we randomly split the data into training and
@@ -1005,22 +989,7 @@ kable(tab,
   estimation in the NIG model is more stable than in the bSEM model.
 <<data_gdsc_res1_brank_hist, fig.cap="Spearman's rank correlation between the estimated posterior means $\\E_{Q}(\\bbeta_d)$ in the 50 data splits.", out.width="70%", fig.asp=2/3>>= 
 @  
-  
-	% 
-	% \subsection{CCLE}
-	% - extra data on CCLE might be in PharamcoGx R-package
-	% 
-	% \subsection{NCI-50}
-	% 
-	% \subsection{CMap}
-	% - Cmap \cite[]{subramanian_next_2017,lamb_connectivity_2006} contains 
-	% pharma-genomic data (similar to CCLE and GDSC). 
-	% 
-	% - Data available at: 
-	% https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE92742. 
-	% 
-	% - Cmap website: https://clue.io/cmap.
-	
+
 	\section{Discussion}\label{sec:discussion}
 	The preceding presents a novel model for drug sensitivity
 	prediction from a set of high dimensional molecular features. The model allows
