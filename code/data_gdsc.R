@@ -15,9 +15,10 @@ if(file.exists("data/v17.3_fitted_dose_response.csv")) {
 if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
   expr <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
                      header=TRUE, stringsAsFactors=FALSE)
+  
 } else {
-  expr <- read.table(gcon(url("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz"),
-                          text=TRUE), header=TRUE, stringsAsFactors=FALSE)
+  expr <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
+                     header=TRUE, stringsAsFactors=FALSE)
 }
 if(file.exists("data/Cell_Lines_Details.xlsx")) {
   cell <- read.xls("data/Cell_Lines_Details.xlsx",
