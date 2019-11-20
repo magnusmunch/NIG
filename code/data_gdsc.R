@@ -15,6 +15,9 @@ if(file.exists("data/v17.3_fitted_dose_response.csv")) {
 if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
   expr <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
                      header=TRUE, stringsAsFactors=FALSE)
+  # same data, different file
+  # expr <- read.csv("data/Cell_line_RMA_proc_basalExp.txt", 
+  #                  header=TRUE, sep="\t")
   
 } else {
   expr <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 

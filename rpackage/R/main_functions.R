@@ -292,7 +292,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   }
   
   # create posterior mean and variance objects
-  mpost <- list(beta=mu, gamma.sq=sapply(1:D, function(d) {
+  mpost <- list(beta=mu, gamma.sq=lapply(1:D, function(d) {
     old.eb$mpriorf[[d]]*sqrt(old.vb$delta[[d]]/old.eb$lambdaf)*
       ratio_besselK(sqrt(old.vb$delta[[d]]*old.eb$lambdaf)/
                       old.eb$mpriorf[[d]], 1)}),
@@ -301,7 +301,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
       old.eb$mpriord[d]*sqrt(old.vb$eta[[d]]/old.eb$lambdad)*
         ratio_besselK(sqrt(old.vb$eta[[d]]*old.eb$lambdad)/
                         old.eb$mpriord[d], (r[d] + 1)/2)}))
-  vpost <- list(beta=Sigma, gamma.sq=sapply(1:D, function(d) {
+  vpost <- list(beta=Sigma, gamma.sq=lapply(1:D, function(d) {
     old.eb$mpriorf[[d]]^2*old.vb$delta[[d]]/old.eb$lambdaf*
       (1 - ratio_besselK(sqrt(old.vb$delta[[d]]*old.eb$lambdaf)/
                            old.eb$mpriorf[[d]], 1)^2)}),
@@ -325,4 +325,32 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   class(out) <- c("semnig")
   return(out)
   
+}
+
+# estimate ELBO on new data
+new.elbo <- function(object, newx, newy) {
+  D <- ncol(newy)
+  p <- sapply(newx, ncol)
+  n <- nrow(newy)
+  d <- 1
+  out <- sapply(1:D, function(d) {
+    aux <- list(ldetSigma=determinant(object$vb$Sigma[[d]])$modulus, 
+                ytXmu=as.numeric(t(newy[, d]) %*% newx[[d]] %*% 
+                                  object$vb$mu[[d]]), 
+                trXtXSigma=sum(diag(t(newx[[d]]) %*% newx[[d]] %*% 
+                                      object$vb$Sigma[[d]])), 
+                mutXtXmu=sum((t(object$vb$mu[[d]]) %*% t(newx[[d]]))^2), 
+                dSigma=sum(diag(object$vb$Sigma[[d]])), 
+                mu=object$vb$mu[[d]])
+    g <- object$vb$mpost$tau.sq[[d]]*object$eb$lambdad*
+      object$eb$Zalphad[[d]]^2/object$vb$eta[[d]] + (p[d] + 1)/
+      object$vb$eta[[d]]
+    b <- object$vb$mpost$gamma.sq[[d]]*object$eb$lambdaf*
+      object$eb$Calphaf[[d]]^2/object$vb$delta[[d]] + 2/object$vb$delta[[d]]
+    cambridge:::.single.elbo(p[d], n, object$vb$zeta[[d]], sum(newy[, d]^2),
+                             aux, g, b, object$vb$delta[[d]], 
+                             object$vb$eta[[d]], object$eb$lambdaf,
+                             object$eb$lambdad, object$eb$Zalphad[[d]], 
+                             object$eb$Calphaf[[d]])}) 
+  return(out)
 }

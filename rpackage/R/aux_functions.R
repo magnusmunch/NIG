@@ -2,17 +2,6 @@
 .single.elbo <- function(p, n, zeta, yty, aux, g, b, delta, eta, lambdaf, 
                          lambdad, Zalphad, Calphaf) {
   
-  # elbo <- -0.5*(n + p + 1)*log(pi) + 0.5*(p + 1 - n)*log(2) + 0.5*(n + 1) + 
-  #   p + lgamma(0.5*(n + p + 1)) - 0.5*(n + p + 1)*log(zeta) + 
-  #   0.5*aux$ldetSigma - 0.25*(n + p + 1)/zeta*
-  #   (yty - 2*aux$ytXmu + aux$trXtXSigma + aux$mutXtXmu + 
-  #      g*sum(b*aux$dSigma) + g*sum(aux$mu^2*b)) + p*log(lambdaf) + 
-  #   0.25*(p + 3)/4*log(lambdad) + 0.5*(eta - lambdad)*g + 
-  #   sum(0.5*(delta - lambdaf)*b) + lambdad/chi + sum(lambdaf/phi) - 
-  #   0.5*(p + 1)*log(chi) - sum(log(phi)) - 0.25*(p + 1)*log(eta) - 
-  #   0.5*sum(log(delta)) + 
-  #   gsl::bessel_lnKnu(0.5*(p + 1), sqrt(lambdad*eta)/chi) +
-  #   sum(gsl::bessel_lnKnu(1, sqrt(lambdaf*delta)/phi))
   chi <- switch(is.null(Zalphad) + 1, 1/Zalphad, NULL)
   phi <- switch(is.null(Calphaf) + 1, 1/Calphaf, NULL)
   elbo <- -0.5*(n + p + 1)*log(pi) + 0.5*(p + 1 - n)*log(2) + 0.5*(n + 1) + 

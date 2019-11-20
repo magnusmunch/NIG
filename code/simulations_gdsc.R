@@ -1,27 +1,28 @@
 #!/usr/bin/env Rscript
 
-### installation of packages
-# if(!("devtools" %in% installed.packages())) {
-#   install.packages("devtools")
-# }
-# library(devtools)
-# install_github("magnusmunch/cambridge/rpackage", local=FALSE,
-#                auth_token=Sys.getenv("GITHUB_PAT"))
-
 ### libraries
-detach("package:cambridge", unload=TRUE)
 library(cambridge)
 library(statmod)
 library(glmnet)
 
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
-load(file="results/data_gdsc_fit1.Rdata")
 # expr.sel <- sapply(idsel, function(id) {expr.prep[, id]})
-psel <- 300
+psel <- 1000
 idsel <- order(apply(expr.prep, 2, sd), decreasing=TRUE)[c(1:psel)]
 expr.sel <- expr.prep[, idsel]
 rm(drug.prep, expr.prep, fit.enet, idsel, resp.prep)
+
+### data preparation
+# select features
+D <- ncol(resp.prep)
+psel <- 1000
+o <- order(-apply(expr.prep, 2, sd))
+idsel <- o[1:psel]
+expr.sel <- lapply(1:D, function(d) {expr.prep[, idsel]})
+inpathway <- lapply(feat.prep$inpathway, function(s) {s[idsel]})
+x <- lapply(expr.sel, function(s) {scale(s)})
+y <- scale(resp.prep)
 
 ### data preparation
 # x <- lapply(expr.sel, scale)
