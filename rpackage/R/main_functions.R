@@ -332,7 +332,6 @@ new.elbo <- function(object, newx, newy) {
   D <- ncol(newy)
   p <- sapply(newx, ncol)
   n <- nrow(newy)
-  d <- 1
   out <- sapply(1:D, function(d) {
     aux <- list(ldetSigma=determinant(object$vb$Sigma[[d]])$modulus, 
                 ytXmu=as.numeric(t(newy[, d]) %*% newx[[d]] %*% 
@@ -345,8 +344,10 @@ new.elbo <- function(object, newx, newy) {
     g <- object$vb$mpost$tau.sq[[d]]*object$eb$lambdad*
       object$eb$Zalphad[[d]]^2/object$vb$eta[[d]] + (p[d] + 1)/
       object$vb$eta[[d]]
+    g <- switch(as.numeric(length(g)==0) + 1, g, 1)
     b <- object$vb$mpost$gamma.sq[[d]]*object$eb$lambdaf*
       object$eb$Calphaf[[d]]^2/object$vb$delta[[d]] + 2/object$vb$delta[[d]]
+    b <- switch(as.numeric(length(b)==0) + 1, b, 1)
     cambridge:::.single.elbo(p[d], n, object$vb$zeta[[d]], sum(newy[, d]^2),
                              aux, g, b, object$vb$delta[[d]], 
                              object$vb$eta[[d]], object$eb$lambdaf,
