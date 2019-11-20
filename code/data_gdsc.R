@@ -77,7 +77,7 @@ if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
 } else {
   mapid <- read.table("https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt",
                       comment.char="", sep="\t", quote="",
-                      col.names=c("database", "reactomeid", "url", "name",
+                      col.names=c("ensemblid", "reactomeid", "url", "name",
                                   "evidencecode", "species"))
 }
 
@@ -315,7 +315,7 @@ inpathway <- lapply(1:nrow(drug.prep), function(d) {
   as.numeric(colnames(expr.prep) %in% drug.ensemblid[[d]])})
 
 # create object that contains feature information
-feat.prep <- inpathway
+feat.prep <- list(inpathway=inpathway)
 rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway,
    drug, expr, resp)
 
