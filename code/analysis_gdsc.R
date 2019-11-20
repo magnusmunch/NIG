@@ -2,7 +2,7 @@
 
 ### libraries
 library(cambridge)
-library(pInc)
+# library(pInc)
 library(glmnet)
 
 ################################## analysis 1 ##################################
