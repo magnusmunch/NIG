@@ -16,7 +16,7 @@ load(file="data/data_gdsc_dat1.Rdata")
 ### data preparation
 # select features with largest variance separately for in and out pathway genes
 D <- ncol(resp.prep)
-psel <- 1000
+psel <- 100
 o <- order(-apply(expr.prep, 2, sd))
 idsel <- lapply(feat.prep$inpathway, function(s) {
   m1 <- o[o %in% which(s==1)]; id1 <- head(m1, n=min(length(m1), psel/2))
@@ -193,10 +193,10 @@ for(r in 1:nreps) {
                   mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
                   mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
                   # mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
-  elbo[r, ] <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
-                 mean(new.elbo(fit2.semnig, xtest, ytest)),
-                 mean(new.elbo(fit3.semnig, xtest, ytest)),
-                 mean(new.elbo(fit4.semnig, xtest, ytest)))
+  elbo[r, ] <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+                 mean(new.elbo(cv2.semnig, xtest, ytest)),
+                 mean(new.elbo(cv3.semnig, xtest, ytest)),
+                 mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # determine the ranks of the model parameter point estimates
   brank[r, 1:sum(p)] <- unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
@@ -410,10 +410,10 @@ for(r in 1:nreps) {
                   mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
                   mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
   # mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
-  elbo[r, ] <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
-                 mean(new.elbo(fit2.semnig, xtest, ytest)),
-                 mean(new.elbo(fit3.semnig, xtest, ytest)),
-                 mean(new.elbo(fit4.semnig, xtest, ytest)))
+  elbo[r, ] <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+                 mean(new.elbo(cv2.semnig, xtest, ytest)),
+                 mean(new.elbo(cv3.semnig, xtest, ytest)),
+                 mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # determine the ranks of the model parameter point estimates
   brank[r, 1:sum(p)] <- unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
@@ -626,10 +626,10 @@ for(r in 1:nreps) {
                   mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
                   mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
   # mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
-  elbo[r, ] <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
-                 mean(new.elbo(fit2.semnig, xtest, ytest)),
-                 mean(new.elbo(fit3.semnig, xtest, ytest)),
-                 mean(new.elbo(fit4.semnig, xtest, ytest)))
+  elbo[r, ] <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+                 mean(new.elbo(cv2.semnig, xtest, ytest)),
+                 mean(new.elbo(cv3.semnig, xtest, ytest)),
+                 mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # determine the ranks of the model parameter point estimates
   brank[r, 1:sum(p)] <- unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
