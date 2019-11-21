@@ -46,6 +46,9 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 library(sp)
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+res2 <- matrix(as.matrix(res[, -1])dimnames=list(res[, 1]))
+
 load("results/simulations_gdsc_set1.Rdata")
 col <- bpy.colors(length(set$alphaf), cutoff.tail=0.3)
 labels <- expression(alpha["feat,0"], alpha["feat,1"], alpha["feat,2"], 

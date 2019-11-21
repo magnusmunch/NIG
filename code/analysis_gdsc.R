@@ -275,6 +275,13 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 
   list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
 }
+stopCluster(cl=cl)
+
+# prepare and save results table
+pmse <- t(sapply(res, "[[", "pmse"))
+elbo <- t(sapply(res, "[[", "elbo"))
+elbot <- t(sapply(res, "[[", "elbot"))
+brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
 brankdist <- sapply(methods, function(s) {
@@ -286,14 +293,15 @@ res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
-write.table(res, file="results/analysis_gdsc_cv1.txt")
+write.table(res, file="results/analysis_gdsc_res1.txt")
+
 
 
 ################################## analysis 2 ##################################
 ### data preparation
 # select features with maximum variance
 D <- ncol(resp.prep)
-psel <- 1000
+psel <- 100
 # o <- order(-colSums(Reduce("rbind", feat.prep$inpathway)))
 o <- order(-apply(expr.prep, 2, sd))
 idsel <- rep(list(o[1:psel]), D)
@@ -379,21 +387,29 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3,
 
 nreps <- 50
 ntrain <- floor(nrow(resp.prep)/2)
-
-# results matrices
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
-pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
-colnames(pmse) <- paste0("pmse.", c(methods, "null"))
-brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
-colnames(brank) <- paste0(
-  "brank.", paste0(rep(methods, each=sum(p)), ".", 
-                   rep(paste0(rep(1:D, times=p), ".", 
-                              unlist(sapply(p, function(s) {
-                                return(1:s)}))), length(methods))))
-elbo <- elbot <- matrix(NA, ncol=length(methods) - 2, nrow=nreps)
-colnames(elbo) <- c("NIG1", "NIG2", "NIG3", "NIG4")
 
-for(r in 1:nreps) {
+# # results matrices
+# pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
+# colnames(pmse) <- paste0("pmse.", c(methods, "null"))
+# brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
+# colnames(brank) <- paste0(
+#   "brank.", paste0(rep(methods, each=sum(p)), ".", 
+#                    rep(paste0(rep(1:D, times=p), ".", 
+#                               unlist(sapply(p, function(s) {
+#                                 return(1:s)}))), length(methods))))
+# elbo <- elbot <- matrix(NA, ncol=length(methods) - 2, nrow=nreps)
+# colnames(elbo) <- c("NIG1", "NIG2", "NIG3", "NIG4")
+
+# setup cluster
+cl <- makeCluster(ncores) 
+if(ncores > 1) {
+  registerDoParallel(cl)
+} else {
+  registerDoSEQ()
+}
+res <- foreach(r=1:nreps, .packages=packages) %dopar% {
+# for(r in 1:nreps) {
   cat("\r", "rep", r)
   set.seed(2019 + r)
   
@@ -444,54 +460,60 @@ for(r in 1:nreps) {
               standardize=FALSE)})
   
   # calculating average prediction mean squared error
-  pmse[r, 1] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 2] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 3] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 4] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 5] <- mean((ytest - sapply(1:D, function(d) {
-    predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2)
-  pmse[r, 6] <- mean((ytest - sapply(1:D, function(d) {
-    predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2)
-  pmse[r, 7] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
-  # pmse[r, 5] <- mean(sapply(1:D, function(d) {
-  #   mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)}))
+  pmse <- c(mean(sapply(1:D, function(d) {
+    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean(apply(ytest, 1, "-", colMeans(ytrain))^2))
   
-  # calculate ELBO for semnig models
-  elbot[r, ] <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
-                  mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
-                  mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
-                  mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
-  # mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
-  elbo[r, ] <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
-                 mean(new.elbo(cv2.semnig, xtest, ytest)),
-                 mean(new.elbo(cv3.semnig, xtest, ytest)),
-                 mean(new.elbo(cv4.semnig, xtest, ytest)))
+  # calculate ELBO for semnig models on training and test data
+  elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
+             mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
+             mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
+             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
+  elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+            mean(new.elbo(cv2.semnig, xtest, ytest)),
+            mean(new.elbo(cv3.semnig, xtest, ytest)),
+            mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # determine the ranks of the model parameter point estimates
-  brank[r, 1:sum(p)] <- unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
-    rank(abs(s), ties.method="average")}))
-  brank[r, (sum(p) + 1):(2*sum(p))] <- 
+  brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
+    rank(abs(s), ties.method="average")})),
     unlist(lapply(cv2.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (2*sum(p) + 1):(3*sum(p))] <-
+      rank(abs(s), ties.method="average")})),
     unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (3*sum(p) + 1):(4*sum(p))] <- 
+      rank(abs(s), ties.method="average")})),
     unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (4*sum(p) + 1):(5*sum(p))] <- unlist(sapply(cv1.lasso, function(s) {
-    rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), ties.method="average")}))
-  brank[r, (5*sum(p) + 1):(6*sum(p))] <- unlist(sapply(cv1.ridge, function(s) {
-    rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), ties.method="average")}))
-  # brank[r, (4*sum(p) + 1):(5*sum(p))] <-
-  #   unlist(lapply(cv1.bSEM$vb$beta, function(s) {
-  #     rank(abs(s[, 1]), ties.method="average")}))
+      rank(abs(s), ties.method="average")})),
+    unlist(sapply(cv1.lasso, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})),
+    unlist(sapply(cv1.ridge, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})))
+  names(brank) <- paste0(
+    "brank.", paste0(rep(methods, each=sum(p)), ".",
+                     rep(paste0(rep(1:D, times=p), ".",
+                                unlist(sapply(p, function(s) {
+                                  return(1:s)}))), length(methods))))
   
+  list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
 }
+stopCluster(cl=cl)
+
+# prepare and save results table
+pmse <- t(sapply(res, "[[", "pmse"))
+elbo <- t(sapply(res, "[[", "elbo"))
+elbot <- t(sapply(res, "[[", "elbot"))
+brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
 brankdist <- sapply(methods, function(s) {
@@ -503,7 +525,8 @@ res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
-write.table(res, file="results/analysis_gdsc_cv2.txt")
+write.table(res, file="results/analysis_gdsc_res2.txt")
+
 
 
 ################################## analysis 3 ##################################
@@ -511,8 +534,9 @@ write.table(res, file="results/analysis_gdsc_cv2.txt")
 # select features at random
 D <- ncol(resp.prep)
 psel <- 1000
-set.seed(2019)
-idsel <- rep(list(sample(1:ncol(expr.prep), psel)), D)
+# o <- order(-colSums(Reduce("rbind", feat.prep$inpathway)))
+o <- order(-apply(expr.prep, 2, sd))
+idsel <- rep(list(o[1:psel]), D)
 expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
 inpathway <- lapply(1:D, function(d) {feat.prep$inpathway[[d]][idsel[[d]]]})
 x <- lapply(expr.sel, function(s) {scale(s)})
@@ -595,21 +619,28 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3,
 
 nreps <- 50
 ntrain <- floor(nrow(resp.prep)/2)
-
-# results matrices
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
-pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
-colnames(pmse) <- paste0("pmse.", c(methods, "null"))
-brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
-colnames(brank) <- paste0(
-  "brank.", paste0(rep(methods, each=sum(p)), ".", 
-                   rep(paste0(rep(1:D, times=p), ".", 
-                              unlist(sapply(p, function(s) {
-                                return(1:s)}))), length(methods))))
-elbo <- elbot <- matrix(NA, ncol=length(methods) - 2, nrow=nreps)
-colnames(elbo) <- c("NIG1", "NIG2", "NIG3", "NIG4")
 
-for(r in 1:nreps) {
+# # results matrices
+# pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
+# colnames(pmse) <- paste0("pmse.", c(methods, "null"))
+# brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
+# colnames(brank) <- paste0(
+#   "brank.", paste0(rep(methods, each=sum(p)), ".", 
+#                    rep(paste0(rep(1:D, times=p), ".", 
+#                               unlist(sapply(p, function(s) {
+#                                 return(1:s)}))), length(methods))))
+# elbo <- elbot <- matrix(NA, ncol=length(methods) - 2, nrow=nreps)
+# colnames(elbo) <- c("NIG1", "NIG2", "NIG3", "NIG4")
+
+# setup cluster
+cl <- makeCluster(ncores) 
+if(ncores > 1) {
+  registerDoParallel(cl)
+} else {
+  registerDoSEQ()
+}
+res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   cat("\r", "rep", r)
   set.seed(2019 + r)
   
@@ -660,54 +691,60 @@ for(r in 1:nreps) {
               standardize=FALSE)})
   
   # calculating average prediction mean squared error
-  pmse[r, 1] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 2] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 3] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 4] <- mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)}))
-  pmse[r, 5] <- mean((ytest - sapply(1:D, function(d) {
-    predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2)
-  pmse[r, 6] <- mean((ytest - sapply(1:D, function(d) {
-    predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2)
-  pmse[r, 7] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
-  # pmse[r, 5] <- mean(sapply(1:D, function(d) {
-  #   mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)}))
+  pmse <- c(mean(sapply(1:D, function(d) {
+    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean(apply(ytest, 1, "-", colMeans(ytrain))^2))
   
-  # calculate ELBO for semnig models
-  elbot[r, ] <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
-                  mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
-                  mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
-                  mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
-  # mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
-  elbo[r, ] <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
-                 mean(new.elbo(cv2.semnig, xtest, ytest)),
-                 mean(new.elbo(cv3.semnig, xtest, ytest)),
-                 mean(new.elbo(cv4.semnig, xtest, ytest)))
+  # calculate ELBO for semnig models on training and test data
+  elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
+             mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
+             mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
+             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
+  elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+            mean(new.elbo(cv2.semnig, xtest, ytest)),
+            mean(new.elbo(cv3.semnig, xtest, ytest)),
+            mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # determine the ranks of the model parameter point estimates
-  brank[r, 1:sum(p)] <- unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
-    rank(abs(s), ties.method="average")}))
-  brank[r, (sum(p) + 1):(2*sum(p))] <- 
+  brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
+    rank(abs(s), ties.method="average")})),
     unlist(lapply(cv2.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (2*sum(p) + 1):(3*sum(p))] <-
+      rank(abs(s), ties.method="average")})),
     unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (3*sum(p) + 1):(4*sum(p))] <- 
+      rank(abs(s), ties.method="average")})),
     unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")}))
-  brank[r, (4*sum(p) + 1):(5*sum(p))] <- unlist(sapply(cv1.lasso, function(s) {
-    rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), ties.method="average")}))
-  brank[r, (5*sum(p) + 1):(6*sum(p))] <- unlist(sapply(cv1.ridge, function(s) {
-    rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), ties.method="average")}))
-  # brank[r, (4*sum(p) + 1):(5*sum(p))] <-
-  #   unlist(lapply(cv1.bSEM$vb$beta, function(s) {
-  #     rank(abs(s[, 1]), ties.method="average")}))
+      rank(abs(s), ties.method="average")})),
+    unlist(sapply(cv1.lasso, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})),
+    unlist(sapply(cv1.ridge, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})))
+  names(brank) <- paste0(
+    "brank.", paste0(rep(methods, each=sum(p)), ".",
+                     rep(paste0(rep(1:D, times=p), ".",
+                                unlist(sapply(p, function(s) {
+                                  return(1:s)}))), length(methods))))
   
+  list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
 }
+stopCluster(cl=cl)
+
+# prepare and save results table
+pmse <- t(sapply(res, "[[", "pmse"))
+elbo <- t(sapply(res, "[[", "elbo"))
+elbot <- t(sapply(res, "[[", "elbot"))
+brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
 brankdist <- sapply(methods, function(s) {
@@ -719,5 +756,5 @@ res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
-write.table(res, file="results/analysis_gdsc_cv3.txt")
+write.table(res, file="results/analysis_gdsc_res3.txt")
 
