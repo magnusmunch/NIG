@@ -1,5 +1,9 @@
 #!/usr/bin/env Rscript
 
+################################################################################
+# regression GDSC log IC50 values on gene expression of cell lines
+################################################################################
+
 ### libraries
 library(cambridge)
 # library(pInc)
@@ -10,7 +14,7 @@ load(file="data/data_gdsc_dat1.Rdata")
 
 ################################## analysis 1 ##################################
 ### data preparation
-# select features based on maximum variance and as much in pathway as possible
+# select features with largest variance separately for in and out pathway genes
 D <- ncol(resp.prep)
 psel <- 1000
 o <- order(-apply(expr.prep, 2, sd))
@@ -20,13 +24,10 @@ idsel <- lapply(feat.prep$inpathway, function(s) {
   c(id1, id0)})
 expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
 inpathway <- lapply(1:D, function(d) {feat.prep$inpathway[[d]][idsel[[d]]]})
-# idsel <- o[1:psel]
-# expr.sel <- lapply(1:D, function(d) {expr.prep[, idsel]})
-# inpathway <- lapply(feat.prep$inpathway, function(s) {s[idsel]})
-x <- lapply(expr.sel, function(s) {scale(s)})
-y <- scale(resp.prep)
 
-# number of equations, features, and observations
+# create data objects used in fitting
+x <- lapply(expr.sel, function(s) {scale(s, scale=FALSE)})
+y <- scale(resp.prep, scale=FALSE)
 p <- sapply(x, ncol)
 n <- nrow(y)
 
@@ -71,11 +72,13 @@ fit4.semnig <- semnig(x=x, y=y, C=NULL, Z=Z, unpenalized=NULL,
 #                   lapply(inpathway, "+", 1),
 #                   control=list(maxit=200, trace=TRUE, epsilon=1e-3))
 
+# penalized regression models
 fit1.lasso <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], intercept=FALSE, standardize=FALSE)})
 fit1.ridge <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
 
+# saving fitted model objects
 save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit1.lasso, fit1.ridge,
      file="results/analysis_gdsc_fit1.Rdata")
 
@@ -96,18 +99,17 @@ colnames(tab) <- c(colnames(C[[1]]), colnames(Z), "lambdaf", "lambdad")
 rownames(tab) <- methods[c(1:4)]
 write.table(tab, file="results/analysis_gdsc_fit1.txt")
 
-### cross-validation
+### cross-validation of performance measures
 # estimation settings
 control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
                 maxit.eb=200, maxit.vb=1, maxit.post=100)
-
+methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
 nreps <- 50
 ntrain <- floor(nrow(resp.prep)/2)
 
-# results matrices
-methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
-pmse <- matrix(NA, nrow=nreps, ncol=length(methods))
-colnames(pmse) <- paste0("pmse.", methods)
+# matrices to store results
+pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
+colnames(pmse) <- paste0("pmse.", c(methods, "null"))
 brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
 colnames(brank) <- paste0(
   "brank.", paste0(rep(methods, each=sum(p)), ".", 
@@ -117,6 +119,7 @@ colnames(brank) <- paste0(
 elbo <- elbot <- matrix(NA, ncol=length(methods) - 2, nrow=nreps)
 colnames(elbo) <- c("NIG1", "NIG2", "NIG3", "NIG4")
 
+# cross-validation loop
 for(r in 1:nreps) {
   cat("\r", "rep", r)
   set.seed(2019 + r)
@@ -124,9 +127,9 @@ for(r in 1:nreps) {
   # splitting data
   idtrain <- sample(1:nrow(y), ntrain)
   xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
-  ytrain <- scale(y[idtrain, ])
+  ytrain <- scale(y[idtrain, ], scale=FALSE)
   xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
-  ytest <- scale(y[-idtrain, ])
+  ytest <- scale(y[-idtrain, ], scale=FALSE)
   
   # model without external covariates
   Z <- matrix(1, nrow=D)
@@ -160,7 +163,7 @@ for(r in 1:nreps) {
   #                  lapply(inpathway, "+", 1), 
   #                   control=list(maxit=200, trace=FALSE, epsilon=1e-3))
   
-  # lasso and ridge
+  # penalized regression models
   cv1.lasso <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
   cv1.ridge <- lapply(1:D, function(d) {
@@ -180,10 +183,11 @@ for(r in 1:nreps) {
     predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2)
   pmse[r, 6] <- mean((ytest - sapply(1:D, function(d) {
     predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2)
+  pmse[r, 7] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
   # pmse[r, 5] <- mean(sapply(1:D, function(d) {
   #   mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)}))
   
-  # calculate ELBO for semnig models
+  # calculate ELBO for semnig models on training and test data
   elbot[r, ] <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
                   mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
                   mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
@@ -221,8 +225,9 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA), cbind(elbot, NA, NA), brankdist)
-colnames(res) <- methods
+res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
+             cbind(brankdist, NA))
+colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_cv1.txt")
@@ -239,7 +244,7 @@ idsel <- rep(list(o[1:psel]), D)
 expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
 inpathway <- lapply(1:D, function(d) {feat.prep$inpathway[[d]][idsel[[d]]]})
 x <- lapply(expr.sel, function(s) {scale(s)})
-y <- scale(resp.prep)
+y <- scale(resp.prep, scale=FALSE)
 
 # number of equations, features, and observations
 p <- sapply(x, ncol)
@@ -321,8 +326,8 @@ ntrain <- floor(nrow(resp.prep)/2)
 
 # results matrices
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
-pmse <- matrix(NA, nrow=nreps, ncol=length(methods))
-colnames(pmse) <- paste0("pmse.", methods)
+pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
+colnames(pmse) <- paste0("pmse.", c(methods, "null"))
 brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
 colnames(brank) <- paste0(
   "brank.", paste0(rep(methods, each=sum(p)), ".", 
@@ -339,9 +344,9 @@ for(r in 1:nreps) {
   # splitting data
   idtrain <- sample(1:nrow(y), ntrain)
   xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
-  ytrain <- scale(y[idtrain, ])
+  ytrain <- scale(y[idtrain, ], scale=FALSE)
   xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
-  ytest <- scale(y[-idtrain, ])
+  ytest <- scale(y[-idtrain, ], scale=FALSE)
   
   # model without external covariates
   Z <- matrix(1, nrow=D)
@@ -395,6 +400,7 @@ for(r in 1:nreps) {
     predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2)
   pmse[r, 6] <- mean((ytest - sapply(1:D, function(d) {
     predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2)
+  pmse[r, 7] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
   # pmse[r, 5] <- mean(sapply(1:D, function(d) {
   #   mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)}))
   
@@ -436,8 +442,9 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA), cbind(elbot, NA, NA), brankdist)
-colnames(res) <- methods
+res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
+             cbind(brankdist, NA))
+colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_cv2.txt")
@@ -448,11 +455,12 @@ write.table(res, file="results/analysis_gdsc_cv2.txt")
 # select features at random
 D <- ncol(resp.prep)
 psel <- 1000
+set.seed(2019)
 idsel <- rep(list(sample(1:ncol(expr.prep), psel)), D)
 expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
 inpathway <- lapply(1:D, function(d) {feat.prep$inpathway[[d]][idsel[[d]]]})
 x <- lapply(expr.sel, function(s) {scale(s)})
-y <- scale(resp.prep)
+y <- scale(resp.prep, scale=FALSE)
 
 # number of equations, features, and observations
 p <- sapply(x, ncol)
@@ -534,8 +542,8 @@ ntrain <- floor(nrow(resp.prep)/2)
 
 # results matrices
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
-pmse <- matrix(NA, nrow=nreps, ncol=length(methods))
-colnames(pmse) <- paste0("pmse.", methods)
+pmse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
+colnames(pmse) <- paste0("pmse.", c(methods, "null"))
 brank <- matrix(NA, nrow=nreps, ncol=sum(p)*length(methods))
 colnames(brank) <- paste0(
   "brank.", paste0(rep(methods, each=sum(p)), ".", 
@@ -552,9 +560,9 @@ for(r in 1:nreps) {
   # splitting data
   idtrain <- sample(1:nrow(y), ntrain)
   xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
-  ytrain <- scale(y[idtrain, ])
+  ytrain <- scale(y[idtrain, ], scale=FALSE)
   xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
-  ytest <- scale(y[-idtrain, ])
+  ytest <- scale(y[-idtrain, ], scale=FALSE)
   
   # model without external covariates
   Z <- matrix(1, nrow=D)
@@ -608,6 +616,7 @@ for(r in 1:nreps) {
     predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2)
   pmse[r, 6] <- mean((ytest - sapply(1:D, function(d) {
     predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2)
+  pmse[r, 7] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
   # pmse[r, 5] <- mean(sapply(1:D, function(d) {
   #   mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)}))
   
@@ -649,8 +658,9 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA), cbind(elbot, NA, NA), brankdist)
-colnames(res) <- methods
+res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
+             cbind(brankdist, NA))
+colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_cv3.txt")
