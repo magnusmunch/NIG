@@ -531,7 +531,7 @@ write.table(res, file="results/analysis_gdsc_res2.txt")
 
 ################################## analysis 3 ##################################
 ### data preparation
-# select features at random
+# select features with maximum variance
 D <- ncol(resp.prep)
 psel <- 1000
 # o <- order(-colSums(Reduce("rbind", feat.prep$inpathway)))

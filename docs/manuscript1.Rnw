@@ -674,145 +674,247 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	from versions 1 and 2 to draw the $\gamma_{jd}^2$ and $\tau_d^2$.
 
 	We estimate four models: (i) an NIG model that does include external 
-	covariates in the estimation, (ii) the NIG model estimated as in Section 
-	\ref{sec:estimation}, and regular (iii) lasso and (iv) ridge models.
-	Exclusion of the external covariates as in model (i)
+	covariates in the estimation called NIG1 in the following, (ii) the NIG model
+	estimated as in Section \ref{sec:estimation} called NIG2, and regular (iii)
+	lasso and (iv) ridge models.
+	Exclusion of the external covariates as in the NIG1 model
 	amounts to direct estimation of one common expected 
 	prior means $\phi$ and/or $\chi$, instead of regression estimates for the
-	$\phi_{jd}$ and/or $\chi_d$ as in model (ii). All 
+	$\phi_{jd}$ and/or $\chi_d$ as in the NIG2 model. All 
 	models are fit on 241 randomly selected cell lines, while performance measures 
 	are estimated from the remaining 241 cell lines. 
 	
 	\subsection{Results}
-<<simulation_gdsc>>=
-res1 <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
-res2 <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
-res3 <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
-temp1 <- res1[, 1]
-temp2 <- res2[, 1]
-temp3 <- res3[, 1]
-res1 <- as.matrix(res1[, -1])
-res2 <- as.matrix(res2[, -1])
-res3 <- as.matrix(res3[, -1])
-rownames(res1) <- temp1
-rownames(res2) <- temp2
-rownames(res3) <- temp3
-lambda <- apply(res1[rownames(res1)=="lambdaf", c(1, 2)], 2, median)
-apply(res2[rownames(res2)=="lambdad", c(1, 2)], 2, median)
-apply(res3[rownames(res3)=="lambdaf", c(1, 2)], 2, median)
-apply(res3[rownames(res3)=="lambdad", c(1, 2)], 2, median)
-est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
+<<simulation_gdsc_res1>>=
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-melbo <- apply(res[rownames(res)=="elbo", c(1, 2)], 2, median)
-melbot <- apply(res[rownames(res)=="elbot", c(1, 2)], 2, median)
-
-mphi <- median(1/res[rownames(res)=="alphaf0", 1])
-mlambdaf <- median(1/res[rownames(res)=="lambdaf", 1])
+est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
+est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
+tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="elbot", ], 2, median) -
+               apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median) - 
+               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- round(tab, 3)
+tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
+  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
+  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
+colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
+                   "$\\text{ELBO}_{\\text{train}} 
+                   - \\text{ELBO}_{\\text{test}}$",
+                   "$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}} 
+                   - \\text{PMSE}_{\\text{train}}$")     
 @	
-	Figure \ref{fig:simulations_gdsc_est1} shows the estimated
-	$\bm{\alpha}_{\text{feat}}$ together with its true value for model
-	(ii) in version 1 of the simulation study. Figure 
+  Figure \ref{fig:simulations_gdsc_est1} shows the estimated
+	$\bm{\alpha}_{\text{feat}}$ together with its true value for NIG2 in 
+	version 1 of the simulation study. Figure 
 	\ref{fig:simulations_gdsc_est1}a shows that 
 	$\bm{\alpha}_{\text{feat}}$ is slightly but 
 	consistently underestimated. On the $\phi_{jd}$ scale this underestimation is
 	almost undetectable as depicted in Figure
 	\ref{fig:simulations_gdsc_est1}b. $\lambda_{\text{feat}}$ is slightly 
-	overestimated with median estimate \Sexpr{round(lambda[2], 2)} (the
+	overestimated with median estimate \Sexpr{round(est.lambdaf[2], 2)} (the
 	true value is 1). The overestimated $\lambda_{\text{feat}}$ translates 
 	into underestimated $\gamma_{jd}^2$ variances. Underestimation of variances is 
 	a common phenomenon in variational Bayes approximations. In addition, 
 	$\lambda_{\text{feat}}$ is a higher level scale
 	parameter, which are, in general, hard to estimate. 
-<<simulations_gdsc_est1, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulations with fixed $\\tau_d^2$.", out.width="100%", fig.asp=1/2>>= 
+<<simulations_gdsc_est1, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulation version 1 with fixed $\\tau_d^2$.", out.width="100%", fig.asp=1/2>>= 
 @
 	
-	Model (i) gives a median $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
+	Model NIG1 gives a median $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
 	equal to the true mean of the $\phi_{jd}$, \Sexpr{round(true.phi, 2)}. 
 	$\lambda_{\text{feat}}$ is slightly underestimated with median estimate
-	\Sexpr{round(lambda[1], 2)} (the true value is one) and thus overestimates the 
+	\Sexpr{round(est.lambdaf[1], 2)} (the true value is one) and thus 
+	overestimates the 
 	prior $\gamma_{jd}^2$ variance. This is likely to compensate for the common
 	prior mean $\phi$, that is not able to capture part of the variation in the 
 	true feature specific $\phi_{jd}$. 
-	
-	The median evidence 
-	lower bounds (ELBO), which approximate the marginal likelihoods of models
-	(i)-(iv), are estimated as \Sexpr{round(melbo, 2)[1:3]}, and 
-	\Sexpr{round(melbo, 2)[4]}, respectively. This implies that model (i),
-	with estimated $\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ fits
-	the data best (the log Bayes factors comparing models (ii)-(iv) to model (i) 
-	are \Sexpr{round(melbo[-c(1, 4)] - melbo[1], 2)}, and 
-	\Sexpr{round(melbo[4] - melbo[1], 2)}, respectively, and thus highly favouring
-	model (i)). The prediction MSEs for the four models on the test 
-	data and gaps between training and test prediction MSE are displayed in Table
-	\ref{tab:mse1}. Table \ref{tab:mse1} confirms that the models that
-	include the external data (models (i) and (ii)) learn the underlying structure 
-	in the data better than models (iii) and (iv) that do not include the external 
+
+	Table \ref{tab:simulations_gdsc_tab1} displays several median performance
+	measures for simulation version 1. The table includes as a reference 
+	the null model, which
+	is an empty model that only fits the mean of the $\y_{id}$.
+	The median evidence lower bounds (ELBO) approximates the marginal
+	likelihoods of models NIG1 and NIG2 on both training and test data, while 
+	estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
+	performance. Focussing on MSE, we see that the NIG2 model, that includes
+	the external covariates, performs best, both in terms of estimation and 
+	prediction. Model fit is best for the NIG1 model that does not include the
+	external covariates, according to the ELBO on the training data.
+	The lower MSEs confirm that the model that
+	includes the external data (NIG2) learns the underlying structure 
+	in the data better than model NIG1 that does not include the external 
 	data.
-<<mse1>>= 
+<<simulations_gdsc_tab1>>=
 library(knitr, quietly=TRUE, verbose=FALSE)
 suppressWarnings(library(kableExtra))
-res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-memse <- apply(res[rownames(res)=="emse", ], 2, median)
-mpmse <- apply(res[rownames(res)=="pmse", ], 2, median)
-mpmset <- apply(res[rownames(res)=="pmset", ], 2, median)
-tab <- rbind(memse, mpmse, mpmse - mpmset)
-rownames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}} - \\text{PMSE}_{\\text{train}}$")
 options(knitr.kable.NA="", digits=3)
-kable(tab,
-      col.names=colnames(tab),
-      caption="Median estimation MSE, prediction MSEs, and difference between 
-      prediction MSEs on the test and training data in the fixed 
-      $\\tau_d^2$ simulation setting.", 
+kable(tab, col.names=colnames(tab), align="r",
+      caption="Median performance measure estimates for simulation version 1, with the best performing model in bold.", 
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
 
-  
-	To investigate the interplay of the feature and drug variance components, we
-	repeat the whole simulation study with random $\tau_d^2$. Similarly as with
-	the $\gamma_{jd}^2$, we randomly create four groups of drugs and corresponding
-	external drug dummy covariates. We simulate the $\tau_d^2$ as in
-	(\ref{eq:tauprior}), where we set $\bm{\alpha}_{\text{drug}} =
-	\begin{bmatrix} 1 & 1 & 3 & 7 \end{bmatrix} \tr$, such
-	that the $\tau_{d}^2$ of the four groups of features have prior means
-	$\chi_{d} \in \{ 1, 1/2, 1/4, 1/8 \}$. The scale $\lambda_{\text{drug}}$ is
-	set to one. We estimate the same four models as in the fixed $\tau_d^2$
-	setting, but in addition estimate the $\tau_d^2$ priors as well. Again, we
-	use two different versions: one where we estimate
-	$\bm{\lambda}$ and one where we fix it to its true value.
+<<simulation_gdsc_res2>>=
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
+est.chi <- median(1/res[rownames(res)=="alphad0", 1])
+est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
+tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="elbot", ], 2, median) -
+               apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median) - 
+               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- round(tab, 3)
+tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
+  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
+  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
+colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
+                   "$\\text{ELBO}_{\\text{train}} 
+                   - \\text{ELBO}_{\\text{test}}$",
+                   "$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}} 
+                   - \\text{PMSE}_{\\text{train}}$")     
+@	
+  Figure \ref{fig:simulations_gdsc_est2} shows the estimated
+	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG2 in 
+	version 2 of the simulation study. They are estimated without bias.
+	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is slightly 
+	overestimated compared to true value 1. 
+	The median $\chi$ estimate in the NIG1 model is \Sexpr{round(est.chi, 2)},  
+	which is almost equal to the true mean \Sexpr{round(true.chi, 2)}. 
+	$\lambda_{\text{drug}}$ is underestimated with median estimate
+	\Sexpr{round(est.lambdad[1], 2)} compared to the true value.
+	Median performance measures for simulation version 2 are displayed in Table
+	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG2 performs best in 
+	terms of MSE. However, NIG1 performance is the same here, indicating that 
+	the external covariates do not add much here.
+	Model fit is again best for the NIG1 model.
+<<simulations_gdsc_est2, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulation version 2 with fixed $\\gamma_{jd}^2$.", out.width="100%", fig.asp=1/2>>= 
+@
 	
-	Figures \ref{fig:simulations_gdsc_est2} displays the estimated $\bm{\alpha}$,
-	$\phi_{jd}$, and $\chi_d$ for models (i) and (ii). The scale parameters were
-	estimated as $\lambda_{\text{feat}}=\Sexpr{round(rnorm(1), 2)}$ and
-	$\lambda_{\text{drug}}=\Sexpr{round(rnorm(1)[1], 2)}$ in model (i). From
-	Figure \ref{fig:simulations_gdsc_est2} we see that estimation of
-	$\bm{\alpha}_{\text{feat}}$ is again biased. However, from
-	Figure \ref{fig:simulations_gdsc_phi2} we see that the scale and ordering of
-	the $\phi_{jd}$ are correclty estimated. We conjecture that the drop in
-	estimation accuracy compared to the previous setting stems from the
-	difficult estimation of the $\tau_d^2$ prior. Estimation of this prior
-	depends on only 168 observed drugs, while the $\gamma_{jd}^2$ prior is
-	is estimated from approximately $300 \cdot 168=50400$ features.
-	\cite{wiel_learning_2019} show in a simple regression setting that if the
-	number of samples and the number of parameters on which the EB is based are of
-	the same order, empirical Bayes performs worse than when one of the two is
-	large compared to the other.
-	Here, the number of samples $n=241$ and $D=168$ are of the same order, leading
-	to a suboptimal EB estimation performance.
-<<simulations_gdsc_est2, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulations with fixed $\\tau_d^2$.", out.width="100%", fig.asp=1/2>>= 
+<<simulations_gdsc_tab2>>=
+library(knitr, quietly=TRUE, verbose=FALSE)
+suppressWarnings(library(kableExtra))
+options(knitr.kable.NA="", digits=3)
+kable(tab, col.names=colnames(tab), align="r",
+      caption="Median performance measure estimates for simulation version 2, with the best performing model in bold.", 
+      format="latex", booktabs=TRUE, escape=FALSE) %>%
+  kable_styling(latex_options=c("HOLD_position"))
 @
 
-  We argue however, that even though the prior parameters are not estimated
-  correctly, there is still some gain in predictive performance.
-  Prediction MSEs on the test data the training-test gaps in prediction MSE are
-  shown in Table \ref{tab:pmse2}. The comparisons of models (i) and
-	(ii) vesus models (iii) and (iv) confirm that even though EB estimation is
-	suboptimal, the external data do add something in predictive performance.
+<<simulation_gdsc_res3>>=
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
+est.chi <- median(1/res[rownames(res)=="alphad0", 1])
+est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
+true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
+est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
+est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
+
+phi.ratio <- apply(apply(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphaf" ,s), colnames(res)=="NIG2"]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
+      res[rownames(res)=="alphaf0", colnames(res)=="NIG2"]/m}), 2, median)
+chi.ratio <- apply(apply(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphad" ,s), colnames(res)=="NIG2"]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
+      res[rownames(res)=="alphad0", colnames(res)=="NIG2"]/m}), 2, median)
+true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*% 
+                              t(unname(model.matrix(~ factor(1:4))))))
+
+tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="elbot", ], 2, median) -
+               apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median) - 
+               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- round(tab, 3)
+tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
+  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
+  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
+colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
+                   "$\\text{ELBO}_{\\text{train}} 
+                   - \\text{ELBO}_{\\text{test}}$",
+                   "$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}} 
+                   - \\text{PMSE}_{\\text{train}}$")     
+@	
+  In Figure \ref{fig:simulations_gdsc_est3} the 
+	$\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{drug}}$ estimated by NIG2
+	are displayed together with their true values for
+	simulation 3. $\bm{\alpha}_{\text{feat}}$ are underestimated, while 
+	$\bm{\alpha}_{\text{drug}}$ are overestimated. These biases seem to 
+	be consistent though. The median ratios $\phi_1$ to $\phi_2$, $\phi_3$, 
+	$\phi_4$ and $\chi_1$ to $\chi_2$, $\chi_3$, 
+	$\chi_4$ are \Sexpr{round(phi.ratio, 2)[-1]} and 
+	\Sexpr{round(chi.ratio, 2)[-1]}, respectively, compared to their true values
+	\Sexpr{round(true.ratio, 2)[-1]}. So in a relative sense, the estimates are
+	correct. Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
+	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
+	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
+	value 1. The NIG1 model is also consistently over- and underestimating $\phi$
+	and $\chi$ with estimates \Sexpr{round(est.phi, 2)} and 
+	\Sexpr{round(est.chi, 2)}, respectively (compared to the true mean 
+	\Sexpr{round(true.chi, 2)}). NIG1 also over- and underestimates 
+	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
+	\Sexpr{round(est.lambdaf[1], 2)}
+	and \Sexpr{round(est.lambdad[1], 2)}, respectively. Table 
+	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
+	that NIG2 outperforms the other models in terms of prediction and estimation
+	MSE.
+<<simulations_gdsc_est3, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulation version 3.", out.width="100%", fig.asp=1>>= 
+@
+	
+<<simulations_gdsc_tab3>>=
+library(knitr, quietly=TRUE, verbose=FALSE)
+suppressWarnings(library(kableExtra))
+options(knitr.kable.NA="", digits=3)
+kable(tab, col.names=colnames(tab), align="r",
+      caption="Median performance measure estimates for simulation version 3, with the best performing model in bold.", 
+      format="latex", booktabs=TRUE, escape=FALSE) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+@
 
 	\section{GDSC data}\label{sec:gdsc}
 	\subsection{Primary data}
@@ -833,23 +935,21 @@ kable(tab,
 	possible, but a discussion on the pros and cons of different sensitivity
 	measures is beyond the aim of this paper. A comprehensive penalized regression
 	approach such as in 
-	{\cite{mai_composite_2019} uses all the available molecular markers 
+	{\cite{mai_composite_2019} uses most of the available molecular markers 
 	instead of just gene expression (68 mutations, 426 copy numbers, 
 	and 2602 gene expression levels for 498 cell lines and 97 drugs). The 
 	current version of our software is not able to handle such problem sizes,
 	due to the repeated calculation of posterior parameters in the empirical
-	Bayes iterations. Currently, problems of up to 1000 outcomes, 1000 features,
-	and 1000 samples are computationally feasible.
+	Bayes iterations. Currently, problems with number of outcomes in the hundreds
+	and number of features and samples in the thousands are computationally 
+	feasible.
 
 	We average repeated measures over cell line-drug combinations and model the
 	logarithm of the IC50 values. In the following, IC50 refers 
 	to the log-transformed values. 
 	After iteratively removing the cell line or drug with the highest proportion 
 	of missings until no more missing values remain, we end up with IC50 
-	estimates for 482 cell lines on 168 drugs. As a preliminary step, we fit
-	separate elastic net models for each drug with the \texttt{glmnet} package
-	\cite[]{friedman_regularization_2010}, with $\alpha=0.01$ and $\lambda$
-	chosen such that we select approximately 300 genes per drug.
+	estimates for 482 cell lines on 168 drugs. 
 	
 	\subsection{External data}
 	Two ternary drug covariates are available: the developmental stage
@@ -877,38 +977,99 @@ kable(tab,
 	the pathway.
 	
 	\subsection{Results}
+	As a preliminary step, we select
+	features according to three strategies. The first strategy selects for each
+	drug separately, the 50 features that are not in the pathway of the drug with
+	the largest variance and the 50 features that are in the pathway of the drug
+	with the largest variance. If less than 50 features that are in the pathway 
+	are available, we select the maximum number available. This strategy ensures
+	that the features are somewhat balanced with respect to the external feature
+	covariate, i.e., pathway membership. The second strategy selects the 
+	100 features with the largest variance, irrespective of pathway membership,
+	while the last stategy selects 1000 features with the largest variance,
+	again irrespective of pathway membership. These three strategies lead to
+	three different analysis outcomes.
+	
 	To compute performance measures, we randomly split the data into training and
 	test sets, containing 
 	241 cell lines each, estimate the models on the training data and compute 
 	performance measures on the test data. We repeated this procedure 50 times
 	and average performance measures over the splits.
 	The estimated 
-	models are: two models like in (\ref{eq:prior}) but with different external 
-	variables, named (i) NIG1 and (ii) NIG2 in the following, (iii) a model 
-	as described in \cite{kpogbezan_empirical_2017}, named bSEM, (iv) a regular
-	ridge model, and (v) a regular lasso model. The NIG1 incorporates no external
-	variables and estimates the common prior $\gamma_{jd}^2$ and $\tau_d^2$ 
-	means $\phi$ and $\chi$ directly, while the NIG2 model includes the
-	developmental phase and action drug covariates, and the pathway
-	feature covariate, and estimates $\bm{\alpha}$. The bSEM model is similar to 
-	the NIG model in that it 
-	draws the $\beta_{jd}$ from a conditionally normal distribution, but 
-	fixes $\tau_d^2=1$ and draws 
-	$\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of 
-	from the inverse Gaussian distribution. Additionally, 
-	the bSEM model can 
-	only incorporate one binary external covariate that divides the features into 
-	two groups, i.e., $\bm{\alpha} = \begin{bmatrix} \alpha_0 & \alpha_1 
-	\end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix} 
-	\tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix} 
-	1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both 
-	$\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
-	estimated in a similar fashion as in Section \ref{sec:estimation}. 
+	models are: four models like in (\ref{eq:prior}) but with different external 
+	variables, named NIG1, NIG2, NIG3, and NIG4 in the following. NIG1 estimates
+	only one overall $\phi$ and one overall $\chi$, NIG2 uses the external 
+	covariates to estimate both $\bm{\alpha}_{\text{feat}}$ and
+	$\bm{\alpha}_{\text{drug}}$, while NIG3 and NIG4 estimate only 
+	$\bm{\alpha}_{\text{feat}}$ or $\bm{\alpha}_{\text{drug}}$, respectively,
+	keeping either $\forall d: \tau_d^2=1$ or $\forall j,d: \gamma_{jd}^2=1$
+	fixed. In addition, we estimate regular lasso and ridge models.
+	
+	% The bSEM model is similar to 
+	% the NIG model in that it 
+	% draws the $\beta_{jd}$ from a conditionally normal distribution, but 
+	% fixes $\tau_d^2=1$ and draws 
+	% $\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of 
+	% from the inverse Gaussian distribution. Additionally, 
+	% the bSEM model can 
+	% only incorporate one binary external covariate that divides the features into 
+	% two groups, i.e., $\bm{\alpha} = \begin{bmatrix} \alpha_0 & \alpha_1 
+	% \end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix} 
+	% \tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix} 
+	% 1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both 
+	% $\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
+	% estimated in a similar fashion as in Section \ref{sec:estimation}. 
 
-  From the $\bm{\alpha}$ estimates in Tables \ref{tab:results_drug} and
-  \ref{tab:results_feat} we see that there
+<<analysis_gdsc_fit1>>=
+fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
+
+res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+est1 <- cbind(fit[, 1], c(NA, 0, 0, NA), fit[, 2])
+colnames(est1) <- c("intercept", "not in pathway", "in pathway")
+est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0), fit[, c(7:6)], c(NA, 0, NA, 0))
+colnames(est2) <- c("intercept", "experimental", "development", "approved",
+                    "unkown", "targeted", "cytotoxic")
+
+tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="elbot", ], 2, median) -
+               apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median))
+tab <- round(tab, 3)
+tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
+  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
+                   "$\\text{ELBO}_{\\text{train}} 
+                   - \\text{ELBO}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$")  
+@
+  From the $\bm{\alpha}$ estimates in Tables \ref{tab:analysis_gdsc_est1_feat} 
+  and \ref{tab:analysis_gdsc_est1_feat} we see that there
   seems to be an effect of the
-  external variables. If we look at the NIG1 model, that includes all external 
+  external variables. Models NIG2 and NIG3 estimate a negative effect for the
+  pathway external covariate. This translates to a negative additive effect on
+  the expected prior precision of the $\bm{\beta}_d$, i.e., genes that are found
+  in the target pathway of a drug are more predictive of IC50 than genes that
+  are not in the target pathway, according to expectation. Furthermore the NIG2
+  model estimates positive effects for the experimental and developmental drugs,
+  compared to the approved drugs. This translates to smaller expected 
+  prior precisions for the regression parameters for approved drugs, i.e.,
+  approved drugs are easier to predict than experimental and developmental 
+  drugs. On the other hand, the NIG4 model, that only includes external
+  drug covariates, estimates a negative effect for the developmental drugs.
+  
+  
+  If we look at the NIG1 model, that includes all external 
   covariates, we see that approved drugs are easier to predict, due to small
   prior precision, followed by drugs that are in clinical development,
   as we expected. The cytotoxic drugs are the hardest to predict, 
@@ -923,38 +1084,19 @@ kable(tab,
   pathway have a much smaller precision than genes that are not in the target
   pathway. The 
   effects of the pathway indicator seem to be much larger in the bSEM model. 
-<<results_drug>>= 
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-# load("results/data_gdsc_res1.Rdata")
-# tab1 <- cbind(tab[, 1], c(NA, 0, NA), tab[, c(3, 2)], c(NA, 0, NA), 
-#               tab[, c(4, 5)])
-# options(knitr.kable.NA="", digits=3)
-# kable(tab1,
-#       col.names=c("intercept", "approved", "development", 
-#                   "experimental", "targeted", "unkown", "cytotoxic"),
-#       caption="$\\bm{\\alpha}_{\\text{drug}}$ estimates from GDSC data.", 
-#       format="latex", booktabs=TRUE, escape=FALSE) %>%
-#   kable_styling(latex_options=c("HOLD_position"))
-kable(matrix(1, nrow=1, ncol=2),
-      caption="$\\bm{\\alpha}_{\\text{drug}}$ estimates from GDSC data.", 
+<<analysis_gdsc_est1_feat>>=
+options(knitr.kable.NA="", digits=3)
+kable(est1,
+      col.names=colnames(est1), align="r",
+      caption="$\\bm{\\alpha}_{\\text{feat}}$ estimates from GDSC data for feature selection strategy 1.",
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
 
-<<results_feat>>= 
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-# load("results/data_gdsc_res1.Rdata")
-# tab2 <- cbind(tab[, 6], c(NA, 0, 0), tab[, 7])
-# options(knitr.kable.NA="", digits=3)
-# kable(tab2,
-#       col.names=c("intercept", "not in pathway", "in pathway"),
-#       caption="$\\bm{\\alpha}_{\\text{feat}}$ estimates from GDSC data.", 
-#       format="latex", booktabs=TRUE, escape=FALSE) %>%
-#   kable_styling(latex_options=c("HOLD_position"))
-kable(matrix(1, nrow=1, ncol=2),
-      caption="$\\bm{\\alpha}_{\\text{feat}}$ estimates from GDSC data.", 
+<<analysis_gdsc_est1_drug>>=
+kable(est2,
+      col.names=colnames(est2), align="r",
+      caption="$\\bm{\\alpha}_{\\text{drug}}$ estimates from GDSC data for feature selection strategy 1.",
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
@@ -967,37 +1109,83 @@ kable(matrix(1, nrow=1, ncol=2),
   improve on the null model with an median prediction MSE of 
   \Sexpr{round(rnorm(1))} compared to the null model's MSE of 
   \Sexpr{round(rnorm(1))}.
-<<results_data>>= 
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-# load("results/data_gdsc_res1.Rdata")
-# mapmse <- apply(apmse, 2, median)
-# melbo <- apply(elbo, 2, median)
-# tab <- rbind(mapmse, c(melbo, NA, NA))
-# rownames(tab) <- c("MSE", "ELBO")
-# options(knitr.kable.NA="", digits=3)
-# kable(tab,
-#       col.names=c("NIG1", "NIG2", "bSEM", "lasso", "ridge"),
-#       caption="Median prediction MSE and median ELBO estimated on the test data", 
-#       format="latex", booktabs=TRUE, escape=FALSE) %>%
-#   kable_styling(latex_options=c("HOLD_position"))
-options(knitr.kable.NA="", digits=3)
-kable(matrix(1, nrow=1, ncol=2),
-      caption="Median prediction MSE and median ELBO estimated on the test data", 
+<<analysis_gdsc_tab1>>=
+kable(tab,
+      col.names=colnames(tab), align="r",
+      caption="Performance measures from GDSC data for feature selection strategy 1.",
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
-@
+@	
+
   
   In addition to the empirical Bayes estimates and the prediction MSE, we 
   investigated the stability of the estimates by ranking the posterior means
   $\E_{Q}(\bbeta_d)$ and calculating the Spearman's rank
   correlation over the 50 data splits. They are depicted in Figure 
-  \ref{fig:data_gdsc_res1_brank_hist}. In both NIG models the correlations
+  . In both NIG models the correlations
   between splits are higher than in the bSEM model; an indication that 
   estimation in the NIG model is more stable than in the bSEM model.
-<<data_gdsc_res1_brank_hist, fig.cap="Spearman's rank correlation between the estimated posterior means $\\E_{Q}(\\bbeta_d)$ in the 50 data splits.", out.width="70%", fig.asp=2/3>>= 
-@  
 
+<<analysis_gdsc_fit2>>=
+fit <- read.table("results/analysis_gdsc_fit2.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
+
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+est1 <- cbind(fit[, 1], c(NA, 0, 0, NA), fit[, 2])
+colnames(est1) <- c("intercept", "not in pathway", "in pathway")
+est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0), fit[, c(7:6)], c(NA, 0, NA, 0))
+colnames(est2) <- c("intercept", "experimental", "development", "approved",
+                    "unkown", "targeted", "cytotoxic")
+
+tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="elbot", ], 2, median) -
+               apply(res[rownames(res)=="elbo", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median))
+tab <- round(tab, 3)
+tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
+  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
+                   "$\\text{ELBO}_{\\text{train}} 
+                   - \\text{ELBO}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$")  
+@
+
+<<analysis_gdsc_est2_feat>>=
+options(knitr.kable.NA="", digits=3)
+kable(est1,
+      col.names=colnames(est1), align="r",
+      caption="$\\bm{\\alpha}_{\\text{feat}}$ estimates from GDSC data for feature selection strategy 2.",
+      format="latex", booktabs=TRUE, escape=FALSE) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+@
+
+<<analysis_gdsc_est2_drug>>=
+kable(est2,
+      col.names=colnames(est2), align="r",
+      caption="$\\bm{\\alpha}_{\\text{drug}}$ estimates from GDSC data for feature selection strategy 2.",
+      format="latex", booktabs=TRUE, escape=FALSE) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+@
+
+<<analysis_gdsc_tab2>>=
+kable(tab,
+      col.names=colnames(tab), align="r",
+      caption="Performance measures from GDSC data for feature selection strategy 2.",
+      format="latex", booktabs=TRUE, escape=FALSE) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+@	
+
+res1 <- 
 	\section{Discussion}\label{sec:discussion}
 	The preceding presents a novel model for drug sensitivity
 	prediction from a set of high dimensional molecular features. The model allows
