@@ -1035,9 +1035,10 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-est1 <- cbind(fit[, 1], c(NA, 0, 0, NA), fit[, 2])
+est1 <- cbind(fit[, 1], c(NA, 0, 0, NA, 0), fit[, 2])
 colnames(est1) <- c("intercept", "not in pathway", "in pathway")
-est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0), fit[, c(7:6)], c(NA, 0, NA, 0))
+est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0, NA), fit[, c(7:6)], 
+              c(NA, 0, NA, 0, NA))
 colnames(est2) <- c("intercept", "experimental", "development", "approved",
                     "unkown", "targeted", "cytotoxic")
 
