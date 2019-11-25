@@ -1,74 +1,88 @@
-# sample one beta in the conjugate case
-.sample.beta.conj <- function(gamma, sigma, v, sv, svvt, y, n, p) {
-  uvec <- rnorm(p, 0, gamma*sigma)
+# sample beta
+.sample.beta <- function(tau, gamma, sigma, v, sv, svvt, y, n, p) {
+  uvec <- rnorm(p, 0, tau*gamma*sigma)
   dvec <- rnorm(n, 0, 1)
   beta <- uvec + as.numeric(t(t(v)*(sv/(sv^2 + 1/gamma^2))) %*% 
                               (sigma*y - sigma*svvt %*% uvec + dvec))
   return(beta)
 }
 
-# sample one gamma in the conjugate case
-.sample.gamma.conj <- function(beta, sigma, eta, lambda, theta, p) {
-  
-  gamma <- sqrt(rgig(1, sum(beta^2)/sigma^2 + lambda, 
-                     lambda/theta^2, -0.5*(p + eta)))
+# sample gamma
+.sample.gamma <- function(beta, sigma, tau, lambdaf, phi, p) {
+  gamma <- sqrt(rgig(p, beta^2/(sigma^2*tau^2) + lambdaf, lambdaf/phi^2, -1))
   return(gamma)
 }
 
-# sample one sigma in the conjugate case
-.sample.sigma.conj <- function(beta, gamma, yty, ytx, x, p, n) {
-  alpha <- 0.5*(p + n + 1)
-  beta <- 0.5*(yty + sum(beta^2)/gamma^2 + sum((x %*% beta)^2) - 2*ytx %*% beta)
-  gamma <- 1/sqrt(rgamma(1, alpha, scale=beta))
-  return(gamma)
+# sample tau
+.sample.tau <- function(beta, sigma, gamma, lambdad, chi, p) {
+  tau <- sqrt(rgig(1, sum(beta^2/gamma^2)/sigma^2 + lambdad, lambdad/chi^2, 
+                   -0.5*(p + 1)))
+  return(tau)
+}
+
+# sample sigma
+.sample.sigma <- function(beta, gamma, tau, yty, ytx, x, p, n) {
+  a <- 0.5*(p + n + 1)
+  b <- 0.5*(yty - 2*as.numeric(ytx %*% beta) + sum((x %*% beta)^2) + 
+              sum(beta^2/gamma^2)/tau^2)
+  sigma <- 1/sqrt(rgamma(1, a, rate=b))
+  return(sigma)
 }
 
 # full sample from the posterior
-.sample.post.conj <- function(eta, lambda, theta, nsamp, init, v, sv, svvt, y, 
-                              yty, ytx, x, p, n) {
+.sample <- function(init, hyper, nsamp, v, sv, svvt, y, yty, ytx, x, p, n) {
   
   # create the output and initial values
   out <- list(beta=matrix(NA, nrow=p, ncol=nsamp), sigma=rep(NA, nsamp),
-              gamma=rep(NA, nsamp))
+              tau=rep(NA, nsamp), gamma=matrix(NA, nrow=p, ncol=nsamp))
   beta <- init$beta
   sigma <- init$sigma
+  tau <- init$tau
   
   # run the Gibbs sampler
   for(m in 1:nsamp) {
-    gamma <- .sample.gamma.conj(beta, sigma, eta, lambda, theta, p)
+    gamma <- .sample.gamma(beta, sigma, tau, hyper$lambdaf, hyper$phi, p)
+    tau <- .sample.tau(beta, sigma, gamma, hyper$lambdad, hyper$chi, p)
     beta <- .sample.beta.conj(gamma, sigma, v, sv, svvt, y, n, p)
-    sigma <- .sample.sigma.conj(beta, gamma, yty, ytx, x, p, n)
+    sigma <- .sample.sigma(beta, gamma, tau, yty, ytx, x, p, n)
+    beta <- .sample.beta(tau, gamma, sigma, v, sv, svvt, y, n, p)
     out$beta[, m] <- beta
+    out$gamma[, m] <- gamma
     out$sigma[m] <- sigma
-    out$gamma[m] <- gamma
+    out$tau[m] <- tau
   }
-  
   return(out)
 }
 
 # runs Gibbs sampler
-gibbs.model <- function(x, y, hyperprior=c("inv. Gaussian", "inv. Gamma"), 
-                        conjugate, init=NULL,
-                        control=list(nsamp, parallel=FALSE, ncores=1)) {
-  
-  # set the number of cores
-  ncores <- min(control$ncores, detectCores())
+gibbs <- function(x, y, hyper=NULL, init=NULL) {
   
   # set fixed parameters
   D <- ncol(y)
-  svd.x <- svd(x)
-  v <- svd.x$v
-  sv <- svd.x$d
-  svvt <- t(v)*sv
+  p <- sapply(x, ncol)
+  n <- nrow(y)
+  svd.x <- lapply(x, svd)
+  v <- lapply(svd.x, "[[", "v")
+  sv <- lapply(svd.x, "[[", "d")
+  svvt <- lapply(1:D, function(d) {t(v[[d]])*sv[[d]]})
   yty <- colSums(y^2)
-  ytx <- t(y) %*% x
+  ytx <- t(sapply(1:D, function(d) {t(y[, d]) %*% x[[d]]}))
   
-  if(hyperprior=="inv. Gaussian") {
-    eta <- rep(1, D)
+  # complete hyperparameters
+  if(is.null(hyper)) {
+    hyper <- list(phi=lapply(p, function(s) {rep(1, p)}),
+                  chi=rep(1, D), lambdaf=1, lambdad=1)
+  }
+  if(is.null(init)) {
+    init <- list(beta=lapply(p, rnorm), sigma=sqrt(rchisq(D, 0.5)) + 0.5,
+                 tau=sqrt(rchisq(D, 0.5) + 0.5))
   }
   
-  if(conjugate) {
-    out <- mclapply(c(1:D), function(d) {
+  # sample from posterior
+  res <- lapply(1:D, function(d) {
+    
+  })
+  out <- mclapply(c(1:D), function(d) {
       cinit <- list(beta=init$beta[, d], gamma=init$gamma[d], sigma=init$sigma[d])
       .sample.post.conj(eta[d], lambda[d], theta[d], control$nsamp, cinit, v, sv, 
                         svvt, y[, d], yty[d], ytx[d, ], x, p, n)}, 
@@ -77,98 +91,10 @@ gibbs.model <- function(x, y, hyperprior=c("inv. Gaussian", "inv. Gamma"),
     
   }
   
-  
   beta <- aperm(sapply(out, function(s) {s$beta}, simplify="array"), c(1, 3, 2))
   sigma <- t(sapply(out, function(s) {s$sigma}))
   gamma <- t(sapply(out, function(s) {s$gamma}))
   
   return(list(beta=beta, sigma=sigma, gamma=gamma))
   
-}
-
-# sample from spike and slab prior
-rspikeandslab <- function(n, phi, chi, sigma, gamma, r) {
-  s <- 1 - phi/(phi + chi)
-  a <- gamma/sqrt((1 - s) + s*r)
-  b <- gamma/sqrt((1 - s)/r + s)
-  z <- rbinom(n, 1, 1 - s)
-  beta <- rnorm(n, 0, sigma*(z*a + (1 - z)*b))
-  return(beta)
-}
-
-# full conditional for latent indicators in spike and slab
-.samp.z <- function(w, beta, gamma, sigma, r, phi, chi, p) {
-  s <- 1 - phi/(phi + chi)
-  R <- exp(-((1 - s)/r + r*s - 1)*beta^2/(2*gamma^2*sigma^2))/sqrt(r)
-  prob <- 1/(1 + (1 - w)*R/w)
-  z <- rbinom(p, 1, prob)
-  return(z)
-}
-
-# full conditional for indicator probability in spike and slab
-.samp.w <- function(z, phi, chi, p) {
-  w <- rbeta(1, phi + sum(z), chi + p - sum(z))
-  return(w)
-}
-
-# full conditional for model parameters in spike and slab
-.samp.beta <- function(z, gamma, sigma, r, phi, chi, x, y, n, p) {
-  
-  s <- 1 - phi/(phi + chi)
-  dg <- (z - r*(z - 1))/((r - 1)*s + 1) 
-  if(p > n) {
-    uvec <- rnorm(p, 0, gamma*sigma*dg)
-    dvec <- rnorm(n, 0, sigma^2)
-    mat1 <- t(x)*dg
-    mat2 <- x %*% (t(x)*dg); diag(mat2) <- diag(mat2) + 1/gamma^2
-    beta <- uvec + as.numeric(mat1 %*% solve(mat2) %*% (y - x %*% uvec - dvec))  
-  } else {
-    mat <- solve(t(x) %*% x + diag(dg)/gamma^2)
-    cmat <- chol(mat)
-    beta0 <- rnorm(p, 0, 1)
-    beta <- as.numeric(mat %*% t(x) %*% y + sigma*cmat %*% beta0)
-  }
-  
-  return(beta)
-}
-
-# Gibbs sampler for spike and slab
-gibbs.spikeandslab <- function(x, y, gamma, sigma, r, phi, chi, init=phiLL,
-                               control=list(samples=1000, warmup=1000)) {
-  
-  n <- nrow(x)
-  p <- ncol(x)
-  
-  if(is.null(init$beta)) {
-    beta <- rnorm(p)
-  } else {
-    beta <- init$beta
-  }
-  if(is.null(init$w)) {
-    w <- 0.5
-  } else {
-    w <- init$w
-  }
-  if(is.null(init$z)) {
-    z <- rbinom(p, 1, 0.5)
-  } else {
-    z <- init$z
-  }
-  
-  out <- list(beta=matrix(NA, nrow=p, ncol=control$samples), 
-              z=matrix(NA, nrow=p, ncol=control$samples), 
-              w=numeric(control$samples))
-  for(m in 1:(control$samples + control$warmup)) {
-    z <- .samp.z(w, beta, gamma, sigma, r, phi, chi, p)
-    w <- .samp.w(z, phi, chi, p)
-    beta <- .samp.beta(z, gamma, sigma, r, phi, chi, x, y, n, p)
-    
-    if(m > control$samples) {
-      out$beta[, m - control$samples] <- beta
-      out$z[, m - control$samples] <- z
-      out$w[m - control$samples] <- w  
-    }
-  }
-  
-  return(out)
 }

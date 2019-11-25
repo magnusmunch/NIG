@@ -636,7 +636,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \cite[]{guo_rstan:_2018} at 
   \url{https://github.com/magnusmunch/cambridge}.
 	
-	\section{Simulations}
+	\section{Simulations}\ref{sec:simulations}
 	\subsection{Setup}
 	This section investigates the empirical 
 	Bayes estimation properties of the model in a simulated setting; its main aim 
@@ -1006,23 +1006,24 @@ kable(tab, col.names=colnames(tab), align="r",
 	$\bm{\alpha}_{\text{drug}}$, while NIG3 and NIG4 estimate only 
 	$\bm{\alpha}_{\text{feat}}$ or $\bm{\alpha}_{\text{drug}}$, respectively,
 	keeping either $\forall d: \tau_d^2=1$ or $\forall j,d: \gamma_{jd}^2=1$
-	fixed. In addition, we estimate regular lasso and ridge models. The null model
-	that fits the means of the $\y_d$ is included as a reference.
+	fixed. 
 	
-	% The bSEM model is similar to 
-	% the NIG model in that it 
-	% draws the $\beta_{jd}$ from a conditionally normal distribution, but 
-	% fixes $\tau_d^2=1$ and draws 
-	% $\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of 
-	% from the inverse Gaussian distribution. Additionally, 
-	% the bSEM model can 
-	% only incorporate one binary external covariate that divides the features into 
-	% two groups, i.e., $\bm{\alpha} = \begin{bmatrix} \alpha_0 & \alpha_1 
-	% \end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix} 
-	% \tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix} 
-	% 1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both 
-	% $\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
-	% estimated in a similar fashion as in Section \ref{sec:estimation}. 
+	In addition, we estimate regular lasso and ridge models, and a
+	bSEM model \cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The bSEM model 
+	is similar to the NIG model in that it
+	draws the $\beta_{jd}$ from a conditionally normal distribution, but
+	fixes $\tau_d^2=1$ and draws
+	$\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
+	from the inverse Gaussian distribution. Additionally,
+	the bSEM model can
+	only incorporate one binary external covariate that divides the features into
+	two groups, i.e., $\bm{\alpha} = \begin{bmatrix} \alpha_0 & \alpha_1
+	\end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+	\tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
+	1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
+	$\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
+	estimated in a similar fashion as in Section \ref{sec:estimation}.
+	The null model that fits the means of the $\y_d$ is included as a reference.
 
 <<analysis_gdsc_fit1>>=
 fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
@@ -1258,7 +1259,11 @@ kable(tab,
 	the normal inverse Gaussian prior model (\ref{eq:prior}). Estimation is 
 	efficient and scales well with the number of features and samples.
 	
-	The model is put into practice on the GDSC data. The results in Section
+	Simulations in Section \ref{sec:simulations} show that the method is 
+	reasonably able to recover hyperparameters. In addition, the simulations
+	show that inclusion of informative external covariates is indeed beneficial to
+	predictive performance. The model is put into practice on the GDSC data. 
+	The results in Section
 	\ref{sec:gdsc} show that the inclusion of the external covariates is 
 	beneficial for drug sensitivity prediction. Although the prediction MSE is
 	not lower if the external covariates are included, 
@@ -1277,7 +1282,7 @@ kable(tab,
 	the external covariates (NIG2 and NIG1 in Section \ref{sec:gdsc}) do not 
 	differ by much. This results similar prediction MSEs with
 	the inclusion of the external covariates. This is a topic that deserves 
-	further attention. One proposed solution is to include an extra 
+	further attention. One proposed solution is to include a
 	prior variance component that promotes a more heavy-tailed $\beta_{jd}$ prior
 	distribution. An example is a variance component with a half-cauchy prior 
 	distribution, i.e., the horseshoe \cite[]{carvalho_handling_2009}. 

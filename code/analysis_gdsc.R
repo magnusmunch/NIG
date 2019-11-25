@@ -303,6 +303,7 @@ fit1.lasso <- lapply(1:D, function(d) {
 fit1.ridge <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
 
+
 save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit1.lasso, fit1.ridge,
      fit1.bSEM, file="results/analysis_gdsc_fit2.Rdata")
 
