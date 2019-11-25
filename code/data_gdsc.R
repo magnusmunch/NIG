@@ -17,7 +17,7 @@ if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
                      header=TRUE, stringsAsFactors=FALSE)
   # same data, different file
   # expr <- read.csv("data/Cell_line_RMA_proc_basalExp.txt", 
-  #                  header=TRUE, sep="\t")
+  #                  header=TRUE, sep="\t", header=TRUE, stringsAsFactors=FALSE)
   
 } else {
   expr <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
@@ -76,12 +76,14 @@ if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
   mapid <- read.table("data/Ensembl2Reactome_All_Levels.txt",
                       comment.char="", sep="\t", quote="",
                       col.names=c("ensemblid", "reactomeid", "url", "name", 
-                                  "evidencecode", "species"))
+                                  "evidencecode", "species"),
+                      header=TRUE, stringsAsFactors=FALSE)
 } else {
   mapid <- read.table("https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt",
                       comment.char="", sep="\t", quote="",
                       col.names=c("ensemblid", "reactomeid", "url", "name",
-                                  "evidencecode", "species"))
+                                  "evidencecode", "species"),
+                      header=TRUE, stringsAsFactors=FALSE)
 }
 
 # combining and removing double drugs and rescreens
