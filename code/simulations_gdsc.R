@@ -34,6 +34,7 @@ rate <- 2
 nreps <- 50
 methods <- c("NIG$_{\text{f}}^-$", "NIG$_{\text{f}}$", "lasso", "ridge")
 
+nreps <- ncores <- 1
 # setup cluster
 cl <- makeCluster(ncores)
 if(ncores > 1) {
@@ -163,8 +164,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
-  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
-       elbot=elbot)
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
+       elbo=elbo, elbot=elbot)
 }
 stopCluster(cl=cl)
 
@@ -345,8 +346,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
-  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
-       elbot=elbot)
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
+       elbo=elbo, elbot=elbot)
 }
 stopCluster(cl=cl)
 
@@ -534,8 +535,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
   
-  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
-       elbot=elbot)
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
+       elbo=elbo, elbot=elbot)
 }  
 stopCluster(cl=cl)
 

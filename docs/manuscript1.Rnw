@@ -149,7 +149,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	\noindent\textbf{Software available from}: 
 	\url{https://github.com/magnusmunch/cambridge}
 	
-	\section{Introduction}
+	\section{Introduction}\label{sec:introduction}
 	Recently, promising results in precision medicine 
 	have sparked an interest in cancer drug sensitivity prediction models
 	\cite[]{iorio_landscape_2016}. Typically, these models 
@@ -676,7 +676,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	We estimate four models: (i) the NIG model that only includes an intercept in
 	the external covariates, called NIG$_{\text{f}}^-$, NIG$_{\text{d}}^-$, or
 	NIG$_{\text{f}+\text{d}}^-$, depending on which variance components are 
-	estimated,
+	estimated (feature, drug, or both),
 	(ii) the NIG model estimated as in Section \ref{sec:estimation} that includes
 	all external covariates, called NIG$_{\text{f}}$, NIG$_{\text{d}}$, or
 	NIG$_{\text{f}+\text{d}}$, again depending on which variance components are 
@@ -700,31 +700,15 @@ rownames(res) <- temp
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
 est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
-tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="elbot", ], 2, median) -
-               apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median) - 
-               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
-tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
-  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
-colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
-                   "$\\text{ELBO}_{\\text{train}} 
-                   - \\text{ELBO}_{\\text{test}}$",
-                   "$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}} 
-                   - \\text{PMSE}_{\\text{train}}$")     
+colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$")     
 @	
   Figure \ref{fig:simulations_gdsc_est1} shows the estimated
 	$\bm{\alpha}_{\text{feat}}$ together with its true value for NIG$_{\text{f}}$ 
@@ -753,27 +737,23 @@ colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
 	prior mean $\phi$, that is not able to capture part of the variation in the 
 	true feature specific $\phi_{jd}$. 
 
-	Table \ref{tab:simulations_gdsc_tab1} displays several median performance
-	measures for simulation version 1. The table includes as a reference 
-	the null model, which
+	Table \ref{tab:simulations_gdsc_tab1} displays median estimation MSE (EMSE) 
+	and prediction MSE (PMSE) for simulation version 1. The table includes as a
+	reference the null model, which
 	is an empty model that only fits the means of the $\y_{d}$.
-	The median evidence lower bounds (ELBO) approximates the marginal
-	likelihoods of models NIG1 and NIG2 on both training and test data, while 
-	estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
-	performance. Focussing on MSE, we see that the NIG2 model, that includes
-	the external covariates, performs best, both in terms of estimation and 
-	prediction. Model fit is best for the NIG1 model that does not include the
-	external covariates, according to the ELBO, calculated on the test data.
-	The lower MSEs confirm that the model that
-	includes the external data (NIG2) learns the underlying structure 
-	in the data better than model NIG1 that does not include the external 
-	data.
+	Estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
+	performance. Focussing on MSE, we see that the NIG$_{\text{f}}$ model, 
+	that includes the external covariates, performs best, both in terms of 
+	estimation and prediction. The lower MSEs confirm that the model that
+	includes the external data (NIG$_{\text{f}}$) learns the underlying structure 
+	in the data better than model NIG$_{\text{f}}^-$ that does not include the
+	external data.
 <<simulations_gdsc_tab1>>=
 library(knitr, quietly=TRUE, verbose=FALSE)
 suppressWarnings(library(kableExtra))
 options(knitr.kable.NA="", digits=3)
 kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure estimates for simulation version 1 (best performing model in bold).", 
+      caption="Median performance measure estimates for simulation version 1 (lowest in bold).", 
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
@@ -786,46 +766,30 @@ rownames(res) <- temp
 true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.chi <- median(1/res[rownames(res)=="alphad0", 1])
 est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
-tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="elbot", ], 2, median) -
-               apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median) - 
-               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
-tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
-  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
-colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
-                   "$\\text{ELBO}_{\\text{train}} 
-                   - \\text{ELBO}_{\\text{test}}$",
-                   "$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}} 
-                   - \\text{PMSE}_{\\text{train}}$")     
+colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$")     
 @	
   Figure \ref{fig:simulations_gdsc_est2} shows the estimated
-	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG2 in 
-	version 2 of the simulation study. They are estimated without bias.
+	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG$_{\text{d}}$ 
+	in version 2 of the simulation study. They are estimated without bias.
 	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is slightly 
 	overestimated compared to true value 1. 
-	The median $\chi$ estimate in the NIG1 model is \Sexpr{round(est.chi, 2)},  
+	The median $\chi$ estimate in the NIG$_{\text{d}}^-$ model is 
+	\Sexpr{round(est.chi, 2)},  
 	which is almost equal to the true mean \Sexpr{round(true.chi, 2)}. 
 	$\lambda_{\text{drug}}$ is underestimated with median estimate
 	\Sexpr{round(est.lambdad[1], 2)} compared to the true value.
 	Median performance measures for simulation version 2 are displayed in Table
-	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG2 performs best in 
-	terms of MSE. However, NIG1 performance is the same here, indicating that 
-	the external covariates do not add much here.
-	Model fit is again best for the NIG1 model.
+	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG$_{\text{d}}$ performs
+	best in terms of MSE. However, NIG$_{\text{d}}^-$ performance is the same 
+	here, indicating that the external covariates do not add much here.
 <<simulations_gdsc_est2, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulation version 2 with fixed $\\gamma_{jd}^2$.", out.width="100%", fig.asp=1/2>>= 
 @
 	
@@ -862,34 +826,19 @@ chi.ratio <- apply(apply(sapply(0:3, function(s) {
 true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*% 
                               t(unname(model.matrix(~ factor(1:4))))))
 
-tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="elbot", ], 2, median) -
-               apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median) - 
-               apply(res[rownames(res)=="pmset", ], 2, median))
+tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+             apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
-tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==max(tab[, 1], na.rm=TRUE)), 1], "}")
+tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5] <- 
-  paste0("\\textbf{", tab[which(tab[, 5]==min(tab[, 5], na.rm=TRUE)), 5], "}")
-colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
-                   "$\\text{ELBO}_{\\text{train}} 
-                   - \\text{ELBO}_{\\text{test}}$",
-                   "$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}} 
-                   - \\text{PMSE}_{\\text{train}}$")     
+colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
+                   "$\\text{PMSE}_{\\text{test}}$")     
 @	
   In Figure \ref{fig:simulations_gdsc_est3} the 
-	$\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{drug}}$ estimated by NIG2
+	$\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{drug}}$ estimated by 
+	NIG$_{\text{f}+\text{d}}$
 	are displayed together with their true values for
 	simulation 3. $\bm{\alpha}_{\text{feat}}$ are underestimated, while 
 	$\bm{\alpha}_{\text{drug}}$ are overestimated. These biases seem to 
@@ -901,16 +850,18 @@ colnames(tab) <- c("$\\text{ELBO}_{\\text{test}}$",
 	correct. Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
 	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
 	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
-	value 1. The NIG1 model is also consistently over- and underestimating $\phi$
+	value 1. The NIG$_{\text{f}+\text{d}}^-$ model is also consistently over- 
+	and underestimating $\phi$
 	and $\chi$ with estimates \Sexpr{round(est.phi, 2)} and 
 	\Sexpr{round(est.chi, 2)}, respectively (compared to the true mean 
-	\Sexpr{round(true.chi, 2)}). NIG1 also over- and underestimates 
+	\Sexpr{round(true.chi, 2)}). NIG$_{\text{f}+\text{d}}^-$ also over- and
+	underestimates 
 	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
 	\Sexpr{round(est.lambdaf[1], 2)}
 	and \Sexpr{round(est.lambdad[1], 2)}, respectively. Table 
 	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
-	that NIG2 outperforms the other models in terms of prediction and estimation
-	MSE.
+	that NIG$_{\text{f}+\text{d}}$ outperforms the other models in terms of
+	prediction and estimation MSE.
 <<simulations_gdsc_est3, fig.cap="Estimated (a) hyperparameters $\\bm{\\alpha}_{\\text{feat}}$ and (b) prior means $\\bm{\\phi}_{jd}$ from simulation version 3.", out.width="100%", fig.asp=1>>= 
 @
 	
@@ -1004,14 +955,20 @@ kable(tab, col.names=colnames(tab), align="r",
 	and average performance measures over the splits.
 	The estimated 
 	models are: four models like in (\ref{eq:prior}) but with different external 
-	variables, named NIG1 and NIG2 in the following. NIG1 does 
-	not use the external covariates and estimates
-	one overall $\phi$ and one overall $\chi$, while NIG2 uses the external 
-	covariates to estimate both $\bm{\alpha}_{\text{feat}}$ and
-	$\bm{\alpha}_{\text{drug}}$, while NIG3 and NIG4 estimate only 
-	$\bm{\alpha}_{\text{feat}}$ or $\bm{\alpha}_{\text{drug}}$, respectively,
+	variables, named NIG$_{\text{f}+\text{d}}^-$, NIG$_{\text{f}+\text{d}}$,
+	NIG$_{\text{f}}$, and NIG$_{\text{d}}$ in the following. The nomenclature is
+	the same as in Section \ref{sec:simulations}, so NIG$_{\text{f}+\text{d}}^-$
+	does not use the external covariates and estimates
+	one overall $\phi$ and one overall $\chi$, while NIG$_{\text{f}+\text{d}}$ 
+	uses the external covariates to estimate both $\bm{\alpha}_{\text{feat}}$ and
+	$\bm{\alpha}_{\text{drug}}$. NIG$_{\text{f}}$ and NIG$_{\text{d}}$ estimate 
+	only $\bm{\alpha}_{\text{feat}}$ or $\bm{\alpha}_{\text{drug}}$, respectively,
 	keeping either $\forall d: \tau_d^2=1$ or $\forall j,d: \gamma_{jd}^2=1$
-	fixed. 
+	fixed. In the language of \cite{bernardo_shrink_2011} as introduced in 
+	Section \ref{sec:introduction}, models NIG$_{\text{f}}$ and NIG$_{\text{d}}$
+	may be described as local and global shrinkage rules, respectively, as 
+	opposed to the global-local shrinkage models NIG$_{\text{f}+\text{d}}$ and
+	NIG$_{\text{f}+\text{d}}^-$.
 	
 	In addition, we estimate regular lasso and ridge models, and a
 	bSEM model \cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The bSEM model 
@@ -1043,28 +1000,22 @@ res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
 est1 <- cbind(fit[, 1], c(NA, 0, 0, NA, 0), fit[, 2])
+est1 <- round(est1, 2)
+est1[is.na(est1)] <- "-"
 colnames(est1) <- c("intercept", "not in pathway", "in pathway")
 est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0, NA), fit[, c(7:6)], 
               c(NA, 0, NA, 0, NA))
+est2 <- round(est2, 2)
+est2[is.na(est2)] <- "-"
 colnames(est2) <- c("intercept", "experimental", "development", "approved",
                     "unkown", "targeted", "cytotoxic")
 
-tab <- cbind(apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="elbot", ], 2, median) -
-               apply(res[rownames(res)=="elbo", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median))
+tab <- cbind(apply(res[rownames(res)=="pmse", ], 2, median))
 tabm <- tab
 tabm <- round(tabm, 3)
-tabm[which(tabm[, 1]==max(tabm[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tabm[which(tabm[, 1]==max(tabm[, 1], na.rm=TRUE)), 1], "}")
-tabm[which(tabm[, 2]==min(tabm[, 2], na.rm=TRUE)), 2] <- 
-  paste0("\\textbf{", tabm[which(tabm[, 2]==min(tabm[, 2], na.rm=TRUE)), 2], "}")
-tabm[which(tabm[, 3]==min(tabm[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tabm[which(tabm[, 3]==min(tabm[, 3], na.rm=TRUE)), 3], "}")
-colnames(tabm) <- c("$\\text{ELBO}_{\\text{test}}$",
-                   "$\\text{ELBO}_{\\text{train}} 
-                   - \\text{ELBO}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$")  
+tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1] <- 
+  paste0("\\textbf{", tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1], "}")
+colnames(tabm) <- c("$\\text{PMSE}_{\\text{test}}$")  
 
 library(glmnet)
 kurtosis <- function(x) {
@@ -1093,23 +1044,27 @@ ranges <- rbind(range(unlist(lapply(1:length(
   The non-zero $\bm{\alpha}$ estimates in Tables 
   \ref{tab:analysis_gdsc_est1_feat} and \ref{tab:analysis_gdsc_est1_drug} show 
   that there is an effect of the
-  external covariates. Models NIG2, NIG3, and bSEM estimate a negative effect 
-  for
+  external covariates. Models NIG$_{\text{f}+\text{d}}$, NIG$_{\text{f}}$, and
+  bSEM estimate a negative effect for
   the external pathway covariate. This translates to a negative additive effect 
   on the expected prior precision of the $\bm{\beta}_d$, i.e., genes that are 
   found
   in the target pathway of a drug are more predictive of IC50 than genes that
-  are not in the target pathway, according to expectation. Furthermore the NIG2
+  are not in the target pathway, according to expectation. Furthermore the 
+  NIG$_{\text{f}+\text{d}}$
   model estimates positive effects for the experimental and developmental drugs,
   compared to the approved drugs. This translates to smaller expected 
   prior precisions for the regression parameters for approved drugs, i.e.,
   approved drugs are easier to predict than experimental and developmental 
-  drugs. On the other hand, the NIG4 model, that only includes external
+  drugs. On the other hand, the NIG$_{\text{d}}$ model, that only includes
+  external
   drug covariates, estimates a negative effect for the developmental drugs.
-  The NIG2 model estimates the smallest prior $\bm{\beta}_d$ precision for the
+  The NIG$_{\text{f}+\text{d}}$ model estimates the smallest prior 
+  $\bm{\beta}_d$ precision for the
   targeted drugs, followed by cytotoxic drugs, while drugs with an unkown target
   are assigned the largest prior $\bm{\beta}_d$ precision, according
-  to expectation. Somewhat surprisingly, the NIG4 model estimates the smallest
+  to expectation. Somewhat surprisingly, the NIG$_{\text{d}}$ model
+  estimates the smallest
   prior $\bm{\beta}_d$ precision for the cytotoxic drugs, compared to the 
   targeted and unkown drugs. We conjecture that, due to absence of a local
   feature-specific variance component, this model is not flexible 
@@ -1120,7 +1075,8 @@ ranges <- rbind(range(unlist(lapply(1:length(
   (up to a multiplicative error variance) as 
   $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ \Sexpr{ranges[1, ]}\]$ and
   $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ \Sexpr{ranges[2, ]}\]$ for
-  NIG2 and bSEM, respectively. This confirms that the estimated prior 
+  NIG$_{\text{f}+\text{d}}$ and bSEM, respectively. This confirms that the
+  estimated prior 
   $\bm{\beta}_d$ variance components are in the same order of magnitude and that
   the external covariates have a detectable effect on the prior.
 <<analysis_gdsc_est1_feat>>=
@@ -1142,22 +1098,16 @@ kable(est2,
   The median PMSEs and ELBOs, calculated on the test data
   are displayed in Table \ref{tab:analysis_gdsc_tab1}. In terms of prediction 
   error, ridge outperforms the other models 
-  (PMSE of \Sexpr{round(tab[6, 3], 3)}), while bSEM 
-  (PMSE of \Sexpr{round(tab[7, 3], 3)}) performs worse than 
-  the null model (PMSE of \Sexpr{round(tab[8, 3], 3)}). Second and third best
-  performing models are NIG1 and NIG2 (PMSEs of \Sexpr{round(tab[1, 3], 3)} and
-  \Sexpr{round(tab[2, 3], 3)}, respectively), both outperforming the lasso
-  \Sexpr{round(tab[5, 3], 3)}. Part of the differences in performance between
-  NIG, lasso, and ridge may be explained with the different levels of 
-  ``sparsity'' in the solution. Although NIG and ridge do not give exactly 
-  sparse solutions (none of the $\bm{\beta}_d$ coefficients are set to zero), we
-  may use the ``heavy-tailedness'' of the distribution of the estimated 
-  $\bm{\beta}_d$ as a proxy for sparsity. A common measure of heavy-tailedness
-  is excess kurtosis, calculated as \Sexpr{round(kurts[1], 3)}, 
-  \Sexpr{round(kurts[2], 3)}, and \Sexpr{round(kurts[3], 3)} for the NIG2, 
-  lasso, and ridge estimates, respectively. Evidently, lasso gives the 
-  ``sparsest'' solution, followed by NIG and ridge. In some sense, this
-  means that the NIG uses less of the $\bm{\beta}_d$ to predict.
+  (PMSE of \Sexpr{round(tab[6, 1], 3)}), while bSEM 
+  (PMSE of \Sexpr{round(tab[7, 1], 3)}) performs worse than 
+  the null model (PMSE of \Sexpr{round(tab[8, 1], 3)}). Second and third best
+  performing models are NIG$_{\text{f}+\text{d}}^-$ and 
+  NIG$_{\text{f}+\text{d}}$ (PMSEs of \Sexpr{round(tab[1, 1], 3)} and
+  \Sexpr{round(tab[2, 1], 3)}, respectively), both outperforming the lasso
+  \Sexpr{round(tab[5, 1], 3)}. The underperformance of the 
+  NIG$_{\text{f}}$ and NIG$_{\text{d}}$ models shows the usefulness of a
+  global-local shrinkage prior as opposed to only global or local shrinkage as 
+  as in models NIG$_{\text{f}}$ and NIG$_{\text{d}}$.
 <<analysis_gdsc_tab1>>=
 kable(tabm,
       col.names=colnames(tabm), align="r",
@@ -1165,7 +1115,30 @@ kable(tabm,
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @	
-
+  
+  Part of the differences in performance between
+  NIG, lasso, and ridge may be explained with the different levels of 
+  ``sparsity'' in the solution. Although NIG and ridge do not give exactly 
+  sparse solutions (none of the $\bm{\beta}_d$ coefficients are set to zero), we
+  may use the ``heavy-tailedness'' of the distribution of the estimated 
+  $\bm{\beta}_d$ as a proxy for sparsity. A common measure of heavy-tailedness
+  is excess kurtosis, calculated as \Sexpr{round(kurts[1], 3)}, 
+  \Sexpr{round(kurts[2], 3)}, and \Sexpr{round(kurts[3], 3)} for the 
+  NIG$_{\text{f}+\text{d}}$, 
+  lasso, and ridge estimates, respectively. Evidently, lasso gives the 
+  ``sparsest'' solution, followed by NIG and ridge. In some sense, this
+  means that the NIG uses less of the $\bm{\beta}_d$ to predict than the ridge
+  model. In addition, the penalized regression methods estimate penalty 
+  parameters by cross-validation. Cross-validation directly minimises the 
+  (approximate) PMSE, as opposed to empirical Bayes in the NIG that maximises 
+  the (approximate) marginal likelihood, a measure of model fit. The superior 
+  PMSE of ridge regression is therefore not surprising. A caveat with penalized
+  regression methods is that they do not give measures of parameter uncertainty.
+  NIG, on the other hand, gives the full posterior of the parameters, either
+  through a variational Bayes approximation or with the Gibbs sampler from
+  SM Section \ref{sm-sec:gibbssampler}. The full posterior gives direct access
+  to the parameter uncertainties for a better interpretable model.
+  
 	\section{Discussion}\label{sec:discussion}
 <<time>>=
 load("results/analysis_gdsc_fit1.Rdata")
@@ -1179,7 +1152,8 @@ time2.semnig <- sum(fit2.semnig$time)
 	the normal inverse Gaussian prior model (\ref{eq:prior}). Estimation is 
 	efficient and scales well with the number of features and samples.
 	Estimation of the NIG model that includes both external drugs and feature
-	covariates (NIG2 in Section \ref{sec:gdsc}) on the GDSC data from Section
+	covariates (NIG$_{\text{f}+\text{d}}$ in Section \ref{sec:gdsc}) on the GDSC
+	data from Section
 	\ref{sec:gdsc} took \Sexpr{round(time2.semnig, 2)} seconds on a 2016 
 	MacBook Pro with a 2 GHz Dual-Core Intel Core i5 processor and
 	8 GB of 1867 MHz LPDDR3 memory, running macOS  10.15.1.
@@ -1190,16 +1164,23 @@ time2.semnig <- sum(fit2.semnig$time)
 	predictive performance. The model is put into practice on the GDSC data. 
 	The results in Section
 	\ref{sec:gdsc} show that the inclusion of the external covariates is 
-	beneficial for drug sensitivity prediction. Prediction MSE of the NIG
+	beneficial for drug sensitivity prediction. PMSE of the NIG
 	model with both both feature and drug variance components is lower
-	than for the regular lasso model and although the prediction MSE is
+	than for the regular lasso model and although the PMSE is
 	not lower if external covariates are included, the resulting hyperparameter 
 	estimates are still informative and may guide future research efforts.
 	In addition, the comparison to the bSEM model that allows for the inclusion of 
 	one binary external feature covariate favours the proposed NIG model. 
-	Prediction MSEs are almost uniformly lower over the drugs for the NIG model 
-	compared to bSEM. Consequently, the total prediction MSE is significantly
+	PMSEs are almost uniformly lower over the drugs for the NIG model 
+	compared to bSEM. Consequently, the total PMSE is significantly
 	lower for the NIG model. 
+	
+	A possible direction of future research that attempts 
+	to lower PMSE of the NIG model is the introduction of a cross-validated global
+	variance component in the prior of the $\bm{\beta}_d$. If we add the 
+	additional constraint that the drug and feature variance components have to 
+	average to one, this cross-validated variance component may be interpreted as
+	the overall level of shrinkage that is then tailored to lower PMSE.
 	
 	\section*{Supplementary Material}
 	Supplementary Material is available online from 
