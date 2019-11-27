@@ -214,7 +214,7 @@ shape <- 3
 rate <- 2
 
 nreps <- 50
-methods <- c("NIG1", "NIG2", "lasso", "ridge")
+methods <- c("NIG$_{\text{d}}^-$", "NIG$_{\text{d}}$", "lasso", "ridge")
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -397,7 +397,7 @@ shape <- 3
 rate <- 2
 
 nreps <- 50
-methods <- c("NIG1", "NIG2", "lasso", "ridge")
+methods <- c("NIG$_{\text{f+d}}^-$", "NIG$_{\text{f+d}}$", "lasso", "ridge")
 
 # setup cluster
 cl <- makeCluster(ncores) 
