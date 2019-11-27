@@ -34,7 +34,6 @@ rate <- 2
 nreps <- 50
 methods <- c("NIG$_{\text{f}}^-$", "NIG$_{\text{f}}$", "lasso", "ridge")
 
-nreps <- ncores <- 1
 # setup cluster
 cl <- makeCluster(ncores)
 if(ncores > 1) {
