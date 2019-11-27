@@ -160,29 +160,6 @@ points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5,
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
 
-# ---- analysis_gdsc_est1 ----
-res <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-boxplot(res[rownames(res)=="pmse", ])
-boxplot(res[rownames(res)=="elbo", ])
-boxplot(res[rownames(res)=="elbot", ])
-
-
-
-boxplot(res[rownames(res)=="brankdist", ])
-
-# ---- data_gdsc_res1_brank_hist ----
-# library(sp)
-# load("results/data_gdsc_cv1.Rdata")
-# col <- bpy.colors(ncol(brankcor), cutoff.tail=0.3)
-# opar <- par(no.readonly=TRUE)
-# par(mar=opar$mar*c(1, 1.1, 1, 1))
-# boxplot(brankcor, ylab=expression("Spearman's"~rho), col=col)
-# par(opar)
-hist(rnorm(10))
-
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 
 library(GeneralizedHyperbolic)

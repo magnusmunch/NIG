@@ -32,11 +32,7 @@ shape <- 3
 rate <- 2
 
 nreps <- 50
-methods <- c("NIG1", "NIG2", "lasso", "ridge")
-#
-# pmse <- pmset <- emse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
-# est <- matrix(NA, nrow=5*nreps, ncol=length(methods) - 2)
-# elbo <- elbot <- matrix(NA, nrow=nreps, ncol=length(methods) - 2)
+methods <- c("NIG$_{\text{f}}^-$", "NIG$_{\text{f}}$", "lasso", "ridge")
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -104,40 +100,6 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   predt1.lasso <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.lasso[[d]]})
   predt1.ridge <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.ridge[[d]]})
 
-  # emse[r, 1] <- mean(sapply(1:D, function(d) {
-  #   mean((best1.semnig[[d]] - beta[[d]])^2)}))
-  # emse[r, 2] <- mean(sapply(1:D, function(d) {
-  #   mean((best2.semnig[[d]] - beta[[d]])^2)}))
-  # emse[r, 3] <- mean(sapply(1:D, function(d) {
-  #   mean((best1.lasso[[d]] - beta[[d]])^2)}))
-  # emse[r, 4] <- mean(sapply(1:D, function(d) {
-  #   mean((best1.ridge[[d]] - beta[[d]])^2)}))
-  # emse[r, 5] <- mean(unlist(beta)^2)
-  #
-  # pmse[r, 1] <- mean(colMeans((pred1.semnig - ytest)^2))
-  # pmse[r, 2] <- mean(colMeans((pred2.semnig - ytest)^2))
-  # pmse[r, 3] <- mean(colMeans((pred1.lasso - ytest)^2))
-  # pmse[r, 4] <- mean(colMeans((pred1.ridge - ytest)^2))
-  # pmse[r, 5] <- mean(apply(ytest, 1, "-", colMeans(ytrain))^2)
-  #
-  # pmset[r, 1] <- mean(colMeans((predt1.semnig - ytrain)^2))
-  # pmset[r, 2] <- mean(colMeans((predt2.semnig - ytrain)^2))
-  # pmset[r, 3] <- mean(colMeans((predt1.lasso - ytrain)^2))
-  # pmset[r, 4] <- mean(colMeans((predt1.ridge - ytrain)^2))
-  # pmset[r, 5] <- mean(apply(ytrain, 1, "-", colMeans(ytrain))^2)
-  #
-  # est[seq(0, 4*nreps, by=nreps) + r, 1] <-
-  #   c(fit1.semnig$eb$alphaf, rep(NA, 3), fit1.semnig$eb$lambdaf)
-  # est[seq(0, 4*nreps, by=nreps) + r, 2] <-
-  #   c(fit2.semnig$eb$alphaf, fit2.semnig$eb$lambdaf)
-  #
-  # # calculate ELBO for semnig models
-  # elbot[r, ] <- c(mean(fit1.semnig$seq.elbo[nrow(fit1.semnig$seq.elbo), ]),
-  #                 mean(fit2.semnig$seq.elbo[nrow(fit2.semnig$seq.elbo), ]))
-  #
-  # elbo[r, ] <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
-  #                mean(new.elbo(fit2.semnig, xtest, ytest)))
-
   emse <- c(mean(sapply(1:D, function(d) {
     mean((best1.semnig[[d]] - beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
@@ -147,7 +109,38 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     mean(sapply(1:D, function(d) {
       mean((best1.ridge[[d]] - beta[[d]])^2)})),
     mean(unlist(beta)^2))
-
+  
+  cutoffs <- sapply(1:D, function(d) {quantile(abs(beta[[d]]), probs=0.9)})
+  emseh <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) > cutoffs[[d]]]^2)})))
+  
+  emsel <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) <= cutoffs[[d]]]^2)})))
+  
   pmse <- c(mean(colMeans((pred1.semnig - ytest)^2)),
             mean(colMeans((pred2.semnig - ytest)^2)),
             mean(colMeans((pred1.lasso - ytest)^2)),
@@ -170,12 +163,15 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
-  list(emse=emse, pmse=pmse, pmset=pmset, est=est, elbo=elbo, elbot=elbot)
+  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
+       elbot=elbot)
 }
 stopCluster(cl=cl)
 
 # prepare and save results table
 emse <- t(sapply(res, "[[", "emse"))
+emsel <- t(sapply(res, "[[", "emsel"))
+emseh <- t(sapply(res, "[[", "emseh"))
 pmse <- t(sapply(res, "[[", "pmse"))
 pmset <- t(sapply(res, "[[", "pmset"))
 est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
@@ -183,10 +179,11 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
 
-res <- rbind(emse, pmse, pmset, cbind(est, NA, NA, NA), cbind(elbo, NA, NA, NA),
-             cbind(elbot, NA, NA, NA))
+res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep(c("emse", "pmse", "pmset"), each=nreps),
+rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                       each=nreps),
                    rep(c(paste0("alphaf", 0:3), "lambdaf"), each=nreps),
                    rep(c("elbo", "elbot"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res1.txt")
@@ -218,10 +215,6 @@ rate <- 2
 
 nreps <- 50
 methods <- c("NIG1", "NIG2", "lasso", "ridge")
-
-# pmse <- pmset <- emse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
-# est <- matrix(NA, nrow=5*nreps, ncol=length(methods) - 2)
-# elbo <- elbot <- matrix(NA, nrow=nreps, ncol=length(methods) - 2)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -298,6 +291,37 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     mean(sapply(1:D, function(d) {
       mean((best1.ridge[[d]] - beta[[d]])^2)})),
     mean(unlist(beta)^2))
+  
+  cutoffs <- sapply(1:D, function(d) {quantile(abs(beta[[d]]), probs=0.9)})
+  emseh <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) > cutoffs[[d]]]^2)})))
+  
+  emsel <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) <= cutoffs[[d]]]^2)})))
 
   pmse <- c(mean(colMeans((pred1.semnig - ytest)^2)),
             mean(colMeans((pred2.semnig - ytest)^2)),
@@ -321,12 +345,15 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
-  list(emse=emse, pmse=pmse, pmset=pmset, est=est, elbo=elbo, elbot=elbot)
+  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
+       elbot=elbot)
 }
 stopCluster(cl=cl)
 
 # prepare and save results table
 emse <- t(sapply(res, "[[", "emse"))
+emsel <- t(sapply(res, "[[", "emsel"))
+emseh <- t(sapply(res, "[[", "emseh"))
 pmse <- t(sapply(res, "[[", "pmse"))
 pmset <- t(sapply(res, "[[", "pmset"))
 est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
@@ -334,10 +361,11 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
 
-res <- rbind(emse, pmse, pmset, cbind(est, NA, NA, NA), cbind(elbo, NA, NA, NA),
-             cbind(elbot, NA, NA, NA))
+res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep(c("emse", "pmse", "pmset"), each=nreps),
+rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                       each=nreps),
                    rep(c(paste0("alphad", 0:3), "lambdad"), each=nreps),
                    rep(c("elbo", "elbot"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res2.txt")
@@ -370,10 +398,6 @@ rate <- 2
 
 nreps <- 50
 methods <- c("NIG1", "NIG2", "lasso", "ridge")
-
-# pmse <- pmset <- emse <- matrix(NA, nrow=nreps, ncol=length(methods) + 1)
-# est <- matrix(NA, nrow=10*nreps, ncol=length(methods) - 2)
-# elbo <- elbot <- matrix(NA, nrow=nreps, ncol=length(methods) - 2)
 
 # setup cluster
 cl <- makeCluster(ncores) 
@@ -455,6 +479,37 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
       mean((best1.ridge[[d]] - beta[[d]])^2)})),
     mean(unlist(beta)^2))
   
+  cutoffs <- sapply(1:D, function(d) {quantile(abs(beta[[d]]), probs=0.9)})
+  emseh <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) > cutoffs[[d]]]^2)})))
+  
+  emsel <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) <= cutoffs[[d]]]^2)})))
+  
   pmse <- c(mean(colMeans((pred1.semnig - ytest)^2)),
             mean(colMeans((pred2.semnig - ytest)^2)),
             mean(colMeans((pred1.lasso - ytest)^2)),
@@ -479,12 +534,15 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
   
-  list(emse=emse, pmse=pmse, pmset=pmset, est=est, elbo=elbo, elbot=elbot)
+  list(emse=emse, emsel, emseh, pmse=pmse, pmset=pmset, est=est, elbo=elbo, 
+       elbot=elbot)
 }  
 stopCluster(cl=cl)
 
 # prepare and save results table
 emse <- t(sapply(res, "[[", "emse"))
+emsel <- t(sapply(res, "[[", "emsel"))
+emseh <- t(sapply(res, "[[", "emseh"))
 pmse <- t(sapply(res, "[[", "pmse"))
 pmset <- t(sapply(res, "[[", "pmset"))
 est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
@@ -492,10 +550,11 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
 
-res <- rbind(emse, pmse, pmset, cbind(est, NA, NA, NA), cbind(elbo, NA, NA, NA),
-             cbind(elbot, NA, NA, NA))
+res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep(c("emse", "pmse", "pmset"), each=nreps),
+rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                       each=nreps),
                    rep(c(paste0("alphaf", 0:3), "lambdaf",
                          paste0("alphad", 0:3), "lambdad"), each=nreps),
                    rep(c("elbo", "elbot"), each=nreps))

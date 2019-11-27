@@ -22,6 +22,9 @@ if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
 } else {
   expr <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
                      header=TRUE, stringsAsFactors=FALSE)
+  expr <- read.table("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/preprocessed/Cell_line_RMA_proc_basalExp.txt.zip",
+                     header=TRUE, stringsAsFactors=FALSE, sep="\t", dec=",", 
+                     colClasses="character", nrows=1)
 }
 if(file.exists("data/Cell_Lines_Details.xlsx")) {
   cell <- read.xls("data/Cell_Lines_Details.xlsx",
