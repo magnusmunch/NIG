@@ -211,7 +211,7 @@ dsfont,parskip,xr,tikz,times,w-thm}
   %% Authors
   \author[M\"unch]{Magnus M. M\"unch
   \footnote{Corresponding author: {\sf{e-mail: m.munch@amsterdamumc.nl}}, 
-  Phone: +31 71 527 4844}\inst{,1,2}} 
+  Phone: +31 71 527 4844}\inst{,1,2,3}} 
   \author[van de Wiel]{Mark A. van de Wiel\inst{1,3}}
   \author[Richardson]{Sylvia Richardson\inst{3}}
   \author[Leday]{Gwena{\"e}l G. R. Leday\inst{3}}
@@ -1286,6 +1286,8 @@ time2.semnig <- sum(fit2.semnig$time)
 	\url{https://github.com/magnusmunch/cambridge}. 
 	
 	\section*{Acknowledgements}
+	A visit of MM to SR and GL was funded by the Amsterdam Public Health 
+	institute's Methodology travel grant.
 	
 	\section*{Conflict of interest}
 	The authors have declared no conflict of interest.

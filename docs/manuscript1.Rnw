@@ -113,7 +113,7 @@ dsfont,parskip,xr,tikz}
 \title{Drug sensitivity prediction with the normal inverse Gaussian prior 
 informed by external data}
 \date{\today}
-\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
+\author{Magnus M. M\"unch$^{1,2,3}$\footnote{Correspondence to: 
 \href{mailto:m.munch@amsterdamumc.nl}{m.munch@amsterdamumc.nl}}, Mark A. van de 
 Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 
@@ -1210,9 +1210,12 @@ time2.semnig <- sum(fit2.semnig$time)
 	\url{https://github.com/magnusmunch/cambridge}.
 	
 	\section*{Acknowledgements}
-	We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
-	Biostatistics and Epidemiology for their suggestions on the pre-processing of 
-	the GDSC data. \textit{Conflict of Interest}: None declared.
+	% We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
+	% Biostatistics and Epidemiology for their suggestions on the pre-processing of 
+	% the GDSC data. 
+	A visit of MM to SR and GL was funded by the Amsterdam Public Health 
+	institute's Methodology travel grant.
+	\textit{Conflict of Interest}: None declared.
 	
 	\bibliographystyle{author_short3} 
 	\bibliography{refs}

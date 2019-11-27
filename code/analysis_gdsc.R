@@ -157,7 +157,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   cv1.bSEM <- bSEM(xtrain, split(ytrain, 1:ncol(ytrain)),
                    lapply(inpathway, "+", 1),
                    control=list(maxit=200, trace=FALSE, epsilon=1e-3))
-  
+
   # penalized regression models
   cv1.lasso <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
