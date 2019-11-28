@@ -42,7 +42,6 @@ if(ncores > 1) {
   registerDoSEQ()
 }
 res <- foreach(r=1:nreps, .packages=packages) %dopar% {
-# for(r in 1:nreps) {
   cat("\r", "rep", r)
   set.seed(2019 + r)
 
@@ -163,8 +162,11 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
+  
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot)
+       elbo=elbo, elbot=elbot, lpml=lpml)
 }
 stopCluster(cl=cl)
 
@@ -178,14 +180,16 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
   t(sapply(res, function(s) {s$est[i, ]}))}))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 
 res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
-             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
+             cbind(lpml, NA, NA, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
                        each=nreps),
                    rep(c(paste0("alphaf", 0:3), "lambdaf"), each=nreps),
-                   rep(c("elbo", "elbot"), each=nreps))
+                   rep(c("elbo", "elbot", "lpml"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res1.txt")
 
 
@@ -344,9 +348,11 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
 
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot)
+       elbo=elbo, elbot=elbot, lpml=lpml)
 }
 stopCluster(cl=cl)
 
@@ -360,14 +366,16 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
   t(sapply(res, function(s) {s$est[i, ]}))}))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 
 res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
-             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
+             cbind(lpml, NA, NA, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
                        each=nreps),
                    rep(c(paste0("alphad", 0:3), "lambdad"), each=nreps),
-                   rep(c("elbo", "elbot"), each=nreps))
+                   rep(c("elbo", "elbot", "lpml"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res2.txt")
 
 
@@ -534,8 +542,11 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
   
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
+  
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot)
+       elbo=elbo, elbot=elbot, lpml=lpml)
 }  
 stopCluster(cl=cl)
 
@@ -549,13 +560,15 @@ est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
   t(sapply(res, function(s) {s$est[i, ]}))}))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 
 res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
-             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA))
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
+             cbind(lpml, NA, NA, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
                        each=nreps),
                    rep(c(paste0("alphaf", 0:3), "lambdaf",
                          paste0("alphad", 0:3), "lambdad"), each=nreps),
-                   rep(c("elbo", "elbot"), each=nreps))
+                   rep(c("elbo", "elbot", "lpml"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res3.txt")
