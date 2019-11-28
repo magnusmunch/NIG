@@ -192,6 +192,10 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
             mean(new.elbo(cv2.semnig, xtest, ytest)),
             mean(new.elbo(cv3.semnig, xtest, ytest)),
             mean(new.elbo(cv4.semnig, xtest, ytest)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv2.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv3.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv4.semnig)))
   
   # determine the ranks of the model parameter point estimates
   brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
@@ -216,7 +220,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                                 unlist(sapply(p, function(s) {
                                   return(1:s)}))), length(methods))))
 
-  list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
+  list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
 }
 stopCluster(cl=cl)
 
@@ -224,6 +228,7 @@ stopCluster(cl=cl)
 pmse <- t(sapply(res, "[[", "pmse"))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
@@ -232,10 +237,10 @@ brankdist <- sapply(methods, function(s) {
 
 # combine tables and save
 res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(brankdist, NA))
+             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("brankdist", nrow(brankdist)))
+                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res1.txt")
 
 
@@ -419,6 +424,10 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
             mean(new.elbo(cv2.semnig, xtest, ytest)),
             mean(new.elbo(cv3.semnig, xtest, ytest)),
             mean(new.elbo(cv4.semnig, xtest, ytest)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv2.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv3.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv4.semnig)))
   
   # determine the ranks of the model parameter point estimates
   brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
@@ -443,7 +452,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                                 unlist(sapply(p, function(s) {
                                   return(1:s)}))), length(methods))))
   
-  list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
+  list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
 }
 stopCluster(cl=cl)
 
@@ -451,6 +460,7 @@ stopCluster(cl=cl)
 pmse <- t(sapply(res, "[[", "pmse"))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
@@ -459,10 +469,10 @@ brankdist <- sapply(methods, function(s) {
 
 # combine tables and save
 res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(brankdist, NA))
+             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("brankdist", nrow(brankdist)))
+                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res2.txt")
 
 
@@ -643,6 +653,10 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
             mean(new.elbo(cv2.semnig, xtest, ytest)),
             mean(new.elbo(cv3.semnig, xtest, ytest)),
             mean(new.elbo(cv4.semnig, xtest, ytest)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv2.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv3.semnig)),
+            sum(logcpo(xtest, ytest, ntrain, cv4.semnig)))
   
   # determine the ranks of the model parameter point estimates
   brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
@@ -667,7 +681,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                                 unlist(sapply(p, function(s) {
                                   return(1:s)}))), length(methods))))
   
-  list(pmse=pmse, elbo=elbo, elbot=elbot, brank=brank)
+  list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
 }
 stopCluster(cl=cl)
 
@@ -675,6 +689,7 @@ stopCluster(cl=cl)
 pmse <- t(sapply(res, "[[", "pmse"))
 elbo <- t(sapply(res, "[[", "elbo"))
 elbot <- t(sapply(res, "[[", "elbot"))
+lpml <- t(sapply(res, "[[", "lpml"))
 brank <- t(sapply(res, "[[", "brank"))
 
 # Euclidian distance between rank vectors
@@ -683,9 +698,9 @@ brankdist <- sapply(methods, function(s) {
 
 # combine tables and save
 res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(brankdist, NA))
+             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("brankdist", nrow(brankdist)))
+                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res3.txt")
 

@@ -1,3 +1,8 @@
+# function to integrate for cpo calculation (not tested)
+.f.int.cpo <- function(x, xtSigmax, n, p, zeta, y, xtmu) {
+  ((y - x)^2/(2*zeta) + 1)^(-(n + p + 1)/2)*exp(-(x - xtmu)^2/(2*xtSigmax))
+}
+
 # ELBO (not tested)
 .single.elbo <- function(p, n, zeta, yty, aux, g, b, delta, eta, lambdaf, 
                          lambdad, Zalphad, Calphaf) {

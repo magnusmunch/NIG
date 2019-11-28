@@ -700,15 +700,27 @@ rownames(res) <- temp
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
 est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
-tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+
+
+tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
+             apply(res[rownames(res)=="emseh", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
              apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
 tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
   paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$")     
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
+                   "$\\text{EMSE}_{\\text{top}}$",
+                   "$\\text{EMSE}_{\\text{total}}$",
+                   "$\\text{PMSE}$")     
+rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}}^-$",
+                            "NIG$_{\\text{f}}$")
 @	
   Figure \ref{fig:simulations_gdsc_est1} shows the estimated
 	$\bm{\alpha}_{\text{feat}}$ together with its true value for NIG$_{\text{f}}$ 
@@ -737,23 +749,26 @@ colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
 	prior mean $\phi$, that is not able to capture part of the variation in the 
 	true feature specific $\phi_{jd}$. 
 
-	Table \ref{tab:simulations_gdsc_tab1} displays median estimation MSE (EMSE) 
-	and prediction MSE (PMSE) for simulation version 1. The table includes as a
-	reference the null model, which
-	is an empty model that only fits the means of the $\y_{d}$.
+	Table \ref{tab:simulations_gdsc_tab1} displays median estimation MSE 
+	(EMSE) and prediction MSE (PMSE) for simulation version 1, calculated on an 
+	independent test data set. EMSE is further split into the contribution of the
+	bottom 90\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
+	top 10\% of the $\beta_{jd}$ in size. The table includes as a reference the 
+	null model, which is an empty model that only fits the means of the $\y_{d}$.
 	Estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
 	performance. Focussing on MSE, we see that the NIG$_{\text{f}}$ model, 
 	that includes the external covariates, performs best, both in terms of 
 	estimation and prediction. The lower MSEs confirm that the model that
 	includes the external data (NIG$_{\text{f}}$) learns the underlying structure 
 	in the data better than model NIG$_{\text{f}}^-$ that does not include the
-	external data.
+	external data. Furthermore, we see that estimation of the larger $\beta_{jd}$ 
+	is where ridge loses the most compared to the NIG and lasso models.
 <<simulations_gdsc_tab1>>=
 library(knitr, quietly=TRUE, verbose=FALSE)
 suppressWarnings(library(kableExtra))
 options(knitr.kable.NA="", digits=3)
 kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure estimates for simulation version 1 (lowest in bold).", 
+      caption="Median performance measure for simulation version 1, estimated on the test data (lowest in bold).", 
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
@@ -766,15 +781,25 @@ rownames(res) <- temp
 true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.chi <- median(1/res[rownames(res)=="alphad0", 1])
 est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
-tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
+             apply(res[rownames(res)=="emseh", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
              apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
 tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
   paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$")     
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
+                   "$\\text{EMSE}_{\\text{top}}$",
+                   "$\\text{EMSE}_{\\text{total}}$",
+                   "$\\text{PMSE}$")      
+rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{d}}^-$",
+                            "NIG$_{\\text{d}}$")
 @	
   Figure \ref{fig:simulations_gdsc_est2} shows the estimated
 	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG$_{\text{d}}$ 
@@ -798,7 +823,7 @@ library(knitr, quietly=TRUE, verbose=FALSE)
 suppressWarnings(library(kableExtra))
 options(knitr.kable.NA="", digits=3)
 kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure estimates for simulation version 2 (best performing model in bold).", 
+      caption="Median performance measure for simulation version 2, estimated on the test data (lowest in bold).", 
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
@@ -816,25 +841,35 @@ est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
 est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
 
 phi.ratio <- apply(apply(sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphaf" ,s), colnames(res)=="NIG2"]}) %*% 
+  res[rownames(res)==paste0("alphaf" ,s), 2]}) %*% 
     t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphaf0", colnames(res)=="NIG2"]/m}), 2, median)
+      res[rownames(res)=="alphaf0", 2]/m}), 2, median)
 chi.ratio <- apply(apply(sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphad" ,s), colnames(res)=="NIG2"]}) %*% 
+  res[rownames(res)==paste0("alphad" ,s), 2]}) %*% 
     t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphad0", colnames(res)=="NIG2"]/m}), 2, median)
+      res[rownames(res)=="alphad0", 2]/m}), 2, median)
 true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*% 
                               t(unname(model.matrix(~ factor(1:4))))))
 
-tab <- cbind(apply(res[rownames(res)=="emse", ], 2, median),
+tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
+             apply(res[rownames(res)=="emseh", ], 2, median),
+             apply(res[rownames(res)=="emse", ], 2, median),
              apply(res[rownames(res)=="pmse", ], 2, median))
 tab <- round(tab, 3)
 tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
   paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
 tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
   paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{test}}$",
-                   "$\\text{PMSE}_{\\text{test}}$")     
+tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
+  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
+tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
+  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
+colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
+                   "$\\text{EMSE}_{\\text{top}}$",
+                   "$\\text{EMSE}_{\\text{total}}$",
+                   "$\\text{PMSE}$")     
+rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}+\\text{d}}^-$",
+                            "NIG$_{\\text{f}+\\text{d}}$")
 @	
   In Figure \ref{fig:simulations_gdsc_est3} the 
 	$\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{drug}}$ estimated by 
@@ -870,7 +905,7 @@ library(knitr, quietly=TRUE, verbose=FALSE)
 suppressWarnings(library(kableExtra))
 options(knitr.kable.NA="", digits=3)
 kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure estimates for simulation version 3 (best performing model in bold).", 
+      caption="Median performance measure for simulation version 3, estimated on the test data (lowest in bold).", 
       format="latex", booktabs=TRUE, escape=FALSE) %>%
   kable_styling(latex_options=c("HOLD_position"))
 @
@@ -1159,28 +1194,49 @@ time2.semnig <- sum(fit2.semnig$time)
 	8 GB of 1867 MHz LPDDR3 memory, running macOS  10.15.1.
 	
 	Simulations in Section \ref{sec:simulations} show that the method is 
-	reasonably able to recover hyperparameters. In addition, the simulations
-	show that inclusion of informative external covariates is indeed beneficial to
-	predictive performance. The model is put into practice on the GDSC data. 
+	reasonably able to recover hyperparameters. Simulation versions 1 and 2 show
+	that estimation of drug- and feature-specific hyperparameters is, in 
+	principle, fairly accurate. However, when estimated jointly, biases may occur
+	due to the interplay between the two sources of information. Nevertheless,
+	the simulations show that inclusion of informative external covariates is 
+	still beneficial to predictive performance. 
+
+	The model is put into practice on the GDSC data. 
+	The NIG model is competitive with convential models like lasso and ridge.
+	We note that estimation of the penalty parameters in the latter two models
+	is geared towards predictive performance, because cross-validation is used
+	to train these parameters, as opposed to estimation of the
+	hyperparameters in the NIG model, which aims to improve model fit. In that 
+	sense, the comparison metric (PMSE) is not to the benefit of the NIG model. 
+	
 	The results in Section
-	\ref{sec:gdsc} show that the inclusion of the external covariates is 
-	beneficial for drug sensitivity prediction. PMSE of the NIG
-	model with both both feature and drug variance components is lower
-	than for the regular lasso model and although the PMSE is
-	not lower if external covariates are included, the resulting hyperparameter 
+	\ref{sec:gdsc} show that the inclusion of the external covariates covariates 
+	indeed substantially modifies the hyperparameters. Although, PMSE of the NIG
+	model is not necessarily lower if external covariates are included, the
+	resulting hyperparameter 
 	estimates are still informative and may guide future research efforts.
-	In addition, the comparison to the bSEM model that allows for the inclusion of 
-	one binary external feature covariate favours the proposed NIG model. 
-	PMSEs are almost uniformly lower over the drugs for the NIG model 
-	compared to bSEM. Consequently, the total PMSE is significantly
+	
+	In addition, the comparison to bSEM, a Bayesian counterpart model that allows
+	for the inclusion of one binary external feature covariate favours the 
+	proposed NIG model. PMSEs are almost uniformly lower over the drugs for the 
+	NIG model compared to bSEM. Consequently, the total PMSE is significantly
 	lower for the NIG model. 
 	
 	A possible direction of future research that attempts 
 	to lower PMSE of the NIG model is the introduction of a cross-validated global
 	variance component in the prior of the $\bm{\beta}_d$. If we add the 
-	additional constraint that the drug and feature variance components have to 
+	additional constraint that the drug and feature variance components
 	average to one, this cross-validated variance component may be interpreted as
-	the overall level of shrinkage that is then tailored to lower PMSE.
+	the overall level of shrinkage. This overall shrinkage level is then tailored 
+	to lower PMSE. Other directions of future research are applications of the NIG
+	model to different data types. An example of such an application is eQTL, 
+	where gene expressions are regressed on SNPs. Several interesting external
+	covariates are available, both on the genes as well as the SNPs. An example of
+	an external
+	covariate for the genes is genelength, where we suspect that longer genes are
+	harder to predict. The distance of the SNP to the gene is an example of an
+	external SNP covariate, where the expectation is that SNPs further from the 
+	gene are less predictive of that gene's expression.
 	
 	\section*{Supplementary Material}
 	Supplementary Material is available online from 

@@ -355,3 +355,24 @@ new.elbo <- function(object, newx, newy) {
                              object$eb$Calphaf[[d]])}) 
   return(out)
 }
+
+# calculate log cpo on test data (not tested)
+logcpo <- function(xtest, ytest, ntrain, fit) {
+  D <- ncol(ytest)
+  ntest <- nrow(ytest)
+  ptest <- sapply(xtest, ncol)
+  out <- matrix(nrow=ntest, ncol=D)
+  for(d in 1:D) {
+    xtSigmax <- rowSums((xtest[[d]] %*% fit$vb$Sigma[[d]])*xtest[[d]])
+    xtmu <- as.numeric(xtest[[d]] %*% fit$vb$mu[[d]])
+    p <- length(fit$vb$mu[[d]])
+    zeta <- fit$vb$zeta[d]
+    for(i in 1:ntest) {
+      int <- integrate(.f.int.cpo, -Inf, Inf, xtSigmax=xtSigmax[i], n=ntrain, 
+                       p=p, zeta=zeta, y=ytest[i, d], xtmu=xtmu[i])$value
+      out[i, d] <- -log(2) - log(pi) - 0.5*log(xtSigmax[i]) - 0.5*log(zeta) +
+        lgamma((ntrain + p + 2)/2) - lgamma((ntrain + p + 1)/2) - log(int)
+    }
+  }
+  return(out)
+}

@@ -54,7 +54,7 @@ rownames(res) <- temp
 alphaf <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
 est1 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphaf" ,s), colnames(res)=="NIG2"]})
+  res[rownames(res)==paste0("alphaf" ,s), 2]})
 est2 <- 1/(est1 %*% t(cbind(1, rbind(0, diag(3)))))
 
 col <- bpy.colors(length(alphaf), cutoff.tail=0.3)
@@ -86,7 +86,7 @@ rownames(res) <- temp
 alphad <- c(1, 1, 3, 7)
 chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
 est1 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphad" ,s), colnames(res)=="NIG2"]})
+  res[rownames(res)==paste0("alphad" ,s), 2]})
 est2 <- 1/(est1 %*% t(cbind(1, rbind(0, diag(3)))))
 
 col <- bpy.colors(length(alphad), cutoff.tail=0.3)
@@ -120,10 +120,10 @@ alphad <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
 chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
 est1 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphaf" ,s), colnames(res)=="NIG2"]})
+  res[rownames(res)==paste0("alphaf" ,s), 2]})
 est2 <- 1/(est1 %*% t(cbind(1, rbind(0, diag(3)))))
 est3 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphad" ,s), colnames(res)=="NIG2"]})
+  res[rownames(res)==paste0("alphad" ,s), 2]})
 est4 <- 1/(est3 %*% t(cbind(1, rbind(0, diag(3)))))
 
 col <- bpy.colors(length(alphad), cutoff.tail=0.3)
