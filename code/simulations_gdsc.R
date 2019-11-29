@@ -162,8 +162,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
 
-  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
-            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
+  lpml <- c(mean(logcpo(xtest, ytest, ntrain, fit1.semnig), na.rm=TRUE),
+            mean(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
        elbo=elbo, elbot=elbot, lpml=lpml)
@@ -348,8 +348,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
-  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
-            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE))
 
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
        elbo=elbo, elbot=elbot, lpml=lpml)
@@ -542,8 +542,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
             mean(new.elbo(fit2.semnig, xtest, ytest)))
   
-  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig)),
-            sum(logcpo(xtest, ytest, ntrain, fit2.semnig)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
        elbo=elbo, elbot=elbot, lpml=lpml)

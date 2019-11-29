@@ -369,9 +369,13 @@ logcpo <- function(xtest, ytest, ntrain, fit) {
     zeta <- fit$vb$zeta[d]
     for(i in 1:ntest) {
       int <- integrate(.f.int.cpo, -Inf, Inf, xtSigmax=xtSigmax[i], n=ntrain, 
-                       p=p, zeta=zeta, y=ytest[i, d], xtmu=xtmu[i])$value
+                       p=p, zeta=zeta, y=ytest[i, d], xtmu=xtmu[i],
+                       stop.on.error=FALSE)
+      int.val <- ifelse(int$message=="the integral is probably divergent", NA, 
+                        int$value) 
+      
       out[i, d] <- -log(2) - log(pi) - 0.5*log(xtSigmax[i]) - 0.5*log(zeta) +
-        lgamma((ntrain + p + 2)/2) - lgamma((ntrain + p + 1)/2) - log(int)
+        lgamma((ntrain + p + 2)/2) - lgamma((ntrain + p + 1)/2) - log(int.val)
     }
   }
   return(out)
