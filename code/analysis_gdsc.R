@@ -732,9 +732,8 @@ idsel <- o[1:psel]
 meth.sel <- meth.prep[, idsel]
 
 # transform methylation values
-x <- rep(list(scale(log(meth.sel/(1 - meth.sel), base=2), scale=FALSE)), 
-         ncol(y))
-y <- scale(resp.prep, scale=FALSE)
+x <- rep(list(scale(log(meth.sel/(1 - meth.sel), base=2))), ncol(y))
+y <- scale(resp.prep)
 D <- ncol(y)
 p <- sapply(x, ncol)
 n <- nrow(y)
@@ -810,9 +809,9 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   # splitting data
   idtrain <- sample(1:nrow(y), ntrain)
   xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
-  ytrain <- scale(y[idtrain, ], scale=FALSE)
+  ytrain <- scale(y[idtrain, ])
   xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
-  ytest <- scale(y[-idtrain, ], scale=FALSE)
+  ytest <- scale(y[-idtrain, ])
   
   # model without external covariates
   Z <- matrix(1, nrow=D)

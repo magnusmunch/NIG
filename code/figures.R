@@ -178,4 +178,9 @@ dev.off()
 
 
 
-        
+res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+boxplot(res[rownames(res)=="pmse", ])
+
