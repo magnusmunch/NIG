@@ -89,6 +89,35 @@ if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
                       header=TRUE, stringsAsFactors=FALSE)
 }
 
+# methylation data
+meth1 <- read.table(unz("data/METH_CELL_DATA.txt.zip", "F2_METH_CELL_DATA.txt"), 
+                    header=TRUE)
+meth2 <- read.xls("data/methSampleId_2_cosmicIds.xlsx", stringsAsFactors=FALSE)
+meth <- t(meth1)
+rownames(meth) <- meth2$cosmic_id[match(
+  paste0("X", meth2$Sentrix_ID, "_", meth2$Sentrix_Position), colnames(meth1))]
+meth <- meth[order(as.numeric(rownames(meth))), ]
+
+# library(biomaRt)
+# library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# annid <- sapply(1:nrow(meth1), function(s) {
+#   which(ann450k$Islands_Name==rownames(meth1)[s])})
+# geneid <- sapply(annid, function(s) {
+#   unique(unlist(strsplit(ann450k$UCSC_RefGene_Name[s], ";")))})
+# island <- sapply(annid, function(s) {
+#   unique(unlist(strsplit(ann450k$Relation_to_Island[s], ";")))})
+# 
+# # View(listEnsembl())
+# # View(listFilters(ensembl))
+# # View(listAttributes(ensembl))
+# ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+# gb <- getBM(attributes=c("external_gene_name", "ensembl_gene_id", 
+#                          "hgnc_symbol"), 
+#             filters=c("external_gene_name"), 
+#             values=unique(unlist(geneid)), 
+#             mart=ensembl)
+
 # combining and removing double drugs and rescreens
 drug <- merge(merge(merge(drug1, drug2, by.x="DRUG_ID", by.y="drug_id",
                           all=TRUE), drug3, by.x="DRUG_ID", by.y="Identifier",
@@ -277,9 +306,10 @@ rownames(expr.temp) <- substr(rownames(expr.temp), 2, 10000L)
 expr <- expr.temp[order(as.numeric(rownames(expr.temp))), ]
 rm(expr.temp)
 
-# only retain the cell lines that are available in both response and expression
-expr.prep <- expr[rownames(expr) %in% rownames(resp), ]
-resp.prep <- resp[rownames(resp) %in% rownames(expr), ]
+# prepped data
+expr.prep <- expr
+resp.prep <- resp
+meth.prep <- meth
 
 # keep drugs that are available in both response and drug data
 drug.prep <- drug[drug$name %in% colnames(resp.prep), ]
@@ -327,5 +357,6 @@ feat.prep <- list(inpathway=inpathway)
 rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway,
    drug, expr, resp)
 
-save(drug.prep, expr.prep, resp.prep, feat.prep, 
+save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep,
      file="data/data_gdsc_dat1.Rdata")
+

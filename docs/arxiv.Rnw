@@ -1290,3 +1290,433 @@ devtools::session_info()
 @
 
 \end{document}
+
+% set options
+<<settings, include=FALSE, echo=FALSE>>=
+opts_knit$set(root.dir="..", base.dir="../figs")
+opts_chunk$set(fig.align='center', fig.path="../figs/", 
+               echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
+knit_hooks$set(document=function(x) {
+  sub('\\usepackage[]{color}', '\\usepackage{xcolor}', x, fixed=TRUE)})
+@
+
+% read figure code
+<<figures, include=FALSE>>=
+read_chunk("code/figures.R")
+@
+
+\documentclass[a4paper,hidelinks]{article}
+\usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,
+rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,
+bbm,algorithm,algpseudocode,pgfplotstable,threeparttable,booktabs,mathtools,
+dsfont,parskip,xr}
+\externaldocument[md-]{manuscript1}
+
+% vectors and matrices
+\newcommand{\bbeta}{\bm{\beta}}
+\newcommand{\btau}{\bm{\tau}}
+\newcommand{\bsigma}{\bm{\sigma}}
+\newcommand{\balpha}{\bm{\alpha}}
+\newcommand{\bepsilon}{\bm{\epsilon}}
+\newcommand{\bomega}{\bm{\omega}}
+\newcommand{\bOmega}{\bm{\Omega}}
+\newcommand{\bSigma}{\bm{\Sigma}}
+\newcommand{\bkappa}{\bm{\kappa}}
+\newcommand{\btheta}{\bm{\theta}}
+\newcommand{\bmu}{\bm{\mu}}
+\newcommand{\bpsi}{\bm{\psi}}
+\newcommand{\blambda}{\bm{\lambda}}
+\newcommand{\bLambda}{\bm{\Lambda}}
+\newcommand{\bPsi}{\bm{\Psi}}
+\newcommand{\bphi}{\bm{\phi}}
+\newcommand{\Y}{\mathbf{Y}}
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\I}{\mathbf{I}}
+\newcommand{\bgamma}{\bm{\gamma}}
+\newcommand{\T}{\mathbf{T}}
+\newcommand{\Z}{\mathbf{Z}}
+\newcommand{\W}{\mathbf{W}}
+\renewcommand{\O}{\mathbf{O}}
+\newcommand{\B}{\mathbf{B}}
+\renewcommand{\H}{\mathbf{H}}
+\newcommand{\U}{\mathbf{U}}
+\newcommand{\Em}{\mathbf{E}}
+\newcommand{\D}{\mathbf{D}}
+\newcommand{\Vm}{\mathbf{V}}
+\newcommand{\rv}{\mathbf{r}}
+\newcommand{\A}{\mathbf{A}}
+\newcommand{\Q}{\mathbf{Q}}
+\newcommand{\Sm}{\mathbf{S}}
+\newcommand{\0}{\bm{0}}
+\newcommand{\tx}{\tilde{\mathbf{x}}}
+\newcommand{\hy}{\hat{y}}
+\newcommand{\tm}{\tilde{m}}
+\newcommand{\tkappa}{\tilde{\kappa}}
+\newcommand{\m}{\mathbf{m}}
+\newcommand{\C}{\mathbf{C}}
+\renewcommand{\v}{\mathbf{v}}
+\newcommand{\g}{\mathbf{g}}
+\newcommand{\s}{\mathbf{s}}
+\renewcommand{\c}{\mathbf{c}}
+\newcommand{\ones}{\mathbf{1}}
+\newcommand{\R}{\mathbf{R}}
+\newcommand{\rvec}{\mathbf{r}}
+\newcommand{\Lm}{\mathbf{L}}
+
+% functions and operators
+\renewcommand{\L}{\mathcal{L}}
+\newcommand{\G}{\mathcal{G}}
+\renewcommand{\P}{\mathcal{P}}
+\newcommand{\argmax}{\text{argmax} \,}
+\newcommand{\expit}{\text{expit}}
+\newcommand{\erfc}{\text{erfc}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\Cov}{\mathbb{C}\text{ov}}
+\newcommand{\tr}{^{\text{T}}}
+\newcommand{\diag}{\text{diag}}
+\newcommand{\KL}{D_{\text{KL}}}
+\newcommand{\trace}{\text{tr}}
+\newcommand{\norm}[1]{\left\lVert #1 \right\rVert}
+
+% distributions
+\newcommand{\N}{\text{N}}
+\newcommand{\TG}{\text{TG}}
+\newcommand{\Bi}{\text{Binom}}
+\newcommand{\PG}{\text{PG}}
+\newcommand{\Mu}{\text{Multi}}
+\newcommand{\GIG}{\text{GIG}}
+\newcommand{\IGauss}{\text{IGauss}}
+\newcommand{\Un}{\text{U}}
+
+% syntax and readability
+\renewcommand{\(}{\left(}
+\renewcommand{\)}{\right)}
+\renewcommand{\[}{\left[}
+\renewcommand{\]}{\right]}
+
+% settings
+\graphicspath{{../figs/}}
+\pgfplotsset{compat=1.16}
+\setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
+\setlength{\textwidth}{15cm}
+\title{Drug sensitivity prediction with normal inverse Gaussian shrinkage 
+informed by external data}
+\date{\today}
+\author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
+\href{mailto:m.munch@amsterdamumc.nl}{m.munch@amsterdamumc.nl}}, Mark A. van de 
+Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
+
+\begin{document}
+
+	\maketitle
+	
+	\noindent
+	1. Department of Epidemiology \& Biostatistics, Amsterdam UMC, VU University, 
+	PO Box 7057, 1007 MB Amsterdam, The Netherlands \\
+	2. Mathematical Institute, Leiden University, Leiden, The Netherlands \\
+	3. MRC Biostatistics Unit, Cambridge Institute of Public Health, Cambridge,
+	United Kingdom
+	
+	\section{Content overview}
+	This document contains the Supplementary Material (SM) to the document 
+	`Drug sensitivity prediction with the normal inverse Gaussian prior 
+	informed by external data'. In the 
+	following, this document is referred to as Main Document (MD). 
+	
+	Section \ref{sec:prior} describes the moments of the normal
+	inverse Gaussian (NIG) prior, Section \ref{sec:vbderivations} gives
+	the variational Bayes (BV) derivations that lead to the estimating equations 
+	in the MD, Section \ref{sec:elbo} gives the evidence lower bound (ELBO) that 
+	is maximised during the VB iterations. In Section \ref{sec:computation} 
+	efficient VB calculations are given, while Section 
+	\ref{sec:ratiosmodifiedbessels} outlines a computationally stable method
+	to calculate ratios of modified Bessel functions. Section \ref{sec:eb} shows
+	that the empirical Bayes (EB) scale estimates $\bm{\lambda}$ are non-negative.
+	The last Section \ref{sec:gibbssampler} introduces a Gibbs sampling scheme
+	to sample from the posterior corresponding to the NIG model.
+	
+	\section{Normal inverse Gaussian prior moments}\label{sec:prior}
+	Let $\beta \sim \mathcal{N}(0,\sigma^2 \tau^2 \gamma^2)$, where 
+	$\sigma^2$ and $\tau^2$ are fixed and $\gamma^2 \sim 
+	\mathcal{IG}(\phi,\lambda_{\text{feat}})$, then
+	\begin{align*}
+	  \E(\beta | \sigma^2, \tau^2) & = 0, \\
+	  \V(\beta | \sigma^2, \tau^2) & = \sigma^2 \tau^2 \phi, \\
+	  \mathcal{K}(\beta | \sigma^2, \tau^2) & = 
+	  \frac{3\phi}{\lambda_{\text{feat}}} + 3,
+	\end{align*}
+	where $\mathcal{K}(\cdot)$ denotes the kurtosis. Now letting $\tau^2
+	\sim \mathcal{IG}(\chi,\lambda_{\text{drug}})$ and integrating it out we have:
+	\begin{align*}
+	  \E(\beta | \sigma^2) & = 0, \\
+	  \V(\beta | \sigma^2) & = \sigma^2 \chi \phi, \\
+	  \mathcal{K}(\beta | \sigma^2) & = 
+	  3\(\frac{\phi}{\lambda_{\text{feat}}} \frac{\chi}{\lambda_{\text{drug}}} +
+	  \frac{\phi}{\lambda_{\text{feat}}} + \frac{\chi}{\lambda_{\text{drug}}}\) + 
+	  3.
+	\end{align*}
+	
+	\section{Variational Bayes derivations}\label{sec:vbderivations}
+	For clarity we have indexed the variational 
+	density functions with their respective parameters, which we omitted in the 
+	MD. In the following all expectations are with respect to the 
+	variational posterior $Q_d$. The variational posterior for $\bbeta_d$ is 
+	found as follows:
+	\begin{align*}
+	  \log q_{\bbeta_d} (\bbeta_d) & \propto \E [\log \mathcal{L}
+	  (\y_d | \bbeta_d, \sigma_d^2 )] + \E [\log \pi (\bbeta_d | \bgamma_{d}^2, 
+	  \sigma_d^2, \tau_d^2)] \\
+	  & \propto - \frac{1}{2} \sum_{i=1}^n 
+	  \E \[ \frac{(y_{id} - \x_i \tr \bbeta_d)^2}{\sigma_d^2} \] - 
+	  \frac{1}{2} \sum_{j=1}^p 
+	  \E \( \frac{\beta_{jd}^2}{\gamma_{jd}^2 \sigma_d^2 \tau_d^2} \), \\
+	  q_{\bbeta_d} (\bbeta_d) & \overset{D}{=} 
+	  \mathcal{N}_p (\bmu_d, \bSigma_d), \\
+	  & \text{with } \bSigma_d = \E(\sigma_d^{-2})^{-1} 
+	  \{\X \tr \X + \E(\tau_d^{-2})\diag [\E(\gamma_{jd}^{-2})] \}^{-1}, \\
+	  & \text{and } \bmu_d = \{\X \tr \X + \E(\tau_d^{-2})
+	  \diag [\E(\gamma_{jd}^{-2})] \}^{-1} 
+	  \X \tr \y_d.
+	\end{align*}
+	The variational posterior for $\gamma_{jd}^2$ is given by:
+	\begin{align*}
+	  \log q_{\gamma_{jd}^{2}}(\gamma_{jd}^{2}) & \propto \E 
+	  [\log \pi (\beta_{jd} | \gamma_{jd}^{2}, \sigma_d^2, \tau_d^2)] + 
+	  \log \pi(\gamma_{jd}^{2}) \\
+	  & \propto -\frac{1}{2} \log \gamma_{jd}^{2} - \frac{1}{2} 
+	  \E \( \frac{\beta_{jd}^2}{\sigma^{2}_d \tau_d^2}\) \gamma_{jd}^{-2} - 
+	  \frac{3}{2} \log \gamma_{jd}^{2} - 
+	  \frac{\lambda_{\text{feat}} \{\gamma_{jd}^2 - 
+	  \phi_{jd}\}^2}
+	  {2\phi_{jd}^{2}} \gamma_{jd}^{-2} \\
+	  & \propto \( -1 - 1\) \log \gamma_{jd}^{2} - 
+	  \frac{\lambda_{\text{feat}}}{2\phi_{jd}^2} \gamma_{jd}^2 - 
+	  \frac{1}{2}\[ \lambda_{\text{feat}} + \E(\tau_d^{-2})\E(\sigma_d^{-2}) 
+	  \E(\beta_{jd}^2)\] \gamma_{jd}^{-2} , \\
+	  q_{\gamma_{jd}^{2}}(\gamma_{jd}^{2}) & \overset{D}{=} \mathcal{GIG} 
+	  \(-1, \lambda_{\text{feat}}/\phi_{jd}^{2}, \delta_{jd} \), \\
+	  & \text{with } \delta_{jd} =\E(\tau_d^{-2})\E(\sigma_d^{-2})
+	  \[\E(\beta_{jd})^2 + \V(\beta_{jd})\] + \lambda_{\text{feat}}.
+	\end{align*}
+	Similarly, we derive the variational posterior for $\tau_d^2$ as:
+	\begin{align*}
+	  \log q_{\tau_{d}^{2}}(\tau_{d}^{2}) & \propto \E 
+	  [\log \pi (\bbeta_{d} | \bgamma_{d}^{2}, \sigma_d^2, \tau_d^2)] + 
+	  \log \pi(\tau_{d}^{2}) \\
+	  & \propto -\frac{p}{2} \log \tau_{d}^{2} - \frac{1}{2} \sum_{j=1}^p
+	  \E \( \frac{\beta_{jd}^2}{\sigma^{2}_d \gamma_{jd}^{2}}\)\tau_d^{-2}  - 
+	  \frac{3}{2} \log \tau_{d}^{2} - 
+	  \frac{\lambda_{\text{drug}} \{\tau_{d}^2 - \chi_{d}\}^2}
+	  {2\chi_{d}^{2}} \tau_{d}^{-2} \\
+	  & \propto \( -\frac{p + 1}{2} - 1\) \log \tau_{d}^{2} - 
+	  \frac{\lambda_{\text{drug}}}{2\chi_{d}^2} \tau_{d}^2 - 
+	  \frac{1}{2}\[ \lambda_{\text{drug}} + \E(\sigma_d^{-2}) \sum_{j=1}^p 
+	  \E(\gamma_{jd}^{-2}) \E(\beta_{jd}^2)\] \tau_{d}^{-2} , \\
+	  q_{\tau_{d}^{2}}(\tau_{d}^{2}) & \overset{D}{=} \mathcal{GIG} 
+	  \(-\frac{p + 1}{2}, \lambda_{\text{drug}}/\chi_{d}^{2}, \eta_{d} \), \\
+	  & \text{with } \eta_{d} =\E(\sigma_d^{-2}) \sum_{j=1}^p
+	  \E(\gamma_{jd}^{-2})\[\E(\beta_{jd})^2 + \V(\beta_{jd})\] + 
+	  \lambda_{\text{drug}}.
+	\end{align*}
+	Lastly, we have the variational posterior for $\sigma_d^2$:
+	\begin{align*}
+	  \log q_{\sigma_d^{2}}(\sigma_d^{2}) & \propto \E 
+	  [\log \mathcal{L}(\y_d | \bbeta_d, \sigma_d^2 )] + 
+	  \E [\log \pi (\bbeta_d | \bgamma_d^2, \sigma_d^2,\tau_d^2)] + 
+	  \log \pi (\sigma_d^{2}) \\
+	  & \propto -\frac{n}{2} \log \sigma_d^{2} - \frac{1}{2} \sum_{i=1}^n 
+	  \frac{\E [(y_{id} - \x_i \tr \bbeta_d)^2]}{\sigma_d^{2}} - 
+	  \frac{p}{2} \log \sigma_d^{2} - \frac{1}{2} \sum_{j=1}^p 
+	  \E \( \frac{\beta_{jd}^2}{\gamma_{jd}^{2}\tau_d^2}\) \sigma_d^{-2} - 
+	  \frac{3}{2} \log \sigma^2_d \\
+	  & = \(-\frac{n + p + 1}{2} - 1 \) \log \sigma_d^{2} \\
+	  & \,\,\,\,\,\,\,\,\,\, - 
+	  \frac{1}{2}\left\{ \sum_{i=1}^n \E [(y_{id} - \x_i \tr \bbeta_d)^2] + 
+	  \E(\tau_d^{-2}) \sum_{j=1}^p \E(\gamma_{jd}^{-2})
+	  \E(\beta_{jd}^2) \right\} \sigma_d^{-2}, \\
+	  q_{\sigma_d^{2}}(\sigma_d^{2}) & \overset{D}{=} 
+	  \Gamma^{-1} \(\frac{n + p + 1}{2}, \zeta_{d} \), \\
+	  & \text{with } \zeta_{d} = \frac{1}{2} \bigg\{\mathbf{y}_d \tr 
+	  \mathbf{y}_d - 2 \mathbf{y}_d \tr \X \E(\bbeta_d) + 
+    \trace [ \X \tr \X \V(\bbeta_d)] + 
+    \E(\bbeta_d \tr)  \X \tr \X \E(\bbeta_d ) \\
+    & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + 
+    \E(\tau_d^{-2})\trace \{ \diag[\E(\gamma_{jd}^{-2})] \V(\bbeta_d)\} + 
+    \E(\tau_d^{-2})\E(\bbeta_d \tr) \diag[\E(\gamma_{jd}^{-2})] \E(\bbeta_d )
+    \bigg\}.
+  \end{align*}
+  If we fill in the expectations and variances, we arrive at the estimating
+  equations in MD equations (\ref{md-eq:vbequations}).
+	
+  \section{Evidence lower bound}\label{sec:elbo}
+  The evidence lower bound that is maximised during the iterations is: 
+  $\text{ELBO}^{(l)}=\text{ELBO}_d^{(l)}$, with:
+  \begin{align*}
+    \text{ELBO}&^{(l)}_d \\
+    & = -\frac{n+p+1}{2} \log \pi + \frac{p+1-n}{2}\log 2 + \frac{n+1}{2} + p
+    + \log \Gamma \(\frac{n + p + 1}{2} \) \\
+    & - \frac{n + p + 1}{2} \log \zeta_d^{(l)} + 
+    \frac{1}{2} \log |\bSigma_d^{(l)}| - 
+    \frac{n+p+1}{4\zeta_d^{(l)}}  \bigg[\mathbf{y}_d \tr \mathbf{y}_d -
+    2 \mathbf{y}_d \tr \X \bm{\mu}_d^{(l)} + 
+    \trace ( \X \tr \X \bm{\Sigma}_d^{(l)}) \\ 
+    & + (\bm{\mu}_d^{(l)}) \tr \X \tr \X \bm{\mu}_d^{(l)} +
+    g_{d}^{(l)} \trace \[ \diag (b_{jd}^{(l)}) \bm{\Sigma}_d^{(l)}\] + 
+    g_{d}^{(l)} (\bm{\mu}_d^{(l)}) \tr \diag (b_{jd}^{(l)}) 
+    \bm{\mu}_d^{(l)}\bigg] + p \log \lambda_{\text{feat}}^{(l)} \\
+    & + \frac{p + 3}{4} \log \lambda_{\text{drug}}^{(l)} + 
+    \frac{\eta_d^{(l)} - \lambda_{\text{drug}}^{(l)}}{2} g_d^{(l)} + 
+    \sum_{j=1}^p \frac{\delta_{jd}^{(l)} - \lambda_{\text{feat}}^{(l)}}{2} 
+    b_{jd}^{(l)} + \frac{\lambda_{\text{drug}}^{(l)}}{\chi_d^{(l)}} +
+    \sum_{j=1}^p \frac{\lambda_{\text{feat}}^{(l)}}{\phi_{jd}^{(l)}} + \\
+    & - \frac{p + 1}{2} \log \chi_d^{(l)} - \sum_{j=1}^p \log \phi_{jd}^{(l)}
+    -\frac{p+1}{4} \log \eta_d^{(l)} - 
+    \frac{1}{2} \sum_{j=1}^p \log \delta_{jd}^{(l)} \\
+    & + \log K_{\frac{p+1}{2}}\(\sqrt{\eta_{d}^{(l)}
+    \lambda_{\text{drug}}^{(l)}}/
+    \chi_{d}^{(l)}\) + \sum_{j=1}^p \log K_{1}\(\sqrt{\delta_{jd}^{(l)}
+    \lambda_{\text{feat}}^{(l)}}/\phi_{jd}^{(l)}\).
+  \end{align*}
+  
+  \section{Efficient computation}\label{sec:computation}
+  The empirical Bayes updates require the quantities
+  $e_{jd}$, $b_{jd}$, $g_d$, and $f_d$, which in turn depend on the quantities 
+  $\diag(\bSigma_d)$, $\bmu_{d}$, $\y_d \tr \X \bmu_d$, 
+  $\trace(\X \tr \X \bSigma_d)$, $\bmu_d \tr \X \tr \X \bmu_d$,
+  $g_d\trace[\diag(b_{jd})\bSigma_d]$, and $g_d\bmu_d \tr \diag(b_{jd}) \bmu_d$.
+  Let $\mathbf{H}_d=g_d \diag[(b_{jd}^{(h)})^{-1}]$. Then, the first two
+  quantities are efficiently calculated as:
+  \begin{subequations}\label{eq:complexity1}
+    \begin{align}
+      \diag (\bm{\Sigma}_d^{(h+1)}) & = (a_d^{(h)})^{-1} 
+      \H_d^{(h)} - (a_d^{(h)})^{-1} \{ [ \H_d^{(h)} \X \tr 
+      ( \I_n + \X \H_d^{(h)} \X \tr )^{-1} ] \circ
+      (\H_d^{(h)} \X \tr ) \} \mathbf{1}_{n \times 1}, \\
+      \bmu_d^{(h+1)}) & = \H_d^{(h)} \X \tr \y_d - \H_d^{(h)} \X \tr 
+      ( \I_n + \X \H_d^{(h)} \X \tr )^{-1} \X \H_d^{(h)} \X \tr \y_d.
+    \end{align}
+  \end{subequations}
+  The quantities $\y_d \tr \X \bmu_d$, $\bmu_d \tr \X \tr \X \bmu_d$,
+  $g_d\trace[\diag(b_{jd})\bSigma_d]$, and $g_d\bmu_d \tr \diag(b_{jd}) \bmu_d$
+  are easily calculated from the first two. For the remaining one we have:
+  \begin{align}\label{eq:complexity2}
+    \trace(\X \tr \X \bSigma_d^{(h+1)})  = 
+    & (a_d^{(h)})^{-1} \mathbf{1}_{1 \times p} \H_d^{(h)} \X \tr 
+    \mathbf{1}_{n \times 1} \nonumber \\  
+    & - (a_d^{(h)})^{-1} \mathbf{1}_{1 \times p} \{ [  \H_d^{(h)} \X \tr 
+    ( \I_n + \X \H_d^{(h)} \X \tr )^{-1} \X \H_d^{(h)} \X \tr ] \circ 
+    \X \tr \} \mathbf{1}_{n \times 1}.
+  \end{align}
+  Both (\ref{eq:complexity1}) and (\ref{eq:complexity2}) are operations of
+  complexity $\mathcal{O}(pn^2)$.
+  
+  \section{Ratios of modified Bessel functions}\label{sec:ratiosmodifiedbessels}
+  Ratios of modified Bessel functions of the second kind 
+  $K_{\alpha - 1}(x)/K_{\alpha}(x)$ are prone to under- and overflow for large
+  $\alpha$. In our case, $\alpha$ increases linearly with $p$. Since $p$ may be
+  large, this may cause numerical issues in the calculation of various 
+  quantities. We alleviate the numerical issues through the following.
+  
+  We let $n_1=p/2$ and $n_2=(p-1)/2$ and use the well-known recursive relation:
+  $$
+  K_{\alpha}(x) = K_{\alpha - 2}(x) + \frac{2(\alpha - 1)}{2} K_{\alpha- 1}(x),
+  $$
+  to rewrite the ratio:
+  \begin{align*}
+    \frac{K_{\frac{p - 1}{2}}(x)}{K_{\frac{p + 1}{2}}(x)} = 
+    \begin{cases}
+      \Big( \dots \Big( \( 1 + \frac{2 \cdot 1 - 1}{x} \)^{-1} + 
+      \frac{2 \cdot 2-1}{x}\Big)^{-1} + \dots + 
+      \frac{2 \cdot n_1 - 1}{x}\Big)^{-1}, & \text{for } p \text{ even}, \\
+      \Big( \dots \Big( \( \frac{K_0(x)}{K_1(x)} + \frac{2}{x} \cdot 1 \)^{-1} +
+      \frac{2}{x} \cdot 2 \Big)^{-1} + \dots + \frac{2}{x} \cdot n_2 \Big)^{-1},
+      & \text{for } p \text{ odd}.
+    \end{cases}
+  \end{align*} 
+  The ratio $K_0(x)/K_1(x)$ is well-behaved, so that it may be computed
+  without numerical issues.
+  
+  \section{Empirical Bayes}\label{sec:eb}
+  For the feature scale parameter $\lambda_{\text{feat}}$ updates to be 
+  non-negative, we have to show that:
+  \begin{align}\label{eq:inequality}
+    &\sum_{d=1}^D \sum_{j=1}^{p} 
+    b_{jd} + \bm{\alpha}_{\text{feat}} \tr \mathbf{C} \tr 
+    \diag (e_{jd}) \mathbf{C} \bm{\alpha}_{\text{feat}} - 
+    2 \bm{\alpha}_{\text{feat}} \tr \mathbf{C} \tr 
+    \mathbf{1}_{pD \times 1}  = \sum_{d=1}^D \sum_{j=1}^{p} \(b_{jd} + 
+    \phi_{jd}^{-2} e_{jd} - 2 \phi_{jd}^{-1} \) \geq 0,
+  \end{align}
+  which holds if all summands in the left-hand side of (\ref{eq:inequality})
+  are non-negative.
+  
+  Next, we note that through Jensen's inequality 
+  $e_{jd}^{-1}=\E(\gamma_{jd}^{2})^{-1} \leq \E(\gamma_{jd}^{-2})=b_{jd}$,
+  we may lowerbound the summands in left-hand side of (\ref{eq:inequality}):
+  $$
+  b_{jd} + \phi_{jd}^{-2} e_{jd} - 2 \phi_{jd}^{-1} \geq
+  e_{jd}^{-1} + \phi_{jd}^{-2} e_{jd} - 2 \phi_{jd}^{-1}.
+  $$
+  which we use to show that:
+  \begin{align*}
+    e_{jd}^{-1} + \phi_{jd}^{-2} e_{jd} - 2 \phi_{jd}^{-1} & \geq 0 \\
+    1 + \phi_{jd}^{-2} e_{jd}^2 - 2 \phi_{jd}^{-1} e_{jd} & \geq 0 \\
+    \( 1 - \phi_{jd}^{-1} e_{jd} \)^2 & \geq 0.
+  \end{align*}
+  Similar reasoning holds for the drug scale parameter $\lambda_{\text{drug}}$.
+  
+  \section{Gibbs sampler}\label{sec:gibbssampler}
+  MCMC samples from the posterior corresponding to model 
+  (\ref{md-eq:prior}) may be generated for each equation independently.
+  MCMC samples may be generated by iteratively sampling the following 
+  conditional distributions:
+  \begin{subequations}
+    \begin{align}
+      \bm{\beta}_d | \bgamma_d^2, \sigma_d^2, \tau_d^2, \y_d & \sim 
+      \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \label{eq:betasample} \\
+      \text{with } & \bm{\Sigma}_d = \sigma_d^2 [\X \tr \X + 
+      \tau_d^{-2} \diag (\gamma_{jd}^{-2})]^{-1}, \label{eq:sigmasample} \\
+      \text{and } & \bm{\mu}_d = [\X \tr \X + 
+      \tau_d^{-2} \diag (\gamma_{jd}^{-2})]^{-1} \X \tr 
+      \y_d \label{eq:musample}, \\
+      \gamma_{jd}^2 | \beta_{jd}, \sigma_d^2, \tau_d^2, \y &
+      \sim \mathcal{GIG}
+      \(-1, \lambda_{\text{feat}}/ \phi_{jd}^{2}, \delta_{jd}\), \nonumber \\
+      \text{with } & \delta_{jd} = \sigma_d^{-2} \tau_d^{-2} \beta_{jd}^2 + 
+      \lambda_{\text{feat}}, \nonumber \\
+      \tau_d^2 | \bm{\beta}_d, \sigma_d^2, \bgamma_{d}^2, \y & \sim
+      \mathcal{GIG}
+      \(-\frac{p+1}{2}, \lambda_{\text{drug}}/ \chi_{d}^{2}, \eta_d\), 
+      \nonumber \\
+      \text{with } & \eta_d = \sigma_d^{-2} \sum_{j=1}^p \gamma_{jd}^{-2}
+      \beta_{jd}^2 + \lambda_{\text{drug}}, \nonumber \\
+      \sigma_d^2 | \bm{\beta}_d, \bgamma_d^2, \tau_d^2, \y & \sim \Gamma^{-1} 
+      \(\frac{n + p + 1}{2}, \zeta_d\), \nonumber \\
+      \text{with } & \zeta_d = \frac{1}{2} \bigg[\mathbf{y} \tr \mathbf{y} -
+      2 \mathbf{y} \tr \X \bm{\mu} + \trace ( \X \tr \X \bm{\Sigma}) + 
+      (\bm{\mu}) \tr \X \tr \X \bm{\mu} + 
+      \tau^{-2}_d \trace (\diag(\gamma_{jd}^{-2}) \bm{\Sigma}) \nonumber \\
+      & \,\,\,\,\,\,\,\,\,\, + \tau_d^{-2} (\bm{\mu}) \tr 
+      \diag(\gamma_{jd}^{-2}) \bm{\mu}\bigg]. \nonumber
+    \end{align}
+  \end{subequations}
+  In high dimensional space, the $p \times p$ matrix inversions in 
+  (\ref{eq:sigmasample}) and (\ref{eq:musample}) are   
+  significant computational bottlenecks. \cite{bhattacharya_fast_2016} describe 
+  a method to sample from (\ref{eq:betasample}) without explicit calculation
+  of this inverse, thereby offering a siginifcant speed-up compared to naive
+  sampling.
+
+  \bibliographystyle{author_short3}  
+	\bibliography{refs}
+	
+	\section*{Session info}
+
+<<r session-info, eval=TRUE, echo=TRUE, tidy=TRUE>>=
+devtools::session_info()
+@
+
+\end{document}
