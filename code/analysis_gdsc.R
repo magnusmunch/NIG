@@ -5,7 +5,7 @@
 ################################################################################
 
 # number of cores to use
-ncores <- 50
+ncores <- 100
 
 ### libraries
 packages <- c("foreach", "doParallel", "cambridge", "glmnet", "pInc")
