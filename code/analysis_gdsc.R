@@ -926,11 +926,11 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
+res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
+             cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
-write.table(res, file="results/analysis_gdsc_res3.txt")
+write.table(res, file="results/analysis_gdsc_res4.txt")
 
 
