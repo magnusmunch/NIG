@@ -1036,9 +1036,9 @@ if(ncores > 1) {
 } else {
   registerDoSEQ()
 }
-res <- foreach(r=1:nreps, .packages=packages) %dopar% {
+res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   cat("\r", "rep", r)
-  set.seed(2019 + r)
+  set.seed(2020 + r)
   
   # splitting data
   idtrain <- sample(1:nrow(y), ntrain)
@@ -1145,22 +1145,26 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 }
 stopCluster(cl=cl)
 
+errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
+res2 <- res[errorid]
+
 # prepare and save results table
-pmse <- t(sapply(res, "[[", "pmse"))
-elbo <- t(sapply(res, "[[", "elbo"))
-elbot <- t(sapply(res, "[[", "elbot"))
-lpml <- t(sapply(res, "[[", "lpml"))
-brank <- t(sapply(res, "[[", "brank"))
+pmse <- t(sapply(res2, "[[", "pmse"))
+elbo <- t(sapply(res2, "[[", "elbo"))
+elbot <- t(sapply(res2, "[[", "elbot"))
+lpml <- t(sapply(res2, "[[", "lpml"))
+brank <- t(sapply(res2, "[[", "brank"))
 
 # Euclidian distance between rank vectors
 brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA, NA), 
-             cbind(elbot[, c(1:2)], NA, NA, elbot[, c(3)]), 
-             cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
+res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), 
+             cbind(elbot[, c(1:2)], NA, NA, elbot[, c(3)], NA), 
+             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
+rownames(res) <- c(rep("pmse", nrow(pmse)), rep("elbo", nrow(elbo)), 
+                   rep("elbot", nrow(elbot)), rep("lpml", nrow(lpml)), 
+                   rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res5.txt")
