@@ -968,7 +968,7 @@ set.seed(2020)
 # estimation settings
 control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
                 maxit.eb=200, maxit.vb=1, maxit.post=100)
-methods <- c("NIG1", "NIG2", "lasso", "ridge", "bSEM")
+methods <- c("NIG1", "NIG2", "NIG3", "lasso", "ridge", "bSEM")
 
 # model without external covariates
 Z <- matrix(1, nrow=D)
@@ -992,6 +992,16 @@ fit2.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                       full.post=TRUE, init=NULL, control=control)
 
+# models with partly external covariates
+Z <- matrix(1, nrow=D)
+colnames(Z) <- c("intercept")
+C <- lapply(p, function(s) {
+  s <- cbind(matrix(1, nrow=s), rep(c(0, 1), each=psel)); 
+  colnames(s) <- c("intercept", "type"); return(s)})
+fit3.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+
 # penalized regression methods
 fit1.lasso <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], intercept=FALSE, standardize=FALSE)})
@@ -1002,7 +1012,7 @@ fit1.ridge <- lapply(1:D, function(d) {
 fit1.bSEM <- bSEM(x, split(y, 1:ncol(y)), lapply(p, function(s) {
   rep(c(1, 2), each=s/2)}), control=list(maxit=200, trace=TRUE, epsilon=1e-3))
 
-save(fit1.semnig, fit2.semnig, fit1.lasso, fit1.ridge, fit1.bSEM,
+save(fit1.semnig, fit2.semnig, fit3.semnig, fit1.lasso, fit1.ridge, fit1.bSEM,
      file="results/analysis_gdsc_fit5.Rdata")
 
 # EB estimates
@@ -1010,14 +1020,18 @@ tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad, rep(NA, 4),
                fit1.semnig$eb$lambdaf, fit1.semnig$eb$lambdad),
              c(fit2.semnig$eb$alphaf, fit2.semnig$eb$alphad, 
                fit2.semnig$eb$lambdaf, fit2.semnig$eb$lambdad),
+             c(fit3.semnig$eb$alphaf, fit3.semnig$eb$alphad, rep(NA, 4),
+               fit3.semnig$eb$lambdaf, fit3.semnig$eb$lambdad),
              c(fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 1]/
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1],
                fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 2]/
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 2] -
                  fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 1]/
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1], rep(NA, 7)))
-colnames(tab) <- c(colnames(C[[1]]), colnames(Z), "lambdaf", "lambdad")
-rownames(tab) <- methods[c(1:2, 5)]
+colnames(tab) <- c("intercept", "type", "intercept", "experimental", 
+                   "in clinical development", "targeted", "unknown", "lambdaf", 
+                   "lambdad")
+rownames(tab) <- methods[c(1:3, 5)]
 write.table(tab, file="results/analysis_gdsc_fit5.txt")
 
 ### cross-validation
@@ -1027,7 +1041,7 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3,
 
 nreps <- 50
 ntrain <- floor(nrow(resp.prep)/2)
-methods <- c("NIG1", "NIG2", "lasso", "ridge", "bSEM")
+methods <- c("NIG1", "NIG2", "NIG3", "lasso", "ridge", "bSEM")
 
 # setup cluster
 cl <- makeCluster(ncores) 
@@ -1069,6 +1083,16 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
                        standardize=FALSE, intercept=FALSE, fixed.eb="none", 
                        full.post=TRUE, init=NULL, control=control)
   
+  # models with partly external covariates
+  Z <- matrix(1, nrow=D)
+  colnames(Z) <- c("intercept")
+  C <- lapply(p, function(s) {
+    s <- cbind(matrix(1, nrow=s), rep(c(0, 1), each=psel)); 
+    colnames(s) <- c("intercept", "type"); return(s)})
+  cv3.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                       full.post=TRUE, init=NULL, control=control)
+  
   # # bSEM model
   cv1.bSEM <- bSEM(xtrain, split(ytrain, 1:ncol(ytrain)),
                    lapply(p, function(s) {rep(c(1, 2), each=s/2)}),
@@ -1086,8 +1110,8 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
     mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)})),
-    # mean(sapply(1:D, function(d) {
-    #   mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
     # mean(sapply(1:D, function(d) {
     #   mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
     mean((ytest - sapply(1:D, function(d) {
@@ -1101,20 +1125,20 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   # calculate ELBO for semnig models on training and test data
   elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
              mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
-             # mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
+             mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
              # mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]),
              mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)])
   )
   elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
-            mean(new.elbo(cv2.semnig, xtest, ytest))
+            mean(new.elbo(cv2.semnig, xtest, ytest)),
+            mean(new.elbo(cv3.semnig, xtest, ytest))
             # ,
-            # mean(new.elbo(cv3.semnig, xtest, ytest)),
             # mean(new.elbo(cv4.semnig, xtest, ytest))
   )
   lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig), na.rm=TRUE),
-            sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE)
+            sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE)
             # ,
-            # sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE),
             # sum(logcpo(xtest, ytest, ntrain, cv4.semnig), na.rm=TRUE)
   )
   
@@ -1123,8 +1147,8 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
     rank(abs(s), ties.method="average")})),
     unlist(lapply(cv2.semnig$vb$mpost$beta, function(s) {
       rank(abs(s), ties.method="average")})),
-    # unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
-    #   rank(abs(s), ties.method="average")})),
+    unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
+      rank(abs(s), ties.method="average")})),
     # unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
     #   rank(abs(s), ties.method="average")})),
     unlist(sapply(cv1.lasso, function(s) {
@@ -1161,7 +1185,7 @@ brankdist <- sapply(methods, function(s) {
 
 # combine tables and save
 res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), 
-             cbind(elbot[, c(1:2)], NA, NA, elbot[, c(3)], NA), 
+             cbind(elbot[, c(1:3)], NA, NA, elbot[, c(4)], NA), 
              cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nrow(pmse)), rep("elbo", nrow(elbo)), 
