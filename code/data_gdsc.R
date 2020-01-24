@@ -2,8 +2,9 @@
 
 ### libraries
 library(gdata)
+library(biomaRt)
 
-################################## data prep ###################################
+################################ reading data ##################################
 # loading the data either from a local file or from the GDSC website
 if(file.exists("data/v17.3_fitted_dose_response.csv")) {
   resp <- read.table("data/v17.3_fitted_dose_response.csv", header=TRUE,
@@ -89,16 +90,28 @@ if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
                       header=TRUE, stringsAsFactors=FALSE)
 }
 
+# mutation data
+mut1 <- read.table(unz("data/CellLines_CG_BEMs.zip", 
+                       "CellLines_CG_BEMs/PANCAN_SEQ_BEM.txt"), header=TRUE)
+
 # methylation data
 meth1 <- read.table(unz("data/METH_CELL_DATA.txt.zip", "F2_METH_CELL_DATA.txt"), 
                     header=TRUE)
 meth2 <- read.xls("data/methSampleId_2_cosmicIds.xlsx", stringsAsFactors=FALSE)
+
+################################ data cleaning #################################
+# prepping mutation data
+mut <- t(mut1[, -1])
+rownames(mut) <- substr(rownames(mut), 2, nchar(rownames(mut)))
+mut <- mut[order(as.numeric(rownames(mut))), ]
+colnames(mut) <- mut1$CG
+
+# prepping methylation data
 meth <- t(meth1)
 rownames(meth) <- meth2$cosmic_id[match(
   paste0("X", meth2$Sentrix_ID, "_", meth2$Sentrix_Position), colnames(meth1))]
 meth <- meth[order(as.numeric(rownames(meth))), ]
 
-# library(biomaRt)
 # library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 # ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 # annid <- sapply(1:nrow(meth1), function(s) {
@@ -307,8 +320,9 @@ expr <- expr.temp[order(as.numeric(rownames(expr.temp))), ]
 rm(expr.temp)
 
 # prepped data
+mut.prep <- mut
 expr.prep <- expr
-resp.prep <- resp
+resp.prep <- as.matrix(resp)
 meth.prep <- meth
 
 # keep drugs that are available in both response and drug data
@@ -355,8 +369,7 @@ inpathway <- lapply(1:nrow(drug.prep), function(d) {
 # create object that contains feature information
 feat.prep <- list(inpathway=inpathway)
 rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway,
-   drug, expr, resp)
+   drug, expr, resp, cell, meth, meth1, meth2, mut, mut1)
 
-save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep,
+save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep, mut.prep,
      file="data/data_gdsc_dat1.Rdata")
-
