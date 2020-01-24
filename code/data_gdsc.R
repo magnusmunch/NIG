@@ -2,7 +2,6 @@
 
 ### libraries
 library(gdata)
-library(biomaRt)
 
 ################################ reading data ##################################
 # loading the data either from a local file or from the GDSC website
@@ -113,6 +112,7 @@ rownames(meth) <- meth2$cosmic_id[match(
 meth <- meth[order(as.numeric(rownames(meth))), ]
 
 # library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
+# library(biomaRt)
 # ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
 # annid <- sapply(1:nrow(meth1), function(s) {
 #   which(ann450k$Islands_Name==rownames(meth1)[s])})
