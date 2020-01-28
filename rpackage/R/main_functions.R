@@ -1,6 +1,7 @@
-# x=xtrain; y=ytrain; C=C; Z=Z; unpenalized=NULL;
+# x=x; y=y; C=C; Z=Z; unpenalized=NULL;
 # standardize=FALSE; intercept=FALSE; fixed.eb="none";
 # full.post=FALSE; init=NULL; control=control
+# control$maxit.block <- 2
 # 
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
@@ -13,7 +14,8 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
                    full.post=FALSE, init=NULL,
                    control=list(conv.post=TRUE, trace=TRUE,
                                 epsilon.eb=1e-3, epsilon.vb=1e-3,
-                                maxit.eb=10, maxit.vb=2, maxit.post=100)) {
+                                maxit.eb=10, maxit.vb=2, maxit.post=100,
+                                maxit.block=0)) {
   
   # save the arguments
   cl <- match.call()
@@ -128,10 +130,18 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   # set all convergence check parameters
   conv.eb <- FALSE
   conv.vb <- logical(0)
+  conv.block <- setNames(c(FALSE, FALSE), c("feat", "drug"))
   iter.eb <- 0
   iter.vb <- numeric(0)
+  iter.block <- 0
   check.eb <- FALSE
   check.vb <- FALSE
+  if(control$maxit.block!=0) {
+    block <- "feat"
+    old.eb.block <- old.eb
+  } else {
+    block <- c("feat", "drug")
+  }
   
   srt <- proc.time()[3]
   # outer EB loop
@@ -139,6 +149,9 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
     
     # increase iteration number by one
     iter.eb <- iter.eb + 1
+    if(control$maxit.block!=0) {
+      iter.block <- iter.block + 1  
+    }
     
     # if EB is required
     if(fixed.eb!="all") {
@@ -157,15 +170,15 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
       }
       
       # update the EB parameters
-      if(!is.null(C[[1]])) {
+      if(!is.null(C[[1]]) & ("feat" %in% block)) {
         new.ebf <- .eb.updatef(old.vb$e, old.vb$b, Cmat, r, D,
                                switch((fixed.eb=="lambda") + 1, NULL, 
-                                      init$lambdaf))  
+                                      init$lambdaf))   
       } else {
         new.ebf <- old.eb[c("alphaf", "lambdaf", "mpriorf", "vpriorf", 
                             "Calphaf")]
       }
-      if(!is.null(Z)) {
+      if(!is.null(Z) & ("drug" %in% block)) {
         new.ebd <- .eb.updated(unlist(old.vb$f), unlist(old.vb$g), Z, D,
                                switch((fixed.eb=="lambda") + 1, NULL, 
                                       init$lambdad))  
@@ -182,12 +195,25 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
         } else {
           lapply(1:D, function(d) {rbind(seq.eb[[s]][[d]], new.eb[[s]][[d]])})
         }}, USE.NAMES=TRUE, simplify=FALSE)
-
+      
       # check convergence of EB estimates
-      conv.eb <- all(abs(unlist(new.eb[
-        c("mpriorf", "vpriorf", "mpriord", "vpriord")]) -
-          unlist(old.eb[c("mpriorf", "vpriorf", "mpriord", "vpriord")])) <= 
-        control$epsilon.eb)
+      if(control$maxit.block!=0 & (iter.block < control$maxit.block)) {
+        conv.eb <- FALSE
+      } else if(control$maxit.block!=0 & iter.block==control$maxit.block) {
+        cur.par <- paste0(c("mprior", "vprior"), substr(block, 1, 1))
+        conv.block[block] <- all(abs(unlist(new.eb[cur.par]) - 
+                                       unlist(old.eb.block[cur.par])) <=
+          control$epsilon.eb)
+        conv.eb <- all(conv.block)
+        old.eb.block <- new.eb
+        iter.block <- 0
+        block <- c("feat", "drug")[c("feat", "drug")!=block]
+      } else {
+        conv.eb <- all(abs(unlist(new.eb[
+          c("mpriorf", "vpriorf", "mpriord", "vpriord")]) - 
+            unlist(old.eb[c("mpriorf", "vpriorf", "mpriord", "vpriord")])) <= 
+            control$epsilon.eb)    
+      }
       
       check.eb <- conv.eb | (iter.eb >= control$maxit.eb)
       old.eb <- new.eb

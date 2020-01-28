@@ -178,9 +178,22 @@ dev.off()
 
 
 
-res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res5.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 boxplot(res[rownames(res)=="pmse", ])
+apply(res[rownames(res)=="pmse", ], 2, median)
+boxplot(res[rownames(res)=="elbo", ])
+boxplot(res[rownames(res)=="lpml", ])
+boxplot(res[rownames(res)=="brankdist", ])
+
+load("results/analysis_gdsc_fit5.Rdata")
+fit1.semnig$eb$alphaf
+fit1.semnig$eb$alphad
+fit2.semnig$eb$alphaf
+fit2.semnig$eb$alphad
+fit3.semnig$eb$alphaf
+fit3.semnig$eb$alphad
+
 
