@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # number of cores to use
-ncores <- 50
+ncores <- 100
 
 ### libraries
 packages <- c("foreach", "doParallel", "cambridge", "statmod", "glmnet")
@@ -10,8 +10,21 @@ sapply(packages, library, character.only=TRUE)
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
 
+# reassign data
+resp <- resp.prep
+expr <- expr.prep
+meth <- meth.prep
+mut <- mut.prep
+
+# number of reps
+nreps <- 100
+
 ################################# simulation 1 #################################
 ### data preparation
+# only retain the cell lines that are available in both response and expression
+expr.prep <- expr[rownames(expr) %in% rownames(resp), ]
+resp.prep <- resp[rownames(resp) %in% rownames(expr), ]
+
 # select features
 D <- ncol(resp.prep)
 psel <- 100
@@ -31,7 +44,6 @@ lambdaf <- 1
 shape <- 3
 rate <- 2
 
-nreps <- 50
 methods <- c("NIGf-", "NIGf", "lasso", "ridge")
 
 # setup cluster
@@ -67,7 +79,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   ### fitting models
   control <- list(conv.post=TRUE, trace=FALSE,
                   epsilon.eb=1e-3, epsilon.vb=1e-3,
-                  maxit.eb=100, maxit.vb=1, maxit.post=200)
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
   fit2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=NULL, unpenalized=NULL,
                         standardize=FALSE, intercept=FALSE, fixed.eb="none",
                         full.post=TRUE, init=NULL, control=control)
@@ -217,7 +229,6 @@ lambdad <- 1
 shape <- 3
 rate <- 2
 
-nreps <- 50
 methods <- c("NIGd-", "NIGd", "lasso", "ridge")
 
 # setup cluster
@@ -254,7 +265,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   ### fitting models
   control <- list(conv.post=TRUE, trace=FALSE,
                   epsilon.eb=1e-3, epsilon.vb=1e-3,
-                  maxit.eb=100, maxit.vb=1, maxit.post=200)
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
   fit2.semnig <- semnig(x=xtrain, y=ytrain, C=NULL, Z=Z, unpenalized=NULL,
                         standardize=FALSE, intercept=FALSE, fixed.eb="none",
                         full.post=TRUE, init=NULL, control=control)
@@ -404,8 +415,7 @@ lambdad <- 1
 shape <- 3
 rate <- 2
 
-nreps <- 50
-methods <- c("NIGfd-", "NIGfd", "lasso", "ridge")
+methods <- c("NIGfd-", "NIGfd", "NIGfdb","lasso", "ridge")
 
 # setup cluster
 cl <- makeCluster(ncores) 
@@ -414,10 +424,9 @@ if(ncores > 1) {
 } else {
   registerDoSEQ()
 }
-res <- foreach(r=1:nreps, .packages=packages) %dopar% {
-# for(r in 1:nreps) {
+res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   cat("\r", "replication", r)
-  set.seed(2019 + r)
+  set.seed(2020 + r)
 
   ### simulate parameters
   C <- lapply(1:D, function(d) {
@@ -443,16 +452,39 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   ### fitting models
   control <- list(conv.post=TRUE, trace=FALSE,
                   epsilon.eb=1e-3, epsilon.vb=1e-3,
-                  maxit.eb=100, maxit.vb=1, maxit.post=200)
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
   fit2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
                         standardize=FALSE, intercept=FALSE, fixed.eb="none",
                         full.post=TRUE, init=NULL, control=control)
-
+  
+  # fit3.semnig <- sapply(1:D, function(d) {
+  #   sampling(nig, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
+  #                           phi=fit2.semnig$eb$mpriorf[[d]], 
+  #                           lambdaf=fit2.semnig$eb$lambdaf, 
+  #                           chi=fit2.semnig$eb$mpriord[d], 
+  #                           lambdad=fit2.semnig$eb$lambdad))})
+  
+  # blockwise updating
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=10)
+  fit3.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+                        standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                        full.post=TRUE, init=NULL, control=control)
+  
+  # no external covariates
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
   C <- lapply(1:D, function(d) {matrix(1, nrow=p[d], ncol=1)})
   Z <- matrix(1, ncol=1, nrow=D)
   fit1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
                         standardize=FALSE, intercept=FALSE, fixed.eb="none",
                         full.post=TRUE, init=NULL, control=control)
+  
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=10)
 
   fit1.lasso <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
@@ -462,6 +494,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 
   best1.semnig <- fit1.semnig$vb$mpost$beta
   best2.semnig <- fit2.semnig$vb$mpost$beta
+  best3.semnig <- fit3.semnig$vb$mpost$beta
   best1.lasso <- lapply(fit1.lasso, function(s) {
     coef(s, s="lambda.min")[-1, 1]})
   best1.ridge <- lapply(fit1.ridge, function(s) {
@@ -469,11 +502,13 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 
   pred1.semnig <- sapply(1:D, function(d) {xtest[[d]] %*% best1.semnig[[d]]})
   pred2.semnig <- sapply(1:D, function(d) {xtest[[d]] %*% best2.semnig[[d]]})
+  pred3.semnig <- sapply(1:D, function(d) {xtest[[d]] %*% best3.semnig[[d]]})
   pred1.lasso <- sapply(1:D, function(d) {xtest[[d]] %*% best1.lasso[[d]]})
   pred1.ridge <- sapply(1:D, function(d) {xtest[[d]] %*% best1.ridge[[d]]})
 
   predt1.semnig <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.semnig[[d]]})
   predt2.semnig <- sapply(1:D, function(d) {xtrain[[d]] %*% best2.semnig[[d]]})
+  predt3.semnig <- sapply(1:D, function(d) {xtrain[[d]] %*% best3.semnig[[d]]})
   predt1.lasso <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.lasso[[d]]})
   predt1.ridge <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.ridge[[d]]})
 
@@ -481,6 +516,8 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     mean((best1.semnig[[d]] - beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best2.semnig[[d]] - beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best3.semnig[[d]] - beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best1.lasso[[d]] - beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
@@ -493,6 +530,9 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
             beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best2.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best3.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
               beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best1.lasso[[d]][abs(beta[[d]]) > cutoffs[d]] - 
@@ -508,6 +548,9 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
             beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best2.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best3.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
               beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((best1.lasso[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
@@ -526,6 +569,7 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   
   pmset <- c(mean(colMeans((predt1.semnig - ytrain)^2)),
              mean(colMeans((predt2.semnig - ytrain)^2)),
+             mean(colMeans((predt3.semnig - ytrain)^2)),
              mean(colMeans((predt1.lasso - ytrain)^2)),
              mean(colMeans((predt1.ridge - ytrain)^2)),
              mean(apply(ytrain, 1, "-", colMeans(ytrain))^2))
@@ -533,34 +577,42 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   est <- cbind(c(fit1.semnig$eb$alphaf, rep(NA, 3), fit1.semnig$eb$lambdaf,
                  fit1.semnig$eb$alphad, rep(NA, 3), fit1.semnig$eb$lambdad),
                c(fit2.semnig$eb$alphaf, fit2.semnig$eb$lambdaf,
-                 fit2.semnig$eb$alphad, fit2.semnig$eb$lambdad))
+                 fit2.semnig$eb$alphad, fit2.semnig$eb$lambdad),
+               c(fit3.semnig$eb$alphaf, fit3.semnig$eb$lambdaf,
+                 fit3.semnig$eb$alphad, fit3.semnig$eb$lambdad))
   
   # calculate ELBO for semnig models
   elbot <- c(mean(fit1.semnig$seq.elbo[nrow(fit1.semnig$seq.elbo), ]),
-             mean(fit2.semnig$seq.elbo[nrow(fit2.semnig$seq.elbo), ]))
+             mean(fit2.semnig$seq.elbo[nrow(fit2.semnig$seq.elbo), ]),
+             mean(fit3.semnig$seq.elbo[nrow(fit3.semnig$seq.elbo), ]))
   
   elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
-            mean(new.elbo(fit2.semnig, xtest, ytest)))
+            mean(new.elbo(fit2.semnig, xtest, ytest)),
+            mean(new.elbo(fit3.semnig, xtest, ytest)))
   
   lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig), na.rm=TRUE),
-            sum(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE))
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, fit3.semnig), na.rm=TRUE))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
        elbo=elbo, elbot=elbot, lpml=lpml)
 }  
 stopCluster(cl=cl)
 
+errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
+res2 <- res[errorid]
+
 # prepare and save results table
-emse <- t(sapply(res, "[[", "emse"))
-emsel <- t(sapply(res, "[[", "emsel"))
-emseh <- t(sapply(res, "[[", "emseh"))
-pmse <- t(sapply(res, "[[", "pmse"))
-pmset <- t(sapply(res, "[[", "pmset"))
-est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
-  t(sapply(res, function(s) {s$est[i, ]}))}))
-elbo <- t(sapply(res, "[[", "elbo"))
-elbot <- t(sapply(res, "[[", "elbot"))
-lpml <- t(sapply(res, "[[", "lpml"))
+emse <- t(sapply(res2, "[[", "emse"))
+emsel <- t(sapply(res2, "[[", "emsel"))
+emseh <- t(sapply(res2, "[[", "emseh"))
+pmse <- t(sapply(res2, "[[", "pmse"))
+pmset <- t(sapply(res2, "[[", "pmset"))
+est <- Reduce("rbind", lapply(1:nrow(res2[[1]]$est), function(i) {
+  t(sapply(res2, function(s) {s$est2[i, ]}))}))
+elbo <- t(sapply(res2, "[[", "elbo"))
+elbot <- t(sapply(res2, "[[", "elbot"))
+lpml <- t(sapply(res2, "[[", "lpml"))
 
 res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
              cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),

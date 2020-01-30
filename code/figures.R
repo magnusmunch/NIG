@@ -183,17 +183,48 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 boxplot(res[rownames(res)=="pmse", ])
-apply(res[rownames(res)=="pmse", ], 2, median)
+sort(apply(res[rownames(res)=="pmse", ], 2, median))
+sort(apply(res[rownames(res)=="elbo", ], 2, median), decreasing=TRUE)
+sort(apply(res[rownames(res)=="lpml", ], 2, median), decreasing=TRUE)
+sort(apply(res[rownames(res)=="brankdist", ], 2, median))
 boxplot(res[rownames(res)=="elbo", ])
 boxplot(res[rownames(res)=="lpml", ])
 boxplot(res[rownames(res)=="brankdist", ])
 
-load("results/analysis_gdsc_fit5.Rdata")
+load("results/analysis_gdsc_fit1.Rdata")
 fit1.semnig$eb$alphaf
 fit1.semnig$eb$alphad
 fit2.semnig$eb$alphaf
 fit2.semnig$eb$alphad
 fit3.semnig$eb$alphaf
-fit3.semnig$eb$alphad
+fit4.semnig$eb$alphad
+fit5.semnig$eb$alphaf
+fit5.semnig$eb$alphad
+
+
+test1 <- Reduce("cbind", fit2.semnig$vb$mu)
+test2 <- sapply(fit1.ridge, function(s) {as.numeric(coef(s, s="lambda.min"))[-1]})
+test3 <- sapply(1:D, function(d) {
+  fit1.optim[[d]]$par[names(fit1.optim[[d]]$par) %in% paste0("beta[", 1:p[d], "]")]})
+plot(test1, test3)
+abline(a=0, b=1, col=2)
+
+plot(colMeans((y - x[[1]] %*% test2)^2),
+      colMeans((y - x[[1]] %*% test3)^2), xlab="ridge", ylab="NIG")
+abline(a=0, b=1, col=2)
+
+mean(colMeans((y - x[[1]] %*% test2)^2))
+mean(colMeans((y - x[[1]] %*% test3)^2))
+
+plot(y - x[[1]] %*% test2, y - x[[1]] %*% test3)
+plot(y, x[[1]] %*% test2)
+plot(y, x[[1]] %*% test3)
+abline(a=0, b=1, col=2)
+
+dim(x[[1]])
+100*168
+length(fit2.semnig$eb$alphaf) + length(fit2.semnig$eb$alphad) +
+  length(fit2.semnig$eb$lambdaf) + length(fit2.semnig$eb$lambdad)
+
 
 

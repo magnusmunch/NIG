@@ -29,6 +29,7 @@
 *.png
 *.Rcheck
 *.Rdata
+*.rds
 *.Rproj.user
 *.run.xml
 *.snm
