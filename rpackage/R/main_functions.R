@@ -374,11 +374,11 @@ new.elbo <- function(object, newx, newy) {
     b <- object$vb$mpost$gamma.sq[[d]]*object$eb$lambdaf*
       object$eb$Calphaf[[d]]^2/object$vb$delta[[d]] + 2/object$vb$delta[[d]]
     b <- switch(as.numeric(length(b)==0) + 1, b, 1)
-    cambridge:::.single.elbo(p[d], n, object$vb$zeta[[d]], sum(newy[, d]^2),
-                             aux, g, b, object$vb$delta[[d]], 
-                             object$vb$eta[[d]], object$eb$lambdaf,
-                             object$eb$lambdad, object$eb$Zalphad[[d]], 
-                             object$eb$Calphaf[[d]])}) 
+    .single.elbo(p[d], n, object$vb$zeta[[d]], sum(newy[, d]^2),
+                 aux, g, b, object$vb$delta[[d]], 
+                 object$vb$eta[[d]], object$eb$lambdaf,
+                 object$eb$lambdad, object$eb$Zalphad[[d]], 
+                 object$eb$Calphaf[[d]])}) 
   return(out)
 }
 
@@ -405,4 +405,19 @@ logcpo <- function(xtest, ytest, ntrain, fit) {
     }
   }
   return(out)
+}
+
+# cross-validate the hyperparameters of the MAP estimator
+cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
+                      chi=chi, lambdaf=lambdaf, lambdad=lambdad,
+                      type.measure="mse", control=list(trace=FALSE)) {
+  
+  D <- ifelse(is.matrix(y), ncol(y), 1)
+  fit <- sapply(1:D, function(d) {
+    if(trace) {cat("\n", "drug ", d)}
+    .cv.single.semnig(x[[d]], y[, d], nfolds=nfolds, foldid=foldid, seed=seed,
+                      phi=phi, chi=chi, lambdaf=lambdaf, lambdad=lambdad, 
+                      type.measure=type.measure, control=control)})
+  
+  return(fit)
 }
