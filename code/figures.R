@@ -177,6 +177,9 @@ legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3,
 dev.off()
 
 
+################################################################################
+################################################################################
+################################################################################
 
 res <- read.table("results/analysis_gdsc_res5.txt", row.names=NULL)
 temp <- res[, 1]
@@ -227,4 +230,12 @@ length(fit2.semnig$eb$alphaf) + length(fit2.semnig$eb$alphad) +
   length(fit2.semnig$eb$lambdaf) + length(fit2.semnig$eb$lambdad)
 
 
-
+library(plotly)
+mat <- matrix(colMeans(test$cvmat), ncol=length(chi), nrow=length(phi))
+cv.plot <- plot_ly(x=chi, y=phi, z=mat) %>% 
+  add_surface() %>%
+  layout(title="Cross-validated mean squared error",
+         scene=list(xaxis=list(title="chi"),
+                    yaxis=list(title="phi"),
+                    zaxis=list(title="MSE")))
+cv.plot

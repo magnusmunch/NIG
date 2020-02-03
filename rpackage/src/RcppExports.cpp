@@ -2,6 +2,7 @@
 // Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #include <RcppArmadillo.h>
+#include <RcppEigen.h>
 #include <Rcpp.h>
 
 using namespace Rcpp;
@@ -68,11 +69,14 @@ BEGIN_RCPP
 END_RCPP
 }
 
+RcppExport SEXP _rcpp_module_boot_stan_fit4nig_mod();
+
 static const R_CallMethodDef CallEntries[] = {
     {"_cambridge_Sigma_unp", (DL_FUNC) &_cambridge_Sigma_unp, 6},
     {"_cambridge_Sigma", (DL_FUNC) &_cambridge_Sigma, 3},
     {"_cambridge_aux_var_unp", (DL_FUNC) &_cambridge_aux_var_unp, 7},
     {"_cambridge_aux_var", (DL_FUNC) &_cambridge_aux_var, 5},
+    {"_rcpp_module_boot_stan_fit4nig_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4nig_mod, 0},
     {NULL, NULL, 0}
 };
 

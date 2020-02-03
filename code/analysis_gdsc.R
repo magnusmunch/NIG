@@ -4,12 +4,17 @@
 # regression GDSC log IC50 values on gene expression/mutations of cell lines
 ################################################################################
 
-# number of cores to use
-ncores <- 100
-
 ### libraries
-packages <- c("foreach", "doParallel", "cambridge", "glmnet", "pInc", "rstan")
+packages <- c("foreach", "doParallel", "rstan", "glmnet", "pInc", "Hyperpar", 
+              "cambridge")
 sapply(packages, library, character.only=TRUE)
+
+# number of CV folds
+nfolds <- 10
+
+# number of cores to use
+ncores <- min(nfolds, 100)
+options(mc.cores=max(floor(100/ncores), 1))
 
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
@@ -19,9 +24,6 @@ resp <- resp.prep
 expr <- expr.prep
 meth <- meth.prep
 mut <- mut.prep
-
-# number of reps
-nreps <- 100
 
 ################################## analysis 1 ##################################
 ### data preparation
@@ -117,6 +119,8 @@ nig <- stan_model("code/nig.stan", auto_write=TRUE)
 lasso <- stan_model("code/lasso.stan", auto_write=TRUE)
 ridge <- stan_model("code/ridge.stan", auto_write=TRUE)
 
+
+
 d <- 1
 phi <- seq(0.01, 1, length.out=10)
 chi <- seq(0.01, 1, length.out=10)
@@ -170,23 +174,28 @@ fit1.sampling <- sapply(1:d, function(d) {
                           lambdad=fit1.semnig$eb$lambdad),
            chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
 # penalized regression models
-fit1.lasso <- lapply(1:D, function(d) {
+fit1.lasso <- lapply(1:d, function(d) {
   cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
 fit2.lasso <- sapply(1:d, function(d) {
   cat("\r", "drug ", d);
   sampling(lasso, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                             a0=0.001, b0=0.001),
-           chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
+           chains=1, iter=2000, warmup=1000, verbose=FALSE, refresh=0)})
+fit3.lasso <- cv.glmnet(xtrain[[d]], ytrain, family="mgaussian", 
+                        intercept=FALSE, standardize=FALSE)
 
-fit1.ridge <- lapply(1:D, function(d) {
+fit1.ridge <- lapply(1:d, function(d) {
   cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
 fit2.ridge <- sapply(1:d, function(d) {
   cat("\r", "drug ", d);
   sampling(ridge, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                             a0=0.001, b0=0.001),
            chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
-plot(as.numeric(coef(fit1.ridge[[1]], s="lambda.min"))[-1],
-     get_posterior_mean(fit2.ridge, pars=paste0("beta[", 1:p[d], "]")))
+fit3.ridge <- cv.glmnet(xtrain[[d]], ytrain, family="mgaussian", alpha=0, 
+                        intercept=FALSE, standardize=FALSE)
+fit4.ridge <- lapply(1:d, function(d) {
+  BayesRidge(ytrain[, d], xtrain[[d]], plotML=FALSE, a=0.001, b=0.001, 
+             SVD=NULL)})
 
 best <- cbind(
   # optim1=fit1.optim$par[names(fit1.optim$par) %in%
@@ -202,8 +211,23 @@ best <- cbind(
                                function(b) {
                                  d <- density(b); d$x[which.max(d$y)]}),
               nig=fit1.semnig$vb$mu[[d]],
-              ridge=as.numeric(coef(fit1.ridge[[d]], s="lambda.min"))[-1],
-              lasso=as.numeric(coef(fit1.lasso[[d]], s="lambda.min"))[-1])
+              ridge1=as.numeric(coef(fit1.ridge[[d]], s="lambda.min"))[-1],
+              ridge2=get_posterior_mean(fit2.ridge[[d]], 
+                                        pars=paste0("beta[", 1:p[d], "]"))[, 1],
+              ridge3=sapply(extract(fit2.ridge[[d]], 
+                                    pars=paste0("beta[", 1:p[d], "]")),
+                            function(b) {
+                              d <- density(b); d$x[which.max(d$y)]}),
+              ridge4=as.numeric(coef(fit3.ridge, s="lambda.min")[[d]])[-1],
+              ridge5=fit4.ridge[[d]]$postmeanbeta,
+              lasso1=as.numeric(coef(fit1.lasso[[d]], s="lambda.min"))[-1],
+              lasso2=get_posterior_mean(fit2.lasso[[d]], 
+                                        pars=paste0("beta[", 1:p[d], "]"))[, 1],
+              lasso3=sapply(extract(fit2.lasso[[d]], 
+                                    pars=paste0("beta[", 1:p[d], "]")),
+                            function(b) {
+                              d <- density(b); d$x[which.max(d$y)]}),
+              lasso4=as.numeric(coef(fit3.lasso, s="lambda.min")[[d]])[-1])
 
 pairs(best)
 
@@ -213,67 +237,8 @@ sort(pmse)
 
 
 
-library(plotly)
-mat <- matrix(colMeans(test$cvmat), ncol=length(chi), nrow=length(phi))
-cv.plot <- plot_ly(x=chi, y=phi, z=mat) %>% 
-  add_surface() %>%
-  layout(title="Cross-validated mean squared error",
-         scene=list(xaxis=list(title="chi"),
-                    yaxis=list(title="phi"),
-                    zaxis=list(title="MSE")))
-cv.plot
 
-cv.single.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL,
-                             phi, chi, lambdaf, lambdad, type.measure="mse",
-                             control=list(trace=FALSE)) {
-  if(!is.null(seed)) {
-    set.seed(seed)
-  }
-  
-  n <- nrow(x)
-  p <- ncol(x)
-  if(is.null(foldid)) {
-    foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
-                       rep(1:(n %% nfolds), (n %% nfolds)!=0)))
-  }
-  par.grid <- expand.grid(phi=phi, chi=chi, lambdaf=lambdaf, lambdad=lambdad)
-  
-  cv.grid <- matrix(NA, ncol=nrow(par.grid), nrow=nfolds)
-  for(l in 1:nrow(par.grid)) {
-    if(control$trace) {
-      cat("\r", "iteration ", l, " of ", nrow(par.grid))
-    }
-    for(r in 1:nfolds) {
-      
-      # split data
-      ntrain <- sum(foldid!=r)
-      xtrain <- scale(as.matrix(x[foldid!=r, ], nrow=ntrain))
-      ytrain <- scale(y[foldid!=r], scale=FALSE)[, 1]
-      ntest <- sum(foldid==r)
-      xtest <- scale(as.matrix(x[foldid==r, ], nrow=ntest))
-      ytest <- scale(y[foldid==r], scale=FALSE)[, 1]
-      
-      # fit model to training data
-      fit <- optimizing(nig, data=list(p=p, n=ntrain, x=xtrain, y=ytrain, 
-                                       phi=rep(par.grid[l, "phi"], p), 
-                                       lambdaf=par.grid[l, "lambdaf"], 
-                                       chi=par.grid[l, "chi"], 
-                                       lambdad=par.grid[l, "lambdad"]))
-      best <- fit$par[names(fit$par) %in% paste0("beta[", 1:p, "]")]
-      pred <- as.numeric(xtest %*% best)
-      if(type.measure=="mse") {
-        cv.grid[r, l] <- mean((ytest - pred)^2)
-      }
-    }  
-  }
-  cv.mean <- colMeans(cv.grid)
-  id.min <- which.min(cv.mean)
-  par.min <- setNames(as.numeric(par.grid[id.min, ]), 
-                      c("phi", "chi", "lambdaf", "lambdad"))
-  out <- list(cvm=cv.mean, cvmat=cv.grid, id.min=id.min, par.min=par.min,
-              par.grid=par.grid)
-  return(out)
-}
+
 
 ################################################################################
 ################################################################################
@@ -308,13 +273,18 @@ write.table(tab, file="results/analysis_gdsc_fit1.txt")
 set.seed(2020)
 
 # estimation settings
+lasso <- stan_model("code/lasso.stan", auto_write=TRUE)
+ridge <- stan_model("code/ridge.stan", auto_write=TRUE)
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG5", "lasso", "ridge", "bSEM")
-nfolds <- 10
 foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
                    rep(1:(n %% nfolds), (n %% nfolds)!=0)))
 
 # setup cluster
-cl <- makeCluster(ncores) 
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(ncores, type="PSOCK")
+} else {
+  cl <- makeCluster(ncores, type="FORK")
+}
 if(ncores > 1) {
   registerDoParallel(cl)
 } else {
@@ -322,17 +292,19 @@ if(ncores > 1) {
 }
 res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cat("\r", "fold", r)
+  set.seed(2020 + r)
   
   # splitting data
+  ntrain <- sum(foldid!=r)
   xtrain <- lapply(x, function(s) {
-    scale(as.matrix(s[foldid!=r, ], nrow=sum(foldid!=r)))})
-  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=sum(foldid!=r)), scale=FALSE)
+    scale(as.matrix(s[foldid!=r, ], nrow=ntrain))})
+  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=ntrain), scale=FALSE)
   xtest <- lapply(x, function(s) {
-    scale(as.matrix(s[foldid==r, ], nrow=sum(foldid==r)))})
-  ytest <- scale(as.matrix(y[foldid==r, ], nrow=sum(foldid==r)), scale=FALSE)
+    scale(as.matrix(s[foldid==r, ], nrow=n - ntrain))})
+  ytest <- scale(as.matrix(y[foldid==r, ], nrow=n - ntrain), scale=FALSE)
   
   # model without external covariates
-  control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
+  control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
                   maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
   Z <- matrix(1, nrow=D)
   colnames(Z) <- c("intercept")
@@ -361,11 +333,37 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                        full.post=TRUE, init=NULL, control=control)
   
   # blockwise updating of hyperparameters
-  control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
+  control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
                   maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=10)
   cv5.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
                        standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                        full.post=TRUE, init=NULL, control=control)
+  
+  # optimisation of MAP
+  cv6.semnig <- sapply(1:D, function(d) {
+    optimizing(stanmodels$nig, 
+               data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
+                         phi=cv2.semnig$eb$mpriorf[[d]], 
+                         lambdaf=cv2.semnig$eb$lambdaf, 
+                         chi=cv2.semnig$eb$mpriord[d], 
+                         lambdad=cv2.semnig$eb$lambdad))})
+  
+  phi <- seq(0.01, 10, length.out=10)
+  chi <- seq(0.01, 10, length.out=10)
+  lambdaf <- cv2.semnig$eb$lambdaf
+  lambdad <- cv2.semnig$eb$lambdad
+  cv7.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
+                          seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
+                          lambdad=lambdad, type.measure="mse", 
+                          control=list(trace=TRUE))
+  cv8.semnig <- sapply(1:D, function(d) {
+    sampling(stanmodels$nig, 
+             data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
+                       phi=cv2.semnig$eb$mpriorf[[d]], 
+                       lambdaf=cv2.semnig$eb$lambdaf, 
+                       chi=cv2.semnig$eb$mpriord[d], 
+                       lambdad=cv2.semnig$eb$lambdad),
+             chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
   
   # bSEM model
   cv1.bSEM <- bSEM(xtrain, split(ytrain, 1:ncol(ytrain)),
@@ -378,6 +376,15 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cv1.ridge <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE,
               standardize=FALSE)})
+  cv2.ridge <- sapply(1:d, function(d) {
+    sampling(ridge, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
+                              a0=0.001, b0=0.001),
+             chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
+  fit3.ridge <- cv.glmnet(xtrain[[d]], ytrain, family="mgaussian", alpha=0, 
+                          intercept=FALSE, standardize=FALSE)
+  fit4.ridge <- lapply(1:d, function(d) {
+    BayesRidge(ytrain[, d], xtrain[[d]], plotML=FALSE, a=0.001, b=0.001, 
+               SVD=NULL)})
   
   # calculating average prediction mean squared error
   pmse <- c(mean(sapply(1:D, function(d) {
@@ -1262,3 +1269,221 @@ colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res4.txt")
+
+
+################################## analysis 5 ##################################
+### data preparation
+# only retain the cell lines that are available in both response and expression
+expr.prep <- expr[rownames(expr) %in% rownames(resp), ]
+resp.prep <- resp[rownames(resp) %in% rownames(expr), ]
+
+# select features with largest variance separately for in and out pathway genes
+psel <- 100
+o <- order(-apply(expr.prep, 2, sd))
+idsel <- o[1:psel]
+expr.sel <- expr.prep[, idsel]
+
+# select half of the drugs
+set.seed(2020)
+Dext <- floor(ncol(resp.prep)/2)
+D <- ncol(resp.prep) - Dext
+dsel <- sample(1:(Dext + D), Dext)
+
+# create data objects used in fitting
+xext <- lapply(expr.sel[dsel], function(s) {scale(s, scale=FALSE)})
+x <- lapply(expr.sel[-dsel], function(s) {scale(s, scale=FALSE)})
+yext <- scale(resp.prep[, dsel], scale=FALSE)
+y <- scale(resp.prep[, -dsel], scale=FALSE)
+p <- sapply(x, ncol)
+n <- nrow(y)
+
+### model fitting
+# setting seed
+set.seed(2020)
+
+# estimation settings
+control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
+                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
+
+# fit external data
+C <- lapply(1:D, function(d) {
+  s <- matrix(1, nrow=p[d]); colnames(s) <- c("intercept"); return(s)})
+Z <- matrix(1, nrow=D)
+colnames(Z) <- c("intercept")
+pvalues <- sapply(1:Dext, function(d) {
+  apply(xext[[d]], 2, function(s) {cor.test(s, yext[, d])$p.value})})
+C1 <- lapply(1:D, function(d) {
+  s <- cbind(1, -rowSums(log(pvalues))/Dext); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+C2 <- lapply(C1, function(s) {
+  s <- cbind(1, -pchisq(2*Dext*s[, 2], 2*Dext, lower.tail=FALSE, log.p=TRUE)); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+C3 <- lapply(1:D, function(d) {
+  s <- cbind(1, log(rowSums(1/(pvalues*Dext)))); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+
+# model without external covariates
+fit1.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                      full.post=TRUE, init=NULL, control=control)
+
+# models with external covariates
+fit2.semnig <- semnig(x=x, y=y, C=C1, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+fit3.semnig <- semnig(x=x, y=y, C=C2, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+fit4.semnig <- semnig(x=x, y=y, C=C3, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+
+# penalized regression models
+fit1.lasso <- lapply(1:D, function(d) {
+  cv.glmnet(x[[d]], y[, d], intercept=FALSE, standardize=FALSE)})
+fit1.ridge <- lapply(1:D, function(d) {
+  cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
+
+save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit1.lasso, fit1.ridge,
+     file="results/analysis_gdsc_fit5.Rdata")
+
+# EB estimates
+tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad,
+               fit1.semnig$eb$lambdaf, fit1.semnig$eb$lambdad),
+             c(fit2.semnig$eb$alphaf, fit2.semnig$eb$alphad, 
+               fit2.semnig$eb$lambdaf, fit2.semnig$eb$lambdad),
+             c(fit3.semnig$eb$alphaf, fit3.semnig$eb$alphad, 
+               fit3.semnig$eb$lambdaf, fit3.semnig$eb$lambdad),
+             c(fit4.semnig$eb$alphaf, fit4.semnig$eb$alphad, 
+               fit4.semnig$eb$lambdaf, fit4.semnig$eb$lambdad))
+colnames(tab) <- c(colnames(C1[[1]]), colnames(Z), "lambdaf", "lambdad")
+rownames(tab) <- methods[c(1:4)]
+write.table(tab, file="results/analysis_gdsc_fit5.txt")
+
+### cross-validation of performance measures
+# settings seed
+set.seed(2020)
+
+# estimation settings
+nfolds <- 10
+foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
+                   rep(1:(n %% nfolds), (n %% nfolds)!=0)))
+
+# setup cluster
+cl <- makeCluster(ncores) 
+if(ncores > 1) {
+  registerDoParallel(cl)
+} else {
+  registerDoSEQ()
+}
+res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
+  cat("\r", "fold", r)
+  
+  # splitting data
+  xtrain <- lapply(x, function(s) {
+    scale(as.matrix(s[foldid!=r, ], nrow=sum(foldid!=r)))})
+  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=sum(foldid!=r)), scale=FALSE)
+  xtest <- lapply(x, function(s) {
+    scale(as.matrix(s[foldid==r, ], nrow=sum(foldid==r)))})
+  ytest <- scale(as.matrix(y[foldid==r, ], nrow=sum(foldid==r)), scale=FALSE)
+  
+  # model without external covariates
+  cv1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+                       standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                       full.post=TRUE, init=NULL, control=control)
+  
+  # models with external covariates
+  cv2.semnig <- semnig(x=xtrain, y=trainy, C=C1, Z=Z, unpenalized=NULL,
+                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                       full.post=TRUE, init=NULL, control=control)
+  cv3.semnig <- semnig(x=xtrain, y=ytrain, C=C2, Z=Z, unpenalized=NULL,
+                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                       full.post=TRUE, init=NULL, control=control)
+  cv4.semnig <- semnig(x=xtrain, y=ytrain, C=C3, Z=Z, unpenalized=NULL,
+                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                       full.post=TRUE, init=NULL, control=control)
+  
+  # penalized regression models
+  cv1.lasso <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
+  cv1.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE, 
+              standardize=FALSE)})
+  
+  # calculating average prediction mean squared error
+  pmse <- c(mean(sapply(1:D, function(d) {
+    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean((ytest - sapply(1:D, function(d) {
+      predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2),
+    mean(apply(ytest, 1, "-", colMeans(ytrain))^2))
+  
+  # calculate ELBO for semnig models on training and test data
+  elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
+             mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
+             mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
+             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]),
+             mean(cv5.semnig$seq.elbo[nrow(cv5.semnig$seq.elbo), ]))
+  elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
+            mean(new.elbo(cv2.semnig, xtest, ytest)),
+            mean(new.elbo(cv3.semnig, xtest, ytest)),
+            mean(new.elbo(cv4.semnig, xtest, ytest)))
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, cv4.semnig), na.rm=TRUE))
+  
+  # determine the ranks of the model parameter point estimates
+  brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
+    rank(abs(s), ties.method="average")})),
+    unlist(lapply(cv2.semnig$vb$mpost$beta, function(s) {
+      rank(abs(s), ties.method="average")})),
+    unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
+      rank(abs(s), ties.method="average")})),
+    unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
+      rank(abs(s), ties.method="average")})),
+    unlist(sapply(cv1.lasso, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})),
+    unlist(sapply(cv1.ridge, function(s) {
+      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
+           ties.method="average")})))
+  names(brank) <- paste0(
+    "brank.", paste0(rep(methods, each=sum(p)), ".",
+                     rep(paste0(rep(1:D, times=p), ".",
+                                unlist(sapply(p, function(s) {
+                                  return(1:s)}))), length(methods))))
+  
+  list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
+}
+stopCluster(cl=cl)
+
+errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
+res2 <- res[errorid]
+
+# prepare and save results table
+pmse <- t(sapply(res2, "[[", "pmse"))
+elbo <- t(sapply(res2, "[[", "elbo"))
+elbot <- t(sapply(res2, "[[", "elbot"))
+lpml <- t(sapply(res2, "[[", "lpml"))
+brank <- t(sapply(res2, "[[", "brank"))
+
+# Euclidian distance between rank vectors
+brankdist <- sapply(methods, function(s) {
+  dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
+
+# combine tables and save
+res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
+             cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
+colnames(res) <- c(methods, "null")
+rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
+                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
+write.table(res, file="results/analysis_gdsc_res5.txt")

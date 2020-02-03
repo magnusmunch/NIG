@@ -2,8 +2,12 @@
 # exportPattern("^[^\\.]")
 exportPattern("^[[:alpha:]]+")
 
-importFrom(stats, setNames)
+import(stats)
 importFrom(gsl, bessel_lnKnu)
 import(Rcpp)
+import(methods)
+importFrom(rstan, sampling, optimizing)
+import(rstantools)
+importFrom(GeneralizedHyperbolic, rgig)
 
 useDynLib(cambridge, .registration=TRUE)
