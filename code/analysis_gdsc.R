@@ -112,7 +112,7 @@ ytrain <- scale(y[idtrain, ], scale=FALSE)
 ytest <- scale(y[-idtrain, ], scale=FALSE)
 
 library(rstan)
-options(mc.cores=1)
+options(mc.cores=100)
 nig <- stan_model("code/nig.stan", auto_write=TRUE)
 lasso <- stan_model("code/lasso.stan", auto_write=TRUE)
 ridge <- stan_model("code/ridge.stan", auto_write=TRUE)
