@@ -14,7 +14,7 @@ nfolds <- 10
 
 # number of cores to use
 ncores <- min(nfolds, 100)
-options(mc.cores=max(floor(100/ncores), 1))
+# options(mc.cores=max(floor(100/ncores), 1))
 
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
@@ -1269,6 +1269,7 @@ colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
                    rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res4.txt")
+
 
 
 ################################## analysis 5 ##################################
