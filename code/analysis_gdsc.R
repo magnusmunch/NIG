@@ -1304,7 +1304,7 @@ set.seed(2020)
 
 # estimation settings
 control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
-                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+                maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=0)
 methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
 
 # fit external data
@@ -1382,9 +1382,10 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cat("\r", "fold", r)
   
   # splitting data
+  ntrain <- sum(foldid!=r)
   xtrain <- lapply(x, function(s) {
-    scale(as.matrix(s[foldid!=r, ], nrow=sum(foldid!=r)))})
-  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=sum(foldid!=r)), scale=FALSE)
+    scale(as.matrix(s[foldid!=r, ], nrow=ntrain))})
+  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=ntrain), scale=FALSE)
   xtest <- lapply(x, function(s) {
     scale(as.matrix(s[foldid==r, ], nrow=sum(foldid==r)))})
   ytest <- scale(as.matrix(y[foldid==r, ], nrow=sum(foldid==r)), scale=FALSE)
@@ -1395,7 +1396,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                        full.post=TRUE, init=NULL, control=control)
   
   # models with external covariates
-  cv2.semnig <- semnig(x=xtrain, y=trainy, C=C1, Z=Z, unpenalized=NULL,
+  cv2.semnig <- semnig(x=xtrain, y=ytrain, C=C1, Z=Z, unpenalized=NULL,
                        standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                        full.post=TRUE, init=NULL, control=control)
   cv3.semnig <- semnig(x=xtrain, y=ytrain, C=C2, Z=Z, unpenalized=NULL,
@@ -1431,8 +1432,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
              mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
              mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
-             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]),
-             mean(cv5.semnig$seq.elbo[nrow(cv5.semnig$seq.elbo), ]))
+             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]))
   elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
             mean(new.elbo(cv2.semnig, xtest, ytest)),
             mean(new.elbo(cv3.semnig, xtest, ytest)),
@@ -1485,6 +1485,6 @@ brankdist <- sapply(methods, function(s) {
 res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
              cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
+rownames(res) <- c(rep("pmse", nfolds), rep("elbo", nfolds), 
+                   rep("elbot", nfolds), rep("lpml", nfolds), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res5.txt")
