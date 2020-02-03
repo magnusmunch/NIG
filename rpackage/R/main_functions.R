@@ -413,8 +413,8 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
                       type.measure="mse", control=list(trace=FALSE)) {
   
   D <- ifelse(is.matrix(y), ncol(y), 1)
-  fit <- sapply(1:D, function(d) {
-    if(trace) {cat("\n", "drug ", d)}
+  fit <- lapply(1:D, function(d) {
+    if(control$trace) {cat("\r", "drug ", d)}
     .cv.single.semnig(x[[d]], y[, d], nfolds=nfolds, foldid=foldid, seed=seed,
                       phi=phi, chi=chi, lambdaf=lambdaf, lambdad=lambdad, 
                       type.measure=type.measure, control=control)})

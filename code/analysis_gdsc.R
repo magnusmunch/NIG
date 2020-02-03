@@ -1305,7 +1305,7 @@ set.seed(2020)
 # estimation settings
 control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
                 maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=0)
-methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
+methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG", "lasso", "ridge")
 
 # fit external data
 C <- lapply(1:D, function(d) {
@@ -1367,7 +1367,6 @@ write.table(tab, file="results/analysis_gdsc_fit5.txt")
 set.seed(2020)
 
 # estimation settings
-nfolds <- 10
 foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
                    rep(1:(n %% nfolds), (n %% nfolds)!=0)))
 
@@ -1405,6 +1404,14 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cv4.semnig <- semnig(x=xtrain, y=ytrain, C=C3, Z=Z, unpenalized=NULL,
                        standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                        full.post=TRUE, init=NULL, control=control)
+  phi <- seq(0.01, 10, length.out=10)
+  chi <- seq(0.01, 10, length.out=10)
+  lambdaf <- cv2.semnig$eb$lambdaf
+  lambdad <- cv2.semnig$eb$lambdad
+  cv5.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=2, foldid=NULL, 
+                          seed=NULL, phi=1, chi=1, lambdaf=1, 
+                          lambdad=1, type.measure="mse", 
+                          control=list(trace=TRUE))
   
   # penalized regression models
   cv1.lasso <- lapply(1:D, function(d) {
@@ -1422,6 +1429,10 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
       mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
+    mean(sapply(1:D, function(s) {
+      best <- cv5.semnig[[d]]$fit$par[
+        names(cv5.semnig[[d]]$fit$par) %in% paste0("beta[", 1:p[d], "]")];
+      mean((ytest[, d] - xtest[[d]] %*% best)^2)})),
     mean((ytest - sapply(1:D, function(d) {
       predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2),
     mean((ytest - sapply(1:D, function(d) {
@@ -1450,6 +1461,10 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
     unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
       rank(abs(s), ties.method="average")})),
     unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
+      rank(abs(s), ties.method="average")})),
+    unlist(lapply(1:D, function(d) {
+      s <- cv5.semnig[[d]]$fit$par[
+        names(cv5.semnig[[d]]$fit$par) %in% paste0("beta[", 1:p[d], "]")];
       rank(abs(s), ties.method="average")})),
     unlist(sapply(cv1.lasso, function(s) {
       rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
@@ -1482,9 +1497,73 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
+res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA, NA), 
+             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nfolds), rep("elbo", nfolds), 
-                   rep("elbot", nfolds), rep("lpml", nfolds), rep("brankdist", nrow(brankdist)))
+                   rep("elbot", nfolds), rep("lpml", nfolds), 
+                   rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res5.txt")
+
+
+################################## analysis 6 ##################################
+### data preparation
+# only retain the cell lines that are available in both response and expression
+feat.prep <- read.table(file="results/analysis_ccle_res1.txt")
+expr.prep <- expr[rownames(expr) %in% rownames(resp), ]
+resp.prep <- resp[rownames(resp) %in% rownames(expr), ]
+
+# select features with largest variance separately for in and out pathway genes
+psel <- 100
+o <- order(-apply(expr.prep, 2, sd))
+idsel <- o[1:psel]
+expr.sel <- expr.prep[, idsel]
+feat.sel <- feat.prep[rownames(feat.prep) %in% colnames(expr.sel), ]
+
+# create data objects used in fitting
+D <- ncol(resp.prep)
+x <- lapply(1:D, function(d) {scale(expr.sel, scale=FALSE)})
+y <- scale(resp.prep, scale=FALSE)
+p <- sapply(x, ncol)
+n <- nrow(y)
+
+### model fitting
+# setting seed
+set.seed(2020)
+
+# estimation settings
+control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
+                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "lasso", "ridge")
+
+# fit external data
+C <- lapply(1:D, function(d) {
+  s <- matrix(1, nrow=p[d]); colnames(s) <- c("intercept"); return(s)})
+Z <- matrix(1, nrow=D)
+colnames(Z) <- c("intercept")
+C1 <- lapply(1:D, function(d) {
+  s <- cbind(1, feat.sel$chifisher); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+C2 <- lapply(C1, function(s) {
+  s <- cbind(1, feat.sel$pfisher); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+C3 <- lapply(1:D, function(d) {
+  s <- cbind(1, feat.sel$harmonic); 
+  colnames(s) <- c("intercept", "extern"); return(s)})
+
+# model without external covariates
+fit1.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                      full.post=TRUE, init=NULL, control=control)
+
+# models with external covariates
+fit2.semnig <- semnig(x=x, y=y, C=C1, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+fit3.semnig <- semnig(x=x, y=y, C=C2, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+fit4.semnig <- semnig(x=x, y=y, C=C3, Z=Z, unpenalized=NULL,
+                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+                      full.post=TRUE, init=NULL, control=control)
+
