@@ -1290,8 +1290,8 @@ D <- ncol(resp.prep) - Dext
 dsel <- sample(1:(Dext + D), Dext)
 
 # create data objects used in fitting
-xext <- lapply(expr.sel[dsel], function(s) {scale(s, scale=FALSE)})
-x <- lapply(expr.sel[-dsel], function(s) {scale(s, scale=FALSE)})
+xext <- lapply(1:Dext, function(d) {scale(expr.sel, scale=FALSE)})
+x <- lapply(1:D, function(d) {scale(expr.sel, scale=FALSE)})
 yext <- scale(resp.prep[, dsel], scale=FALSE)
 y <- scale(resp.prep[, -dsel], scale=FALSE)
 p <- sapply(x, ncol)
