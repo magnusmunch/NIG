@@ -1486,5 +1486,6 @@ res <- rbind(pmse, cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
              cbind(lpml, NA, NA, NA), cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep("pmse", nfolds), rep("elbo", nfolds), 
-                   rep("elbot", nfolds), rep("lpml", nfolds), rep("brankdist", nrow(brankdist)))
+                   rep("elbot", nfolds), rep("lpml", nfolds), 
+                   rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res5.txt")
