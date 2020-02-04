@@ -1377,7 +1377,8 @@ if(ncores > 1) {
 } else {
   registerDoSEQ()
 }
-res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
+res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
+               .verbose=TRUE) %dopar% {
   cat("\r", "fold", r)
   
   # splitting data
