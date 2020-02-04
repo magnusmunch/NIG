@@ -1300,14 +1300,10 @@ y <- scale(resp.prep[, -dsel], scale=FALSE)
 p <- sapply(x, ncol)
 n <- nrow(y)
 
-### model fitting
-# setting seed
-set.seed(2020)
-
 # estimation settings
 control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
-                maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=0)
-methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG", "lasso", "ridge")
+                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG5", "lasso", "ridge")
 
 # fit external data
 C <- lapply(1:D, function(d) {
@@ -1326,6 +1322,10 @@ C3 <- lapply(1:D, function(d) {
   s <- cbind(1, log(rowSums(1/(pvalues*Dext)))); 
   colnames(s) <- c("intercept", "extern"); return(s)})
 
+### model fitting
+# setting seed
+set.seed(2020)
+
 # model without external covariates
 fit1.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
                       standardize=FALSE, intercept=FALSE, fixed.eb="none",
@@ -1341,6 +1341,14 @@ fit3.semnig <- semnig(x=x, y=y, C=C2, Z=Z, unpenalized=NULL,
 fit4.semnig <- semnig(x=x, y=y, C=C3, Z=Z, unpenalized=NULL,
                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                       full.post=TRUE, init=NULL, control=control)
+phi <- seq(0.01, 10, length.out=10)
+chi <- seq(0.01, 10, length.out=10)
+lambdaf <- fit2.semnig$eb$lambdaf
+lambdad <- fit2.semnig$eb$lambdad
+fit5.semnig <- cv.semnig(x=x, y=y, nfolds=5, foldid=NULL, 
+                         seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
+                         lambdad=lambdad, type.measure="mse", 
+                         control=list(trace=TRUE))
 
 # penalized regression models
 fit1.lasso <- lapply(1:D, function(d) {
@@ -1348,10 +1356,12 @@ fit1.lasso <- lapply(1:D, function(d) {
 fit1.ridge <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
 
-save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit1.lasso, fit1.ridge,
-     file="results/analysis_gdsc_fit5.Rdata")
+save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit5.semnig, 
+     fit1.lasso, fit1.ridge, file="results/analysis_gdsc_fit5.Rdata")
+
 
 # EB estimates
+par.min <- sapply(fit5.semnig, "[[", "par.min")
 tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad,
                fit1.semnig$eb$lambdaf, fit1.semnig$eb$lambdad),
              c(fit2.semnig$eb$alphaf, fit2.semnig$eb$alphad, 
@@ -1359,9 +1369,11 @@ tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad,
              c(fit3.semnig$eb$alphaf, fit3.semnig$eb$alphad, 
                fit3.semnig$eb$lambdaf, fit3.semnig$eb$lambdad),
              c(fit4.semnig$eb$alphaf, fit4.semnig$eb$alphad, 
-               fit4.semnig$eb$lambdaf, fit4.semnig$eb$lambdad))
+               fit4.semnig$eb$lambdaf, fit4.semnig$eb$lambdad),
+             c(mean(1/par.min["phi", ]), NA, mean(1/par.min["chi", ]),
+               mean(par.min["lambdaf", ]), mean(par.min["lambdad", ])))
 colnames(tab) <- c(colnames(C1[[1]]), colnames(Z), "lambdaf", "lambdad")
-rownames(tab) <- methods[c(1:4)]
+rownames(tab) <- methods[c(1:5)]
 write.table(tab, file="results/analysis_gdsc_fit5.txt")
 
 ### cross-validation of performance measures
@@ -1371,6 +1383,7 @@ set.seed(2020)
 # estimation settings
 foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
                    rep(1:(n %% nfolds), (n %% nfolds)!=0)))
+control$trace <- FALSE
 
 # setup cluster
 cl <- makeCluster(ncores) 
@@ -1411,9 +1424,9 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   chi <- seq(0.01, 10, length.out=10)
   lambdaf <- cv2.semnig$eb$lambdaf
   lambdad <- cv2.semnig$eb$lambdad
-  cv5.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=2, foldid=NULL, 
-                          seed=NULL, phi=1, chi=1, lambdaf=1, 
-                          lambdad=1, type.measure="mse", 
+  cv5.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
+                          seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
+                          lambdad=lambdad, type.measure="mse", 
                           control=list(trace=TRUE))
   
   # penalized regression models
@@ -1432,7 +1445,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
       mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
     mean(sapply(1:D, function(d) {
       mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
-    mean(sapply(1:D, function(s) {
+    mean(sapply(1:D, function(d) {
       best <- cv5.semnig[[d]]$fit$par[
         names(cv5.semnig[[d]]$fit$par) %in% paste0("beta[", 1:p[d], "]")];
       mean((ytest[, d] - xtest[[d]] %*% best)^2)})),
