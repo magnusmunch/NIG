@@ -305,7 +305,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # model without external covariates
   control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                  maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+                  maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=0)
   Z <- matrix(1, nrow=D)
   colnames(Z) <- c("intercept")
   C <- lapply(inpathway, function(s) {
@@ -334,13 +334,13 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # blockwise updating of hyperparameters
   control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                  maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=10)
+                  maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=10)
   cv5.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
                        standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                        full.post=TRUE, init=NULL, control=control)
   
   # optimisation of MAP
-  cv6.semnig <- sapply(1:D, function(d) {
+  cv6.semnig <- lapply(1:2, function(d) {
     optimizing(stanmodels$nig, 
                data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                          phi=cv2.semnig$eb$mpriorf[[d]], 
@@ -348,15 +348,17 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                          chi=cv2.semnig$eb$mpriord[d], 
                          lambdad=cv2.semnig$eb$lambdad))})
   
-  phi <- seq(0.01, 10, length.out=10)
-  chi <- seq(0.01, 10, length.out=10)
+  # phi <- seq(0.01, 10, length.out=10)
+  # chi <- seq(0.01, 10, length.out=10)
+  phi <- 1
+  chi <- 1
   lambdaf <- cv2.semnig$eb$lambdaf
   lambdad <- cv2.semnig$eb$lambdad
   cv7.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
                           seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
                           lambdad=lambdad, type.measure="mse", 
                           control=list(trace=TRUE))
-  cv8.semnig <- sapply(1:D, function(d) {
+  cv8.semnig <- lapply(1:2, function(d) {
     sampling(stanmodels$nig, 
              data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                        phi=cv2.semnig$eb$mpriorf[[d]], 
@@ -376,7 +378,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cv1.ridge <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE,
               standardize=FALSE)})
-  cv2.ridge <- sapply(1:d, function(d) {
+  cv2.ridge <- lapply(1:d, function(d) {
     sampling(ridge, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                               a0=0.001, b0=0.001),
              chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
