@@ -290,7 +290,8 @@ if(ncores > 1) {
 } else {
   registerDoSEQ()
 }
-res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
+res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass", 
+               .verbose=TRUE) %dopar% {
   cat("\r", "fold", r)
   set.seed(2020 + r)
   
@@ -304,8 +305,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   ytest <- scale(as.matrix(y[foldid==r, ], nrow=n - ntrain), scale=FALSE)
   
   # model without external covariates
-  control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
-                  maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=0)
+  control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
+                  maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
   Z <- matrix(1, nrow=D)
   colnames(Z) <- c("intercept")
   C <- lapply(inpathway, function(s) {
@@ -340,7 +341,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                        full.post=TRUE, init=NULL, control=control)
   
   # optimisation of MAP
-  cv6.semnig <- lapply(1:2, function(d) {
+  cv6.semnig <- lapply(1:D, function(d) {
     optimizing(stanmodels$nig, 
                data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                          phi=cv2.semnig$eb$mpriorf[[d]], 
@@ -348,17 +349,15 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                          chi=cv2.semnig$eb$mpriord[d], 
                          lambdad=cv2.semnig$eb$lambdad))})
   
-  # phi <- seq(0.01, 10, length.out=10)
-  # chi <- seq(0.01, 10, length.out=10)
-  phi <- 1
-  chi <- 1
+  phi <- seq(0.01, 10, length.out=10)
+  chi <- seq(0.01, 10, length.out=10)
   lambdaf <- cv2.semnig$eb$lambdaf
   lambdad <- cv2.semnig$eb$lambdad
   cv7.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
                           seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
                           lambdad=lambdad, type.measure="mse", 
-                          control=list(trace=TRUE))
-  cv8.semnig <- lapply(1:2, function(d) {
+                          control=list(trace=FALSE))
+  cv8.semnig <- lapply(1:D, function(d) {
     sampling(stanmodels$nig, 
              data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                        phi=cv2.semnig$eb$mpriorf[[d]], 
@@ -375,37 +374,65 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   # penalized regression models
   cv1.lasso <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
+  cv2.lasso <- lapply(1:D, function(d) {
+    sampling(lasso, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
+                              a0=0.001, b0=0.001),
+             chains=1, iter=2000, warmup=1000, verbose=FALSE, refresh=0)})
+  cv3.lasso <- cv.glmnet(xtrain[[1]], ytrain, family="mgaussian", 
+                         intercept=FALSE, standardize=FALSE)
+  
   cv1.ridge <- lapply(1:D, function(d) {
     cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE,
               standardize=FALSE)})
-  cv2.ridge <- lapply(1:d, function(d) {
+  cv2.ridge <- lapply(1:D, function(d) {
     sampling(ridge, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
                               a0=0.001, b0=0.001),
              chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
-  fit3.ridge <- cv.glmnet(xtrain[[d]], ytrain, family="mgaussian", alpha=0, 
-                          intercept=FALSE, standardize=FALSE)
-  fit4.ridge <- lapply(1:d, function(d) {
+  cv3.ridge <- cv.glmnet(xtrain[[1]], ytrain, family="mgaussian", alpha=0, 
+                         intercept=FALSE, standardize=FALSE)
+  cv4.ridge <- lapply(1:D, function(d) {
     BayesRidge(ytrain[, d], xtrain[[d]], plotML=FALSE, a=0.001, b=0.001, 
                SVD=NULL)})
   
+  # extracting point estimates
+  best <- list(Reduce("cbind", cv1.semnig$vb$mpost$beta),
+               Reduce("cbind", cv2.semnig$vb$mpost$beta),
+               Reduce("cbind", cv3.semnig$vb$mpost$beta),
+               Reduce("cbind", cv4.semnig$vb$mpost$beta),
+               Reduce("cbind", cv5.semnig$vb$mpost$beta),
+               sapply(cv6.semnig, function(s) {
+                 s$par[names(s$par) %in% paste0("beta[", 1:p[1], "]")]}),
+               sapply(cv7.semnig, function(s) {
+                 s$fit$par[names(s$fit$par) %in% 
+                             paste0("beta[", 1:p[1], "]")]}),
+               sapply(cv8.semnig, get_posterior_mean, 
+                      pars=paste0("beta[", 1:p[1], "]")),
+               sapply(cv8.semnig, function(s) {
+                 sapply(extract(s, pars=paste0("beta[", 1:p[1], "]")), 
+                        function(b) {d <- density(b); d$x[which.max(d$y)]})}),
+               sapply(cv1.lasso, function(s) {
+                 as.numeric(coef(s, s="lambda.min"))[-1]}),
+               sapply(cv2.lasso, get_posterior_mean, 
+                      pars=paste0("beta[", 1:p[1], "]")),
+               sapply(cv2.lasso, function(s) {
+                 sapply(extract(s, pars=paste0("beta[", 1:p[1], "]")), 
+                        function(b) {d <- density(b); d$x[which.max(d$y)]})}),
+               as.matrix(Reduce("cbind", 
+                                coef(cv3.lasso, s="lambda.min")))[-1, ],
+               sapply(cv1.ridge, function(s) {
+                 as.numeric(coef(s, s="lambda.min"))[-1]}),
+               sapply(cv2.ridge, get_posterior_mean, 
+                      pars=paste0("beta[", 1:p[1], "]")),
+               sapply(cv2.ridge, function(s) {
+                 sapply(extract(s, pars=paste0("beta[", 1:p[1], "]")), 
+                        function(b) {d <- density(b); d$x[which.max(d$y)]})}),
+               as.matrix(Reduce("cbind", 
+                                coef(cv3.ridge, s="lambda.min")))[-1, ],
+               sapply(cv4.ridge, "[[", "postmeanbeta"),
+               sapply(cv1.bSEM$vb$beta, "[", 1:p[1]))
+  
   # calculating average prediction mean squared error
-  pmse <- c(mean(sapply(1:D, function(d) {
-    mean((ytest[, d] - xtest[[d]] %*% cv1.semnig$vb$mpost$beta[[d]])^2)})),
-    mean(sapply(1:D, function(d) {
-      mean((ytest[, d] - xtest[[d]] %*% cv2.semnig$vb$mpost$beta[[d]])^2)})),
-    mean(sapply(1:D, function(d) {
-      mean((ytest[, d] - xtest[[d]] %*% cv3.semnig$vb$mpost$beta[[d]])^2)})),
-    mean(sapply(1:D, function(d) {
-      mean((ytest[, d] - xtest[[d]] %*% cv4.semnig$vb$mpost$beta[[d]])^2)})),
-    mean(sapply(1:D, function(d) {
-      mean((ytest[, d] - xtest[[d]] %*% cv5.semnig$vb$mpost$beta[[d]])^2)})),
-    mean((ytest - sapply(1:D, function(d) {
-      predict(cv1.lasso[[d]], xtest[[d]], s="lambda.min")}))^2),
-    mean((ytest - sapply(1:D, function(d) {
-      predict(cv1.ridge[[d]], xtest[[d]], s="lambda.min")}))^2),
-    mean(sapply(1:D, function(d) {
-      mean((ytest[, d] - xtest[[d]] %*% cv1.bSEM$vb$beta[[d]][, 1])^2)})),
-    mean(apply(ytest, 1, "-", colMeans(ytrain))^2))
+  pmse <- sapply(best, function(b) {colMeans((ytest - xtest[[1]] %*% b)^2)})
   
   # calculate ELBO for semnig models on training and test data
   elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
@@ -419,6 +446,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
             mean(new.elbo(cv3.semnig, xtest, ytest)),
             mean(new.elbo(cv4.semnig, xtest, ytest)),
             mean(new.elbo(cv5.semnig, xtest, ytest)))
+  
+  # log pseudo marginal log likelihood
   lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig), na.rm=TRUE),
             sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE),
             sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE),
@@ -426,24 +455,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
             sum(logcpo(xtest, ytest, ntrain, cv5.semnig), na.rm=TRUE))
   
   # determine the ranks of the model parameter point estimates
-  brank <- c(unlist(lapply(cv1.semnig$vb$mpost$beta, function(s) {
-    rank(abs(s), ties.method="average")})),
-    unlist(lapply(cv2.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")})),
-    unlist(lapply(cv3.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")})),
-    unlist(lapply(cv4.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")})),
-    unlist(lapply(cv5.semnig$vb$mpost$beta, function(s) {
-      rank(abs(s), ties.method="average")})),
-    unlist(sapply(cv1.lasso, function(s) {
-      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
-           ties.method="average")})),
-    unlist(sapply(cv1.ridge, function(s) {
-      rank(abs(as.numeric(coef(s, s="lambda.min"))[-1]), 
-           ties.method="average")})),
-    unlist(lapply(cv1.bSEM$vb$beta, function(s) {
-      rank(abs(s[, 1]), ties.method="average")})))
+  brank <- c(sapply(best, rank, ties.method="average"))
+  
   names(brank) <- paste0(
     "brank.", paste0(rep(methods, each=sum(p)), ".",
                      rep(paste0(rep(1:D, times=p), ".",
