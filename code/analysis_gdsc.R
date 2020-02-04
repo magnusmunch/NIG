@@ -132,7 +132,8 @@ set.seed(2020)
 # estimation settings
 lasso <- stan_model("code/lasso.stan", auto_write=TRUE)
 ridge <- stan_model("code/ridge.stan", auto_write=TRUE)
-methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG5", "lasso", "ridge", "bSEM")
+methods <- c(paste0("NIG", 1:9), paste0("lasso", 1:4), paste0("ridge", 1:5), 
+             "bSEM")
 foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
                    rep(1:(n %% nfolds), (n %% nfolds)!=0)))
 
