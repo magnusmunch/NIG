@@ -290,7 +290,9 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
                sapply(cv1.bSEM$vb$beta, "[", 1:p[1]))
   
   # calculating average prediction mean squared error
-  pmse <- sapply(best, function(b) {colMeans((ytest - xtest[[1]] %*% b)^2)})
+  pmse <- cbind(sapply(best, function(b) {
+    colMeans((ytest - xtest[[1]] %*% b)^2)}), 
+    sapply(1:D, function(d) {mean((ytest[, d] - colMeans(ytest)[d])^2)}))
   
   # calculate ELBO for semnig models on training and test data
   elbot <- c(mean(cv1.semnig$seq.elbo[nrow(cv1.semnig$seq.elbo), ]),
@@ -324,12 +326,12 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
 }
 stopCluster(cl=cl)
-
+str(res)
 errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
 res2 <- res[errorid]
 
 # prepare and save results table
-pmse <- t(sapply(res2, "[[", "pmse"))
+pmse <- Reduce("rbind", sapply(res2, function(s) {as.list(s["pmse"])}))
 elbo <- t(sapply(res2, "[[", "elbo"))
 elbot <- t(sapply(res2, "[[", "elbot"))
 lpml <- t(sapply(res2, "[[", "lpml"))
@@ -340,11 +342,15 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, NA, NA, NA, NA), cbind(elbot, NA, NA, NA), 
-             cbind(lpml, NA, NA, NA, NA), cbind(brankdist, NA))
+res <- rbind(pmse, cbind(elbo, matrix(NA, nrow=nfolds, ncol=15)), 
+             cbind(elbot, matrix(NA, nrow=nfolds, ncol=14)), 
+             cbind(lpml, matrix(NA, nrow=nfolds, ncol=15)), 
+             cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep("pmse", nreps), rep("elbo", nreps), rep("elbot", nreps),
-                   rep("lpml", nreps), rep("brankdist", nrow(brankdist)))
+rownames(res) <- c(paste0(rep("pmse", nfolds*D), ".drug", 
+                          rep(1:D, times=nfolds)), 
+                   rep("elbo", nfolds), rep("elbot", nfolds),
+                   rep("lpml", nfolds), rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res1.txt")
 
 
