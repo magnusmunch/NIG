@@ -1170,10 +1170,10 @@ D <- ncol(resp.prep) - Dext
 dsel <- sample(1:(Dext + D), Dext)
 
 # create data objects used in fitting
-xext <- lapply(1:Dext, function(d) {scale(expr.sel, scale=FALSE)})
-x <- lapply(1:D, function(d) {scale(expr.sel, scale=FALSE)})
-yext <- scale(resp.prep[, dsel], scale=FALSE)
-y <- scale(resp.prep[, -dsel], scale=FALSE)
+xext <- lapply(1:Dext, function(d) {scale(expr.sel)})
+x <- lapply(1:D, function(d) {scale(expr.sel)})
+yext <- scale(resp.prep[, dsel])
+y <- scale(resp.prep[, -dsel])
 p <- sapply(x, ncol)
 n <- nrow(y)
 
@@ -1277,10 +1277,10 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   ntrain <- sum(foldid!=r)
   xtrain <- lapply(x, function(s) {
     scale(as.matrix(s[foldid!=r, ], nrow=ntrain))})
-  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=ntrain), scale=FALSE)
+  ytrain <- scale(as.matrix(y[foldid!=r, ], nrow=ntrain))
   xtest <- lapply(x, function(s) {
     scale(as.matrix(s[foldid==r, ], nrow=sum(foldid==r)))})
-  ytest <- scale(as.matrix(y[foldid==r, ], nrow=sum(foldid==r)), scale=FALSE)
+  ytest <- scale(as.matrix(y[foldid==r, ], nrow=sum(foldid==r)))
   
   # model without external covariates
   cv1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,

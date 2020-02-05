@@ -181,11 +181,28 @@ dev.off()
 ################################################################################
 ################################################################################
 
-res <- read.table("results/analysis_gdsc_res5.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
-boxplot(res[rownames(res)=="pmse", ])
+test1 <- Reduce("rbind", by(res[substr(rownames(res), 1, 4)=="pmse", ], 
+                            list(as.factor(rownames(res)[substr(rownames(res), 1, 
+                                                                4)=="pmse"])), 
+                            function(s) {apply(s, 2, median)}))
+D <- 168
+nfolds <- 10
+test2 <- Reduce("rbind", by(res[substr(rownames(res), 1, 4)=="pmse", ], 
+                            list(as.factor(rep(1:nfolds, each=D))), 
+                            colMeans))
+
+pairs(test1[, 1:9])
+boxplot(test2)
+str(res)
+str(test1)
+
+pairs(test)
+
+str(res[substr(rownames(res), 1, 4)=="pmse", ])
 sort(apply(res[rownames(res)=="pmse", ], 2, median))
 sort(apply(res[rownames(res)=="elbo", ], 2, median), decreasing=TRUE)
 sort(apply(res[rownames(res)=="lpml", ], 2, median), decreasing=TRUE)
