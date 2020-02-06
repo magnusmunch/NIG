@@ -1027,6 +1027,7 @@ expr.sel <- expr.prep[, idsel]
 o <- order(-apply(mut.prep, 2, sd))
 idsel <- o[1:psel]
 mut.sel <- mut.prep[, idsel]
+mutation <- replicate(ncol(resp.prep), rep(c(0, 1), each=psel), simplify=FALSE)
 
 # transform methylation values
 x <- lapply(1:ncol(resp.prep), function(s) {
@@ -1092,7 +1093,7 @@ fit1.ridge <- lapply(1:D, function(d) {
 # saving fitted model objects
 save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit5.semnig, 
      fit1.lasso, fit1.ridge,
-     fit1.bSEM, file="results/analysis_gdsc_fit1.Rdata")
+     fit1.bSEM, file="results/analysis_gdsc_fit4.Rdata")
 
 # EB estimates
 tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad, rep(NA, 4), 
@@ -1111,7 +1112,7 @@ tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad, rep(NA, 4),
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1], rep(NA, 7)))
 colnames(tab) <- c(colnames(C[[1]]), colnames(Z), "lambdaf", "lambdad")
 rownames(tab) <- methods[c(1:5, 7)]
-write.table(tab, file="results/analysis_gdsc_fit1.txt")
+write.table(tab, file="results/analysis_gdsc_fit4.txt")
 
 ### cross-validation of performance measures
 # settings seed
@@ -1155,9 +1156,14 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
                  maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
   Z <- matrix(1, nrow=D)
   colnames(Z) <- c("intercept")
-  C <- lapply(inpathway, function(s) {
+  C <- lapply(mutation, function(s) {
    s <- matrix(1, nrow=length(s)); colnames(s) <- c("intercept"); return(s)})
   cv1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL, 
+                      standardize=FALSE, intercept=FALSE, fixed.eb="none", 
+                      full.post=TRUE, init=NULL, control=control)
+  C <- lapply(mutation, function(s) {
+   s <- cbind(1, s); colnames(s) <- c("intercept", "mutation"); return(s)})
+  cv2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL, 
                       standardize=FALSE, intercept=FALSE, fixed.eb="none", 
                       full.post=TRUE, init=NULL, control=control)
   
@@ -1167,15 +1173,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
                                drug.prep$action), "unknown"))
   colnames(Z) <- c("intercept", "experimental", "in clinical development",
                   "targeted", "unknown")
-  C <- lapply(inpathway, function(s) {
-   s <- cbind(1, s); colnames(s) <- c("intercept", "in pathway"); return(s)})
-  cv2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL, 
-                      standardize=FALSE, intercept=FALSE, fixed.eb="none", 
-                      full.post=TRUE, init=NULL, control=control)
-  cv3.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=NULL, unpenalized=NULL, 
-                      standardize=FALSE, intercept=FALSE, fixed.eb="none", 
-                      full.post=TRUE, init=NULL, control=control)
-  cv4.semnig <- semnig(x=xtrain, y=ytrain, C=NULL, Z=Z, unpenalized=NULL, 
+  cv3.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL, 
                       standardize=FALSE, intercept=FALSE, fixed.eb="none", 
                       full.post=TRUE, init=NULL, control=control)
   
@@ -1214,7 +1212,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   
   # bSEM model
   cv1.bSEM <- bSEM(xtrain, split(ytrain, 1:ncol(ytrain)),
-                  lapply(inpathway, "+", 1),
+                  lapply(mutation, "+", 1),
                   control=list(maxit=200, trace=FALSE, epsilon=1e-3))
   
   # penalized regression models

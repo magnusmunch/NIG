@@ -6,7 +6,7 @@
   delta <- rnorm(n, 0, sigma^2)
   beta <- u + (t(x)*gamma^2) %*% solve(x %*% (t(x)*gamma^2) + diag(n)/tau^2) %*%
     (y - x %*% u - delta)  
-  return(beta)
+  return(as.numeric(beta))
 }
 
 .draw_gamma <- function(par, C, p) {
@@ -15,8 +15,9 @@
   beta <- par$beta
   sigma <- par$sigma
   tau <- par$tau
-  gamma <- sqrt(rgig(p, -1, chi=beta^2/(sigma*tau)^2 + lambdaf, 
-                     psi=lambdaf*as.numeric(C %*% alphaf)^2))
+  gamma <- sapply(1:p, function(j) {
+    sqrt(rgig(n=1, chi=beta[j]^2/(sigma*tau)^2 + lambdaf, 
+              psi=lambdaf*as.numeric(C %*% alphaf)[j]^2, lambda=-1))})
   return(gamma)
 }
 
@@ -31,13 +32,18 @@
   return(tau)
 }
 
+d <- 1
+par <- c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)])
+x <- x[[d]]
+y <- y[, d]
+p <- p[d]
 .draw_sigma <- function(par, x, y, n, p) {
   beta <- par$beta
   gamma <- par$gamma
   tau <- par$tau
   sigma <- 1/sqrt(rgamma(1, (n + p + 1)/2, 
                          0.5*(sum(y^2) -2*sum(y*as.numeric(x %*% beta)) + 
-                                as.numeric(x %*% beta)^2 + 
+                                sum(as.numeric(x %*% beta)^2) + 
                                 sum(beta^2/gamma^2)/tau^2)))
   return(sigma)
 }
@@ -47,7 +53,7 @@
   lambdaf <- par$lambdaf
   mat <- solve(t(Cmat) %*% diag(gamma^2) %*% Cmat)
   alphaf <- rmvnorm(1, rowSums(mat %*% t(Cmat)), mat/lambdaf)
-  return(alphaf)
+  return(as.numeric(alphaf))
 }
 
 .draw_alphad <- function(par, Zmat) {
@@ -55,7 +61,7 @@
   lambdad <- par$lambdad
   mat <- solve(t(Zmat) %*% diag(tau^2) %*% Zmat)
   alphad <- rmvnorm(1, rowSums(mat %*% t(Zmat)), mat/lambdad)
-  return(alphad)
+  return(as.numeric(alphad))
 }
 
 .draw_lambdaf <- function(par, Cmat, p, D) {
@@ -77,11 +83,14 @@
 .draw_post <- function(par, x, y, C, Z, n, p, D) {
   Cmat <- Reduce("rbind", C)
   for(d in 1:D) {
-    par$beta[[d]] <- .draw_beta(sapply(par, "[[", d), x=x[[d]], y=y[, d], n=n, 
-                                p=p[d])
-    par$gamma[[d]] <- .draw_gamma(sapply(par, "[[", d), C[[d]], p[d])
-    par$tau[[d]] <- .draw_tau(sapply(par, "[[", d), Z[d, ], p[d])
-    par$sigma[[d]] <- .draw_sigma(sapply(par, "[[", d), x[[d]], y[, d], n, p[d])
+    par$beta[[d]] <- .draw_beta(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), 
+                                x=x[[d]], y=y[, d], n=n, p=p[d])
+    par$gamma[[d]] <- .draw_gamma(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), 
+                                  C[[d]], p[d])
+    par$tau[[d]] <- .draw_tau(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), 
+                              Z[d, ], p[d])
+    par$sigma[[d]] <- .draw_sigma(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), 
+                                  x[[d]], y[, d], n, p[d])
   }
   par$alphaf <- .draw_alphaf(par, Cmat)
   par$alphad <- .draw_alphad(par, Z)
@@ -90,21 +99,39 @@
   return(par)
 }
 
+library(GeneralizedHyperbolic)
 set.seed(123)
 n <- 50
-p <- 100
 D <- 10
-x <- replicate(D, matrix(rnorm(n*p), nrow=n, ncol=p), simplify=FALSE)
-beta <- rbind(cbind(matrix(rnorm(p*D/2, 0, 0.1), nrow=p/2, ncol=D/2), 
-                    matrix(rnorm(p*D/2, 0, 0.5), nrow=p/2, ncol=D/2)),
-              cbind(matrix(rnorm(p*D/2, 0, 0.5), nrow=p/2, ncol=D/2), 
-                    matrix(rnorm(p*D/2, 0, 1), nrow=p/2, ncol=D/2)))
+p <- rep(100, D)
+x <- sapply(1:D, function(d) {matrix(rnorm(n*p[d]), nrow=n, ncol=p[d])}, 
+            simplify=FALSE)
+beta <- rbind(cbind(matrix(rnorm(p[1]*D/2, 0, 0.1), nrow=p[1]/2, ncol=D/2), 
+                    matrix(rnorm(p[1]*D/2, 0, 0.5), nrow=p[1]/2, ncol=D/2)),
+              cbind(matrix(rnorm(p[1]*D/2, 0, 0.5), nrow=p[1]/2, ncol=D/2), 
+                    matrix(rnorm(p[1]*D/2, 0, 1), nrow=p[1]/2, ncol=D/2)))
 y <- sapply(1:D, function(d) {x[[d]] %*% beta[, d] + rnorm(n)})
 Z <- cbind(1, rep(c(0, 1), each=D/2))
-C <- 
-par <- list(beta, gamma, tau, sigma, alphaf, alphad, lambdaf, lambdad)
+C <- sapply(1:D, function(d) {cbind(1, rep(c(0, 1), each=p[d]/2))}, 
+            simplify=FALSE)
+Cmat <- Reduce("rbind", C)
+par <- list(beta=sapply(1:D, function(d) {rnorm(p[d])}, simplify=FALSE), 
+            gamma=sapply(1:D, function(d) {rchisq(p[d], 1) + 1}, 
+                         simplify=FALSE), 
+            tau=rchisq(D, 1) + 1, sigma=rchisq(D, 1) + 1, 
+            alphaf=rchisq(2, 1), alphad=rchisq(2, 1), 
+            lambdaf=rchisq(1, 1) + 1, lambdad=rchisq(1, 1) + 1)
 
 
 
+.draw_beta(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), x[[d]], y[, d], n, p[d]) 
+.draw_gamma(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), C[[d]], p[d]) 
+.draw_tau(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), Z[d, ], p[d]) 
+.draw_sigma(c(sapply(par[-c(5:8)], "[[", d), par[c(5:8)]), x[[d]], y[, d], n, p[d])   
+.draw_alphaf(par, Cmat) 
+.draw_alphad(par, Z) 
+.draw_lambdaf(par, Cmat, p, D)
+.draw_lambdad(par, Z, D) 
+par <- .draw_post(par, x, y, C, Z, n, p, D)
 
 
