@@ -181,7 +181,7 @@ dev.off()
 ################################################################################
 ################################################################################
 
-res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -197,6 +197,7 @@ test2 <- Reduce("rbind", by(res[substr(rownames(res), 1, 4)=="pmse", ],
 
 pairs(test1[, 1:9])
 boxplot(test2)
+sort(apply(test2, 2, median))
 
 res <- read.table("results/analysis_gdsc_res5.txt", row.names=NULL)
 temp <- res[, 1]

@@ -166,6 +166,26 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  3.
 	\end{align*}
 	
+	\section{Jeffrey's prior}
+	We parametrise the data with a Gaussian distribution with unknown mean and 
+	variance, i.e., $y_i \sim \mathcal{N} (\mu, \sigma^2)$. This gives us the
+	following Hessian (matrix of second derivatives) of the log density:
+	$$
+	\mathbf{H}(\log f(y_i | \mu, \sigma^2)) = \begin{bmatrix}
+	-\frac{1}{\sigma^2} & y_i - \mu \\
+	y_i - \mu & \frac{1}{2\sigma^4} - \frac{(y_i - \mu)^2}{\sigma^6}.
+	\end{bmatrix}
+	$$
+	Jeffrey's prior is now found as:
+	$$
+	\pi(\mu, \sigma^2) \propto |\mathcal{I}(\mu, \sigma^2)|^{1/2} = 
+	|-\E (\mathbf{H})|^{1/2} = \begin{vmatrix}
+	\frac{1}{\sigma^2} & 0 \\
+	0 & \frac{1}{2\sigma^4}
+	\end{vmatrix}^{1/2} \propto 1/\sigma^3,
+	$$
+	where $\mathcal{I}(\theta)$ denotes the Fisher information of $\theta$.
+	
 	\section{Variational Bayes derivations}\label{sec:vbderivations}
 	For clarity we have indexed the variational 
 	density functions with their respective parameters, which we omitted in the 
