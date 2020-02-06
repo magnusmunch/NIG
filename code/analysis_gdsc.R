@@ -652,7 +652,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
 }
 stopCluster(cl=cl)
-str(res)
+
 errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
 res2 <- res[errorid]
 
