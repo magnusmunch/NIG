@@ -9,5 +9,6 @@ import(methods)
 importFrom(rstan, sampling, optimizing)
 import(rstantools)
 importFrom(GeneralizedHyperbolic, rgig)
+importFrom(mvtnorm, rmvnorm)
 
 useDynLib(cambridge, .registration=TRUE)
