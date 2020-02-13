@@ -421,3 +421,76 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   
   return(fit)
 }
+
+# EBridge estimation
+ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
+                    hyper=list(lambda=NULL, zeta=0, nu=0),
+                    control=list(epsilon=sqrt(.Machine$double.eps), 
+                                 maxit=500, trace=FALSE)) {
+  
+  yty <- colSums(y^2)
+  Cmat <- Reduce("rbind", C)
+  p <- ncol(x)
+  n <- nrow(y)
+  D <- ncol(y)
+  H <- ncol(Z)
+  G <- ncol(Cmat)
+  
+  if(is.null(hyper$lambda)) {
+    cv.fit1 <- lapply(1:D, function(d) {
+      cv.glmnet(x, y[, d], alpha=0, intercept=FALSE)})
+    if(mult.lambda) {
+      hyper$lambda <- 1/sqrt(n*sapply(cv.fit1, "[[", "lambda.min"))
+    } else {
+      hyper$lambda <- rep(1/sqrt(n*exp(mean(log(sapply(cv.fit1, "[[", 
+                                                       "lambda.min"))))), D)  
+    }
+  } else {
+    if(length(hyper$lambda)==1) {
+      hyper$lambda <- rep(hyper$lambda, D)  
+    }
+  }
+  cv.fit2 <- lapply(1:D, function(d) {
+    glmnet(x, y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
+           intercept=FALSE)})  
+  
+  control$fnscale=-1
+  names(control)[1] <- "reltol"
+  opt <- optim(par=rep(0, H + G), fn=.f.optim, lambda=hyper$lambda, 
+               nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, G=G, 
+               y=y, x=x, yty=yty, control=control)
+  conv <- opt$convergence
+  niter <- unname(opt$counts[1])
+  alphaf <- opt$par[1:G]
+  alphad <- opt$par[-c(1:G)]
+  tau <- exp(colSums(alphad*t(Z))/2)
+  gamma <- exp(colSums(alphaf*t(Cmat))/2)
+  
+  beta1 <- sapply(1:D, function(d) {
+    h <- tau[d]*gamma[((d - 1)*p + 1):(d*p)]
+    xh <- t(t(x)*h)
+    fit <- glmnet(xh, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+                  intercept=FALSE)
+    unname(coef(fit)[-1, 1])*h
+  })
+  beta2 <- sapply(1:D, function(d) {
+    h <- tau[d]*gamma[((d - 1)*p + 1):(d*p)]
+    fit <- glmnet(x, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+                  intercept=FALSE, penalty.factor=1/h^2)
+    unname(coef(fit)[-1, 1])
+  })
+  
+  out <- list(beta1=beta1, beta2=beta2, alphaf=alphaf, alphad=alphad, 
+              lambda=hyper$lambda, tau=tau, 
+              gamma=unname(Reduce("cbind", split(gamma, f=rep(c(1:D), 
+                                                              each=p)))))
+  if(exists("cv.fit1")) {
+    out$glmnet.fit1 <- cv.fit1
+  } else {
+    out$glmnet.fit1 <- NULL
+  }
+  out$glmnet.fit2 <- cv.fit2
+  
+  return(out)
+  
+}

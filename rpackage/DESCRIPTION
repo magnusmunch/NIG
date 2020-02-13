@@ -16,7 +16,8 @@ Imports:
     rstantools (>= 2.0.0),
     stats,
     GeneralizedHyperbolic,
-    mvtnorm
+    mvtnorm,
+    glmnet
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
