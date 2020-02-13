@@ -1,3 +1,31 @@
+# function to optimise in EBridge
+.f.optim <- function(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, G, y, x, yty) {
+  
+  alphaf <- alpha[1:G]
+  alphad <- alpha[-c(1:G)]
+  tau <- exp(colSums(alphad*t(Z))/2)
+  gamma <- exp(colSums(alphaf*t(Cmat))/2)
+  out <- numeric(D)
+  for(d in 1:D) {
+    mat1 <- mat2 <- x %*% (t(x)*lambda[d]^2*tau[d]^2*
+                             gamma[((d - 1)*p + 1):(d*p)]^2);
+    mat1 <- t(y[, d]) %*% mat1;
+    diag(mat2) <- diag(mat2) + 1;
+    out[d] <- -determinant(mat2, log=TRUE)$modulus/2 -
+      (n/2 + nu)*log(zeta + yty[d]/2 - as.numeric(mat1 %*% y[, d])/2 +
+                       as.numeric(mat1 %*% solve(mat2) %*% t(mat1))/2)
+  }
+  out <- sum(sapply(1:D, function(d) {
+    mat1 <- mat2 <- x %*% (t(x)*lambda[d]^2*tau[d]^2*
+                             gamma[((d - 1)*p + 1):(d*p)]^2);
+    mat1 <- t(y[, d]) %*% mat1;
+    diag(mat2) <- diag(mat2) + 1;
+    -determinant(mat2, log=TRUE)$modulus/2 -
+      (n/2 + nu)*log(zeta + yty[d]/2 - as.numeric(mat1 %*% y[, d])/2 +
+                       as.numeric(mat1 %*% solve(mat2) %*% t(mat1))/2)}))
+  return(out)
+}
+
 # function to integrate for cpo calculation (not tested)
 .f.int.cpo <- function(x, xtSigmax, n, p, zeta, y, xtmu) {
   ((y - x)^2/(2*zeta) + 1)^(-(n + p + 1)/2)*exp(-(x - xtmu)^2/(2*xtSigmax))

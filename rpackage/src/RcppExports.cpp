@@ -70,6 +70,7 @@ END_RCPP
 }
 
 RcppExport SEXP _rcpp_module_boot_stan_fit4nig_mod();
+RcppExport SEXP _rcpp_module_boot_stan_fit4nig_full_mod();
 
 static const R_CallMethodDef CallEntries[] = {
     {"_cambridge_Sigma_unp", (DL_FUNC) &_cambridge_Sigma_unp, 6},
@@ -77,6 +78,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_cambridge_aux_var_unp", (DL_FUNC) &_cambridge_aux_var_unp, 7},
     {"_cambridge_aux_var", (DL_FUNC) &_cambridge_aux_var, 5},
     {"_rcpp_module_boot_stan_fit4nig_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4nig_mod, 0},
+    {"_rcpp_module_boot_stan_fit4nig_full_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4nig_full_mod, 0},
     {NULL, NULL, 0}
 };
 
