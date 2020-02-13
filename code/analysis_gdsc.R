@@ -1121,7 +1121,9 @@ set.seed(2020)
 # estimation settings
 lasso <- stan_model("code/lasso.stan", auto_write=TRUE)
 ridge <- stan_model("code/ridge.stan", auto_write=TRUE)
-methods <- c(paste0("NIG", 1:9), paste0("lasso", 1:4), paste0("ridge", 1:5), 
+methods <- c(paste0("NIG", c(1:5, 7:8)),
+             # paste0("NIG", 1:8), 
+             paste0("lasso", 1:4), paste0("ridge", 1:5), 
              "bSEM")
 foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
                    rep(1:(n %% nfolds), (n %% nfolds)!=0)))
@@ -1178,36 +1180,36 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
                       full.post=TRUE, init=NULL, control=control)
   
   # blockwise updating of hyperparameters
-  control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
+  control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, epsilon.vb=1e-3, 
                  maxit.eb=1, maxit.vb=1, maxit.post=100, maxit.block=10)
-  cv5.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+  cv4.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
                       full.post=TRUE, init=NULL, control=control)
   
   # optimisation of MAP
-  cv6.semnig <- lapply(1:D, function(d) {
+  cv5.semnig <- lapply(1:D, function(d) {
    optimizing(stanmodels$nig, 
               data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
-                        phi=cv2.semnig$eb$mpriorf[[d]], 
-                        lambdaf=cv2.semnig$eb$lambdaf, 
-                        chi=cv2.semnig$eb$mpriord[d], 
-                        lambdad=cv2.semnig$eb$lambdad))})
+                        phi=cv3.semnig$eb$mpriorf[[d]], 
+                        lambdaf=cv3.semnig$eb$lambdaf, 
+                        chi=cv3.semnig$eb$mpriord[d], 
+                        lambdad=cv3.semnig$eb$lambdad))})
   
-  phi <- seq(0.01, 10, length.out=10)
-  chi <- seq(0.01, 10, length.out=10)
-  lambdaf <- cv2.semnig$eb$lambdaf
-  lambdad <- cv2.semnig$eb$lambdad
-  cv7.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
-                         seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
-                         lambdad=lambdad, type.measure="mse", 
-                         control=list(trace=FALSE))
-  cv8.semnig <- lapply(1:D, function(d) {
+  # phi <- seq(0.01, 10, length.out=10)
+  # chi <- seq(0.01, 10, length.out=10)
+  # lambdaf <- cv3.semnig$eb$lambdaf
+  # lambdad <- cv3.semnig$eb$lambdad
+  # cv6.semnig <- cv.semnig(x=xtrain, y=ytrain, nfolds=5, foldid=NULL, 
+  #                        seed=NULL, phi=phi, chi=chi, lambdaf=lambdaf, 
+  #                        lambdad=lambdad, type.measure="mse", 
+  #                        control=list(trace=FALSE))
+  cv7.semnig <- lapply(1:D, function(d) {
    sampling(stanmodels$nig, 
             data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
-                      phi=cv2.semnig$eb$mpriorf[[d]], 
-                      lambdaf=cv2.semnig$eb$lambdaf, 
-                      chi=cv2.semnig$eb$mpriord[d], 
-                      lambdad=cv2.semnig$eb$lambdad),
+                      phi=cv3.semnig$eb$mpriorf[[d]], 
+                      lambdaf=cv3.semnig$eb$lambdaf, 
+                      chi=cv3.semnig$eb$mpriord[d], 
+                      lambdad=cv3.semnig$eb$lambdad),
             chains=1, iter=1000, warmup=500, verbose=FALSE, refresh=0)})
   
   # bSEM model
@@ -1243,15 +1245,14 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
               Reduce("cbind", cv2.semnig$vb$mpost$beta),
               Reduce("cbind", cv3.semnig$vb$mpost$beta),
               Reduce("cbind", cv4.semnig$vb$mpost$beta),
-              Reduce("cbind", cv5.semnig$vb$mpost$beta),
-              sapply(cv6.semnig, function(s) {
+              sapply(cv5.semnig, function(s) {
                 s$par[names(s$par) %in% paste0("beta[", 1:p[1], "]")]}),
-              sapply(cv7.semnig, function(s) {
-                s$fit$par[names(s$fit$par) %in% 
-                            paste0("beta[", 1:p[1], "]")]}),
-              sapply(cv8.semnig, get_posterior_mean, 
+              # sapply(cv6.semnig, function(s) {
+              #   s$fit$par[names(s$fit$par) %in% 
+              #               paste0("beta[", 1:p[1], "]")]}),
+              sapply(cv7.semnig, get_posterior_mean, 
                      pars=paste0("beta[", 1:p[1], "]")),
-              sapply(cv8.semnig, function(s) {
+              sapply(cv7.semnig, function(s) {
                 sapply(extract(s, pars=paste0("beta[", 1:p[1], "]")), 
                        function(b) {d <- density(b); d$x[which.max(d$y)]})}),
               sapply(cv1.lasso, function(s) {
@@ -1285,20 +1286,17 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
             mean(cv2.semnig$seq.elbo[nrow(cv2.semnig$seq.elbo), ]),
             mean(cv3.semnig$seq.elbo[nrow(cv3.semnig$seq.elbo), ]),
             mean(cv4.semnig$seq.elbo[nrow(cv4.semnig$seq.elbo), ]),
-            mean(cv5.semnig$seq.elbo[nrow(cv5.semnig$seq.elbo), ]),
             mean(cv1.bSEM$mll[, ncol(cv1.bSEM$mll)]))
   elbo <- c(mean(new.elbo(cv1.semnig, xtest, ytest)),
            mean(new.elbo(cv2.semnig, xtest, ytest)),
            mean(new.elbo(cv3.semnig, xtest, ytest)),
-           mean(new.elbo(cv4.semnig, xtest, ytest)),
-           mean(new.elbo(cv5.semnig, xtest, ytest)))
+           mean(new.elbo(cv4.semnig, xtest, ytest)))
   
   # log pseudo marginal log likelihood
-  lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig), na.rm=TRUE),
-           sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE),
-           sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE),
-           sum(logcpo(xtest, ytest, ntrain, cv4.semnig), na.rm=TRUE),
-           sum(logcpo(xtest, ytest, ntrain, cv5.semnig), na.rm=TRUE))
+  # lpml <- c(sum(logcpo(xtest, ytest, ntrain, cv1.semnig), na.rm=TRUE),
+  #          sum(logcpo(xtest, ytest, ntrain, cv2.semnig), na.rm=TRUE),
+  #          sum(logcpo(xtest, ytest, ntrain, cv3.semnig), na.rm=TRUE),
+  #          sum(logcpo(xtest, ytest, ntrain, cv4.semnig), na.rm=TRUE))
   
   # determine the ranks of the model parameter point estimates
   brank <- c(sapply(best, rank, ties.method="average"))
@@ -1309,7 +1307,9 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
                                unlist(sapply(p, function(s) {
                                  return(1:s)}))), length(methods))))
   
-  list(pmse=pmse, elbo=elbo, elbot=elbot, lpml=lpml, brank=brank)
+  list(pmse=pmse, elbo=elbo, elbot=elbot, 
+       # lpml=lpml, 
+       brank=brank)
 }
 stopCluster(cl=cl)
 str(res)
@@ -1320,7 +1320,7 @@ res2 <- res[errorid]
 pmse <- Reduce("rbind", sapply(res2, function(s) {as.list(s["pmse"])}))
 elbo <- t(sapply(res2, "[[", "elbo"))
 elbot <- t(sapply(res2, "[[", "elbot"))
-lpml <- t(sapply(res2, "[[", "lpml"))
+# lpml <- t(sapply(res2, "[[", "lpml"))
 brank <- t(sapply(res2, "[[", "brank"))
 
 # Euclidian distance between rank vectors
@@ -1328,15 +1328,16 @@ brankdist <- sapply(methods, function(s) {
   dist(brank[, substr(colnames(brank), 7, nchar(s) + 6)==s])})
 
 # combine tables and save
-res <- rbind(pmse, cbind(elbo, matrix(NA, nrow=nfolds, ncol=15)), 
-             cbind(elbot, matrix(NA, nrow=nfolds, ncol=14)), 
-             cbind(lpml, matrix(NA, nrow=nfolds, ncol=15)), 
+res <- rbind(pmse, cbind(elbo, matrix(NA, nrow=nfolds, ncol=14)), 
+             cbind(elbot, matrix(NA, nrow=nfolds, ncol=13)), 
+             # cbind(lpml, matrix(NA, nrow=nfolds, ncol=14)), 
              cbind(brankdist, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(paste0(rep("pmse", nfolds*D), ".drug", 
                           rep(1:D, times=nfolds)), 
                    rep("elbo", nfolds), rep("elbot", nfolds),
-                   rep("lpml", nfolds), rep("brankdist", nrow(brankdist)))
+                   # rep("lpml", nfolds), 
+                   rep("brankdist", nrow(brankdist)))
 write.table(res, file="results/analysis_gdsc_res4.txt")
 
 
