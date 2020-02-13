@@ -199,11 +199,17 @@ pairs(test1[, 1:9])
 boxplot(test2)
 sort(apply(test2, 2, median))
 
-res <- read.table("results/analysis_gdsc_res5.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res1.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 boxplot(res[substr(rownames(res), 1, 4)=="pmse", ])
+pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
+mpmse <- aggregate(pmse, list(rownames(pmse)), median)
+pairs(mpmse[, -1])
+
+length()
+sort(rownames(pmse))
 sort(apply(res[substr(rownames(res), 1, 4)=="pmse", ], 2, median))
 
 sort(apply(res[rownames(res)=="pmse", ], 2, median))

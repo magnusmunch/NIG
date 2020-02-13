@@ -52,44 +52,60 @@ n <- nrow(y)
 # setting seed
 set.seed(2019)
 
-# estimation settings
-control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
-                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
-methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG5", "lasso", "ridge", "bSEM")
+# # estimation settings
+# control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
+#                 maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+# methods <- c("NIG1", "NIG2", "NIG3", "NIG4", "NIG5", "lasso", "ridge", "bSEM")
+# 
+# # model without external covariates
+# Z <- matrix(1, nrow=D)
+# colnames(Z) <- c("intercept")
+# C <- lapply(inpathway, function(s) {
+#   s <- matrix(1, nrow=length(s)); colnames(s) <- c("intercept"); return(s)})
+# fit1.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+#                       standardize=FALSE, intercept=FALSE, fixed.eb="none",
+#                       full.post=TRUE, init=NULL, control=control)
+# 
+# # models with external covariates
+# Z <- model.matrix(~ replace(drug.prep$stage, is.na(drug.prep$stage),
+#                             "experimental") + replace(drug.prep$action, is.na(
+#                               drug.prep$action), "unknown"))
+# colnames(Z) <- c("intercept", "experimental", "in clinical development",
+#                  "targeted", "unknown")
+# C <- lapply(inpathway, function(s) {
+#   s <- cbind(1, s); colnames(s) <- c("intercept", "in pathway"); return(s)})
+# fit2.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+#                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+#                       full.post=TRUE, init=NULL, control=control)
+# fit3.semnig <- semnig(x=x, y=y, C=C, Z=NULL, unpenalized=NULL,
+#                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+#                       full.post=TRUE, init=NULL, control=control)
+# fit4.semnig <- semnig(x=x, y=y, C=NULL, Z=Z, unpenalized=NULL,
+#                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+#                       full.post=TRUE, init=NULL, control=control)
+# 
+# # blockwise updating of hyperparameters
+# control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
+#                 maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=10)
+# fit5.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
+#                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
+#                       full.post=TRUE, init=NULL, control=control)
 
-# model without external covariates
-Z <- matrix(1, nrow=D)
-colnames(Z) <- c("intercept")
+# EB ridge
+Z <- cbind(model.matrix(~ 0 + replace(drug.prep$stage, is.na(drug.prep$stage), 
+                                      "experimental")),
+           model.matrix(~ 0 + replace(drug.prep$action, 
+                                      is.na(drug.prep$action), "unknown")))
+colnames(Z) <- c("clinically approved", "experimental", 
+                 "in clinical development", "cytotoxic", "targeted", 
+                 "unknown")
+Z <- scale(Z, scale=FALSE)
 C <- lapply(inpathway, function(s) {
-  s <- matrix(1, nrow=length(s)); colnames(s) <- c("intercept"); return(s)})
-fit1.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
-                      standardize=FALSE, intercept=FALSE, fixed.eb="none",
-                      full.post=TRUE, init=NULL, control=control)
-
-# models with external covariates
-Z <- model.matrix(~ replace(drug.prep$stage, is.na(drug.prep$stage),
-                            "experimental") + replace(drug.prep$action, is.na(
-                              drug.prep$action), "unknown"))
-colnames(Z) <- c("intercept", "experimental", "in clinical development",
-                 "targeted", "unknown")
-C <- lapply(inpathway, function(s) {
-  s <- cbind(1, s); colnames(s) <- c("intercept", "in pathway"); return(s)})
-fit2.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
-                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
-                      full.post=TRUE, init=NULL, control=control)
-fit3.semnig <- semnig(x=x, y=y, C=C, Z=NULL, unpenalized=NULL,
-                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
-                      full.post=TRUE, init=NULL, control=control)
-fit4.semnig <- semnig(x=x, y=y, C=NULL, Z=Z, unpenalized=NULL,
-                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
-                      full.post=TRUE, init=NULL, control=control)
-
-# blockwise updating of hyperparameters
-control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
-                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=10)
-fit5.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
-                      standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
-                      full.post=TRUE, init=NULL, control=control)
+  s <- scale(as.matrix(s), scale=FALSE); colnames(s) <- "inpathway"; s})
+fit1.ebridge <- ebridge(x[[1]], y, C, Z, mult.lambda=TRUE,
+                        hyper=list(lambda=NULL, zeta=0, nu=0),
+                        control=list(epsilon=sqrt(.Machine$double.eps), 
+                                     maxit=500, trace=TRUE))
 
 # bSEM model
 fit1.bSEM <- bSEM(x, split(y, 1:ncol(y)), lapply(inpathway, "+", 1),
@@ -101,26 +117,23 @@ fit1.lasso <- lapply(1:D, function(d) {
 fit1.ridge <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
 
+# # saving fitted model objects
+# save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit5.semnig, 
+#      fit1.lasso, fit1.ridge,
+#      fit1.bSEM, file="results/analysis_gdsc_fit1.Rdata")
+
 # saving fitted model objects
-save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit5.semnig, 
+save(fit1.ebridge,
      fit1.lasso, fit1.ridge,
-     fit1.bSEM, file="results/analysis_gdsc_fit1.Rdata")
+     fit1.bSEM, file="results/analysis_gdsc_fit1.2.Rdata")
 
 # EB estimates
-tab <- rbind(c(fit1.semnig$eb$alphaf, NA, fit1.semnig$eb$alphad, rep(NA, 4), 
-               fit1.semnig$eb$lambdaf, fit1.semnig$eb$lambdad),
-             c(fit2.semnig$eb$alphaf, fit2.semnig$eb$alphad, 
-               fit2.semnig$eb$lambdaf, fit2.semnig$eb$lambdad),
-             c(fit3.semnig$eb$alphaf, rep(NA, 5), fit3.semnig$eb$lambdaf, NA),
-             c(rep(NA, 2), fit4.semnig$eb$alphad, NA, fit2.semnig$eb$lambdad),
-             c(fit5.semnig$eb$alphaf, fit5.semnig$eb$alphad, 
-               fit5.semnig$eb$lambdaf, fit5.semnig$eb$lambdad),
-             c(fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 1]/
+tab <- rbind(c(fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 1]/
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1],
                fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 2]/
                  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 2] -
                  fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), 1]/
-                 fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1], rep(NA, 7)))
+                 fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), 1]))
 colnames(tab) <- c(colnames(C[[1]]), colnames(Z), "lambdaf", "lambdad")
 rownames(tab) <- methods[c(1:5, 7)]
 write.table(tab, file="results/analysis_gdsc_fit1.txt")
@@ -248,11 +261,11 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   cv1.ebridge <- ebridge(xtrain[[1]], ytrain, C, Z, mult.lambda=TRUE,
                          hyper=list(lambda=NULL, zeta=0, nu=0),
                          control=list(epsilon=sqrt(.Machine$double.eps), 
-                                      maxit=500, trace=TRUE))
+                                      maxit=500, trace=FALSE))
 
   # penalized regression models
   cv1.lasso <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
+    cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE)})
   # cv2.lasso <- lapply(1:D, function(d) {
   #   sampling(lasso, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
   #                             a0=0.001, b0=0.001),
@@ -261,8 +274,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   #                        intercept=FALSE, standardize=FALSE)
   
   cv1.ridge <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE,
-              standardize=FALSE)})
+    cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE)})
   # cv2.ridge <- lapply(1:D, function(d) {
   #   sampling(ridge, data=list(p=p[d], n=ntrain, x=xtrain[[d]], y=ytrain[, d], 
   #                             a0=0.001, b0=0.001),
