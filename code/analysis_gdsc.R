@@ -102,7 +102,7 @@ colnames(Z) <- c("clinically approved", "experimental",
 Z <- scale(Z, scale=FALSE)
 C <- lapply(inpathway, function(s) {
   s <- scale(as.matrix(s), scale=FALSE); colnames(s) <- "inpathway"; s})
-fit1.ebridge <- ebridge(x[[1]], y, C, Z, mult.lambda=TRUE,
+fit1.ebridge <- ebridge(x, y, C, Z, mult.lambda=TRUE,
                         hyper=list(lambda=NULL, zeta=0, nu=0),
                         control=list(epsilon=sqrt(.Machine$double.eps), 
                                      maxit=500, trace=TRUE))
@@ -115,7 +115,7 @@ fit1.bSEM <- bSEM(x, split(y, 1:ncol(y)), lapply(inpathway, "+", 1),
 fit1.lasso <- lapply(1:D, function(d) {
   cv.glmnet(x[[d]], y[, d], intercept=FALSE, standardize=FALSE)})
 fit1.ridge <- lapply(1:D, function(d) {
-  cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, standardize=FALSE)})
+  cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE)})
 
 # # saving fitted model objects
 # save(fit1.semnig, fit2.semnig, fit3.semnig, fit4.semnig, fit5.semnig, 
@@ -258,7 +258,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   Z <- scale(Z, scale=FALSE)
   C <- lapply(inpathway, function(s) {
     s <- scale(as.matrix(s), scale=FALSE); colnames(s) <- "inpathway"; s})
-  cv1.ebridge <- ebridge(xtrain[[1]], ytrain, C, Z, mult.lambda=TRUE,
+  cv1.ebridge <- ebridge(xtrain, ytrain, C, Z, mult.lambda=TRUE,
                          hyper=list(lambda=NULL, zeta=0, nu=0),
                          control=list(epsilon=sqrt(.Machine$double.eps), 
                                       maxit=500, trace=FALSE))
@@ -325,15 +325,15 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   
   best <- list(cv1.ebridge$beta1,
                cv1.ebridge$beta2,
-               sapply(cv1.lasso, function(s) {
+               lapply(cv1.lasso, function(s) {
                  as.numeric(coef(s, s="lambda.min"))[-1]}),
-               sapply(cv1.ridge, function(s) {
+               lapply(cv1.ridge, function(s) {
                  as.numeric(coef(s, s="lambda.min"))[-1]}),
-               sapply(cv1.bSEM$vb$beta, "[", 1:p[1]))
+               lapply(cv1.bSEM$vb$beta, "[", 1:p[1]))
   
   # calculating average prediction mean squared error
   pmse <- cbind(sapply(best, function(b) {
-    colMeans((ytest - xtest[[1]] %*% b)^2)}), 
+    sapply(1:D, function(d) {mean((ytest[, d] - xtest[[d]] %*% b[[d]])^2)})}), 
     colMeans((ytest - colMeans(ytest))^2))
   
   # # calculate ELBO for semnig models on training and test data
@@ -357,7 +357,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass",
   #           sum(logcpo(xtest, ytest, ntrain, cv5.semnig), na.rm=TRUE))
   
   # determine the ranks of the model parameter point estimates
-  brank <- c(sapply(best, rank, ties.method="average"))
+  brank <- c(sapply(best, function(s) {rank(unlist(s), ties.method="average")}))
   
   names(brank) <- paste0(
     "brank.", paste0(rep(methods, each=sum(p)), ".",

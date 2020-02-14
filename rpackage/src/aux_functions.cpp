@@ -6,10 +6,34 @@
 // To use functions in Rcpp library without the need of specifying "Rcpp::"
 using namespace Rcpp;
 
+// function to optimise in EBridge (not tested)
+// [[Rcpp::export(".f.optim")]]
+double f.optim(arma::vec alpha, arma::vec lambda, double nu, double zeta, 
+               arma::mat Cmat, arma::mat Z, int n, arma::vec p, int D, int G, 
+               int H, arma::mat y, List x, arma::vec yty) {
+
+  arma::vec alphaf = alpha.head(G);
+  arma::vec alphad = alpha.tail(H);
+
+  arma::vec tau = exp();
+  tau <- exp(colSums(alphad*t(Z))/2)
+  gamma <- exp(colSums(alphaf*t(Cmat))/2)
+  cp <- c(0, cumsum(p))
+  out <- sum(sapply(1:D, function(d) {
+    mat1 <- mat2 <- x[[d]] %*% (t(x[[d]])*lambda[d]^2*tau[d]^2*
+      gamma[(cp[d] + 1):cp[d + 1]]^2);
+    mat1 <- t(y[, d]) %*% mat1;
+    diag(mat2) <- diag(mat2) + 1;
+    -determinant(mat2, log=TRUE)$modulus/2 -
+      (n/2 + nu)*log(zeta + yty[d]/2 - as.numeric(mat1 %*% y[, d])/2 +
+      as.numeric(mat1 %*% solve(mat2) %*% t(mat1))/2)}))
+  return(out)
+}
+
 // calculate full covariance with unpenalized covariates (tested)
 // [[Rcpp::export(".Sigma.unp")]]
 arma::mat Sigma_unp(double aold, arma::vec bold, arma::mat xu, arma::mat xr,
-                int u, int r) {
+                    int u, int r) {
 
   int p = u + r;
   arma::mat xrt = xr.t();

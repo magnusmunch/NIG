@@ -205,12 +205,12 @@ res <- as.matrix(res[, -1])
 rownames(res) <- temp
 boxplot(res[substr(rownames(res), 1, 4)=="pmse", ])
 pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
-mpmse <- aggregate(pmse, list(rownames(pmse)), median)
-pairs(mpmse[, -1])
-
-length()
-sort(rownames(pmse))
-sort(apply(res[substr(rownames(res), 1, 4)=="pmse", ], 2, median))
+mpmse <- aggregate(pmse, list(rep(c(1:10), each=D)), mean)[, -1]
+medpmse <- aggregate(pmse, list(rownames(pmse)), median)[, -1]
+sort(apply(mpmse, 2, median))
+boxplot(mpmse)
+pairs(medpmse, panel=function(x, y) {
+  points(x, y); abline(a=0, b=1)})
 
 sort(apply(res[rownames(res)=="pmse", ], 2, median))
 sort(apply(res[rownames(res)=="elbo", ], 2, median), decreasing=TRUE)

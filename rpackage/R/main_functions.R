@@ -422,6 +422,10 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
+# mult.lambda=TRUE
+# hyper=list(lambda=NULL, zeta=0, nu=0)
+# control=list(epsilon=sqrt(.Machine$double.eps), 
+#              maxit=500, trace=TRUE)
 # EBridge estimation
 ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
@@ -430,7 +434,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
   
   yty <- colSums(y^2)
   Cmat <- Reduce("rbind", C)
-  p <- ncol(x)
+  p <- sapply(x, ncol)
   n <- nrow(y)
   D <- ncol(y)
   H <- ncol(Z)
@@ -438,7 +442,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
   
   if(is.null(hyper$lambda)) {
     cv.fit1 <- lapply(1:D, function(d) {
-      cv.glmnet(x, y[, d], alpha=0, intercept=FALSE)})
+      cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE)})
     if(mult.lambda) {
       hyper$lambda <- 1/sqrt(n*sapply(cv.fit1, "[[", "lambda.min"))
     } else {
@@ -451,7 +455,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
     }
   }
   cv.fit2 <- lapply(1:D, function(d) {
-    glmnet(x, y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
+    glmnet(x[[d]], y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
            intercept=FALSE)})  
   
   control$fnscale=-1
@@ -464,26 +468,26 @@ ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
   alphaf <- opt$par[1:G]
   alphad <- opt$par[-c(1:G)]
   tau <- exp(colSums(alphad*t(Z))/2)
-  gamma <- exp(colSums(alphaf*t(Cmat))/2)
+  gamma <- unname(split(exp(colSums(alphaf*t(Cmat))/2), rep(1:D, p)))
   
-  beta1 <- sapply(1:D, function(d) {
-    h <- tau[d]*gamma[((d - 1)*p + 1):(d*p)]
-    xh <- t(t(x)*h)
+  beta1 <- lapply(1:D, function(d) {
+    h <- tau[d]*gamma[[d]]
+    xh <- t(t(x[[d]])*h)
     fit <- glmnet(xh, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
                   intercept=FALSE)
     unname(coef(fit)[-1, 1])*h
   })
-  beta2 <- sapply(1:D, function(d) {
-    h <- tau[d]*gamma[((d - 1)*p + 1):(d*p)]
-    fit <- glmnet(x, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+  beta2 <- lapply(1:D, function(d) {
+    h <- tau[d]*gamma[[d]]
+    fit <- glmnet(x[[d]], y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
                   intercept=FALSE, penalty.factor=1/h^2)
     unname(coef(fit)[-1, 1])
   })
   
   out <- list(beta1=beta1, beta2=beta2, alphaf=alphaf, alphad=alphad, 
               lambda=hyper$lambda, tau=tau, 
-              gamma=unname(Reduce("cbind", split(gamma, f=rep(c(1:D), 
-                                                              each=p)))))
+              gamma=gamma)
+  
   if(exists("cv.fit1")) {
     out$glmnet.fit1 <- cv.fit1
   } else {
