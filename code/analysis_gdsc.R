@@ -62,7 +62,11 @@ xtrain <- scale(expr.sel[idtrain, ])
 xtest <- scale(expr.sel[-idtrain, ])
 ytrain <- scale(resp.prep[idtrain, ])
 ytest <- scale(resp.prep[-idtrain, ])
-p <- sapply(xtrain, ncol)
+if(is.list(xtrain)) {
+  p <- sapply(xtrain, ncol)
+} else {
+  p <- ncol(xtrain)
+}
 target <- lapply(1:D, function(d) {
   as.numeric((feat.prep$inpathway[[d]] + feat.prep$inpathway[[d]])!=0)[idsel]})
 
