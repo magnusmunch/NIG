@@ -212,6 +212,11 @@ boxplot(mpmse)
 pairs(medpmse, panel=function(x, y) {
   points(x, y); abline(a=0, b=1)})
 
+str(medpmse)
+
+mean(medpmse$EBridge2 <= medpmse$ridge1)
+mean(medpmse$EBridge2 > medpmse$ridge1)
+
 sort(apply(res[rownames(res)=="pmse", ], 2, median))
 sort(apply(res[rownames(res)=="elbo", ], 2, median), decreasing=TRUE)
 sort(apply(res[rownames(res)=="lpml", ], 2, median), decreasing=TRUE)

@@ -40,3 +40,4 @@ feat.prep <- cbind(chifisher=-2*rowSums(log(pvalues)),
                    harmonic=log(rowSums(1/(pvalues*D))))
 rownames(feat.prep) <- colnames(x)
 write.table(feat.prep, file="results/analysis_ccle_res1.txt")
+

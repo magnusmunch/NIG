@@ -61,9 +61,9 @@ fit.bSEM1 <- bSEM(x, split(y, 1:ncol(y)),
 
 # penalized regression models
 fit.lasso1 <- lapply(1:G, function(g) {
-  cv.glmnet(x[[g]], y[, g], intercept=FALSE, standardize=FALSE)})
+  cv.glmnet(x[[g]], y[, g], intercept=FALSE)})
 fit.ridge1 <- lapply(1:G, function(g) {
-  cv.glmnet(x[[g]], y[, g], alpha=0, intercept=FALSE, standardize=FALSE)})
+  cv.glmnet(x[[g]], y[, g], alpha=0, intercept=FALSE)})
 
 # saving fitted model objects
 save(fit.semnig1, fit.semnig2, fit.lasso1, fit.ridge1, fit.bSEM1, 

@@ -10,7 +10,7 @@
 
 # estimate NIG model (not tested)
 semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE, 
-                   intercept=FALSE, fixed.eb="none", 
+                   intercept=FALSE, fixed.eb="none", var.scale=1,
                    full.post=FALSE, init=NULL,
                    control=list(conv.post=TRUE, trace=TRUE,
                                 epsilon.eb=1e-3, epsilon.vb=1e-3,
@@ -35,6 +35,9 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   p <- sapply(1:D, function(d) {u[d] + r[d]})
   ncd <- ifelse(is.null(C), 0, ncol(C[[1]]))
   nzd <- ifelse(is.null(Z), 0, ncol(Z))
+  if(length(var.scale)==1) {
+    var.scale <- rep(var.scale, D)
+  }
   
   # standardize data and add intercept if need be
   xr <- x
@@ -103,13 +106,13 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
       .single.vb.update.unp(init$aold[d], init$bold[[d]], init$gold[[d]], 
                             init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
                             init$lambdad, y[, d], xu[[d]], xr[[d]], yty[d], n, 
-                            u[d], r[d])})
+                            u[d], r[d], var.scale[d])})
   } else {
     old.vb <- lapply(c(1:D), function(d) {
       .single.vb.update(init$aold[d], init$bold[[d]], init$gold[[d]], 
                         init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
                         init$lambdad, y[, d], x[[d]], ytx[[d]], yty[d], n, 
-                        r[d])})  
+                        r[d], var.scale[d])})  
   }
   aux <- lapply(old.vb, function(s) {s$aux})
   old.vb <- setNames(lapply(names(old.vb[[1]])[
@@ -239,13 +242,13 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
             old.vb$a[[d]], ifelse(is.null(C), rep(1, r[d]), old.vb$b[[d]]), 
             old.vb$g[[d]], old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
             old.eb$lambdaf, old.eb$lambdad, y[, d], xu[[d]], xr[[d]], yty[d], 
-            n, u[d], r[d])})  
+            n, u[d], r[d], var.scale[d])})  
       } else {
         new.vb <- lapply(c(1:D), function(d) {
           .single.vb.update(old.vb$a[[d]], old.vb$b[[d]], old.vb$g[[d]],
                             old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
                             old.eb$lambdaf, old.eb$lambdad, y[, d], x[[d]], 
-                            ytx[[d]], yty[d], n, r[d])})  
+                            ytx[[d]], yty[d], n, r[d], var.scale[d])})  
       }
       aux <- lapply(new.vb, function(s) {s$aux})
       new.vb <- setNames(lapply(names(new.vb[[1]])[
@@ -297,11 +300,12 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   if(full.post) {
     if(unp) {
       Sigma <- lapply(1:D, function(d) {
-          .Sigma.unp(old.vb$a[[d]], old.vb$b[[d]]*old.vb$g[[d]], xu[[d]], 
-                     xr[[d]], u[d], r[d])}) 
+          .Sigma.unp(old.vb$a[[d]], old.vb$b[[d]]*old.vb$g[[d]]/var.scale[d], 
+                     xu[[d]], xr[[d]], u[d], r[d])}) 
     } else {
       Sigma <- lapply(1:D, function(d) {
-        .Sigma(old.vb$a[[d]], old.vb$b[[d]]*old.vb$g[[d]], x[[d]])})  
+        .Sigma(old.vb$a[[d]], old.vb$b[[d]]*old.vb$g[[d]]/var.scale[d], 
+               x[[d]])})  
     }
   } else {
     Sigma <- lapply(aux, "[[", "dSigma")  
@@ -422,78 +426,136 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
+# library(Rcpp)
+# sourceCpp("rpackage/src/aux_functions.cpp")
+# x <- xtrain
+# y <- ytrain
 # mult.lambda=TRUE
-# hyper=list(lambda=NULL, zeta=0, nu=0)
-# control=list(epsilon=sqrt(.Machine$double.eps), 
-#              maxit=500, trace=TRUE)
+# hyper=list(lambda=0.01, zeta=0, nu=0)
+# control=list(epsilon=sqrt(.Machine$double.eps),
+#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
 # EBridge estimation
-ebridge <- function(x, y, C, Z, mult.lambda=FALSE,
+ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
                     control=list(epsilon=sqrt(.Machine$double.eps), 
-                                 maxit=500, trace=FALSE)) {
+                                 maxit=500, trace=FALSE, glmnet.fit2=FALSE)) {
   
   yty <- colSums(y^2)
   Cmat <- Reduce("rbind", C)
-  p <- sapply(x, ncol)
+  if(is.list(x)) {
+    p <- sapply(x, ncol)
+  } else {
+    p <- ncol(x)
+  }
   n <- nrow(y)
   D <- ncol(y)
   H <- ncol(Z)
   G <- ncol(Cmat)
   
+  if(is.null(foldid)) {
+    foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
+                       rep(1:(n %% nfolds), (n %% nfolds)!=0)))
+  }
+  
   if(is.null(hyper$lambda)) {
-    cv.fit1 <- lapply(1:D, function(d) {
-      cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE)})
+    srt <- proc.time()[3]
+    if(control$trace) {
+      cat("\r", "Cross-validating penalty parameters")
+    }
+    if(is.list(x)) {
+      cv.fit1 <- lapply(1:D, function(d) {
+        cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, foldid=foldid)})  
+    } else {
+      cv.fit1 <- lapply(1:D, function(d) {
+        cv.glmnet(x, y[, d], alpha=0, intercept=FALSE, foldid=foldid)})  
+    }
     if(mult.lambda) {
       hyper$lambda <- 1/sqrt(n*sapply(cv.fit1, "[[", "lambda.min"))
     } else {
       hyper$lambda <- rep(1/sqrt(n*exp(mean(log(sapply(cv.fit1, "[[", 
                                                        "lambda.min"))))), D)  
     }
+    cv.time <- proc.time()[3] - srt
   } else {
     if(length(hyper$lambda)==1) {
       hyper$lambda <- rep(hyper$lambda, D)  
     }
+    cv.time <- 0
   }
-  cv.fit2 <- lapply(1:D, function(d) {
-    glmnet(x[[d]], y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
-           intercept=FALSE)})  
+  if(control$glmnet.fit2) {
+    if(is.list(x)) {
+      cv.fit2 <- lapply(1:D, function(d) {
+        glmnet(x[[d]], y[, d], alpha=0, 
+               lambda=1/(exp(2*mean(log(hyper$lambda)))*n), intercept=FALSE)})    
+    } else {
+      cv.fit2 <- lapply(1:D, function(d) {
+        glmnet(x, y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
+               intercept=FALSE)})
+    }
+  }
   
   control$fnscale=-1
   names(control)[1] <- "reltol"
-  opt <- optim(par=rep(0, H + G), fn=.f.optim, lambda=hyper$lambda, 
-               nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, G=G, 
-               y=y, x=x, yty=yty, control=control)
+  srt <- proc.time()[3]
+  if(control$trace) {
+    cat("\r", "Estimating EB parameters")
+  }
+  if(is.list(x)) {
+    opt <- optim(par=rep(0, H + G), fn=.f.optim.mult, lambda=hyper$lambda, 
+                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
+                 G=G, H=H, y=y, x=x, yty=yty, 
+                 control=control[names(control)!="glmnet.fit2"])
+  } else {
+    opt <- optim(par=rep(0, H + G), fn=.f.optim, lambda=hyper$lambda, 
+                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
+                 G=G, H=H, y=y, x=x, yty=yty, 
+                 control=control[names(control)!="glmnet.fit2"])
+  }
+  eb.time <- proc.time()[3] - srt
   conv <- opt$convergence
   niter <- unname(opt$counts[1])
   alphaf <- opt$par[1:G]
   alphad <- opt$par[-c(1:G)]
   tau <- exp(colSums(alphad*t(Z))/2)
-  gamma <- unname(split(exp(colSums(alphaf*t(Cmat))/2), rep(1:D, p)))
+  gamma <- lapply(C, function(s) {exp(colSums(alphaf*t(s))/2)})
   
   beta1 <- lapply(1:D, function(d) {
     h <- tau[d]*gamma[[d]]
-    xh <- t(t(x[[d]])*h)
+    if(is.list(x)) {
+      xh <- t(t(x[[d]])*h)
+    } else {
+      xh <- t(t(x)*h)
+    } 
     fit <- glmnet(xh, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
-                  intercept=FALSE)
+                  standardize=FALSE, intercept=FALSE)
     unname(coef(fit)[-1, 1])*h
   })
   beta2 <- lapply(1:D, function(d) {
     h <- tau[d]*gamma[[d]]
-    fit <- glmnet(x[[d]], y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
-                  intercept=FALSE, penalty.factor=1/h^2)
+    if(is.list(x)) {
+      fit <- glmnet(x[[d]], y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+                    intercept=FALSE, penalty.factor=1/h^2)
+    } else {
+      fit <- glmnet(x, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+                    intercept=FALSE, penalty.factor=1/h^2)
+    }
     unname(coef(fit)[-1, 1])
   })
   
   out <- list(beta1=beta1, beta2=beta2, alphaf=alphaf, alphad=alphad, 
               lambda=hyper$lambda, tau=tau, 
-              gamma=gamma)
+              gamma=gamma, time=list(cv.time=cv.time, eb.time=eb.time))
   
   if(exists("cv.fit1")) {
     out$glmnet.fit1 <- cv.fit1
   } else {
     out$glmnet.fit1 <- NULL
   }
-  out$glmnet.fit2 <- cv.fit2
+  if(exists("cv.fit2")) {
+    out$glmnet.fit2 <- cv.fit2  
+  } else {
+    out$glmnet.fit2 <- NULL
+  }
   
   return(out)
   

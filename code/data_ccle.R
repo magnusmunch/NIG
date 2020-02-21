@@ -1,7 +1,6 @@
 #!/usr/bin/env Rscript
 
 ################################ reading data ##################################
-# loading the data either from a local file or from the GDSC website
 resp <- read.table("data/CCLE_NP24.2009_Drug_data_2015.02.24.csv", 
                    header=TRUE, sep=",", stringsAsFactors=FALSE)
 

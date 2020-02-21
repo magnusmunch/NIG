@@ -2,6 +2,7 @@
 
 ### libraries
 library(gdata)
+library(biomaRt)
 
 ################################ reading data ##################################
 # loading the data either from a local file or from the GDSC website
@@ -355,6 +356,62 @@ notes <- c("RTK is a family, many of which have identified pathways",
            "Cytoskeleton consists of actin and tubulin",
            "P53 is the same as TP53")
 
+# cleaning targets
+targets <- drug.prep$targets
+targets[2] <- gsub("&", "and", targets[2])
+targets[26] <- "FLT1, FLT3, FLT4, KIT, MET, RET, Tie2, AXL, TIE2, AXL, VEGFR"
+targets[36] <- gsub(" and", ",", targets[36])
+targets[46] <- "PPARdelta, PPARgamma"
+targets[47] <- gsub("/", ", ", targets[47])
+targets[81] <- gsub("and", "family,", targets[81])
+targets[111] <- "AAPK1 agonist, AMPK agonist, Biguanide agent"
+targets[155] <- "HDAC, RAR"
+targets[156] <- paste(paste0("HDAC inhibitor Class ", 
+                             c("I", "IIa", "IIb", "IV")),
+                      collapse=", ")
+targets[-c(2, 36, 99, 113, 168)] <- 
+  sapply(targets[-c(2, 36, 99, 113, 168)], function(s) {
+    gsub(")", "", gsub("(", ", ", gsub(" (", ", ", s, fixed=TRUE), fixed=TRUE), 
+         fixed=TRUE)}, USE.NAMES=FALSE)
+targets <- sapply(targets, function(s) {
+  paste(unique(strsplit(s, ", ")[[1]]), collapse=", ")}, USE.NAMES=FALSE)
+
+# matching targets to ensembl ids
+ensembl <- useMart("ensembl",dataset="hsapiens_gene_ensembl")
+# View(listFilters(ensembl))
+# View(listAttributes((ensembl)))
+query1 <- getBM(attributes=c("ensembl_gene_id", "external_gene_name"), 
+                filters="external_gene_name", 
+                values=unique(na.omit(unlist(strsplit(targets,", ")))), 
+                mart=ensembl)  
+query2 <- getBM(attributes=c("ensembl_gene_id", "external_synonym"), 
+                filters="external_synonym", 
+                values=unique(na.omit(unlist(strsplit(targets,", ")))), 
+                mart=ensembl)  
+query3 <- getBM(attributes=c("ensembl_gene_id", "entrezgene_accession"), 
+                filters="entrezgene_accession", 
+                values=unique(na.omit(unlist(strsplit(targets,", ")))), 
+                mart=ensembl)  
+query4 <- getBM(attributes=c("ensembl_gene_id", "wikigene_name"), 
+                filters="wikigene_name", 
+                values=unique(na.omit(unlist(strsplit(targets,", ")))), 
+                mart=ensembl)  
+colnames(query1) <- colnames(query2) <- colnames(query3) <- colnames(query4) <-
+  c("ensembl_gene_id", "gene_name")
+query <- rbind(query1, query2, query3, query4)
+query <- query[!duplicated(query), ]
+query <- query[!is.na(query$gene_name), ]
+targets_ensembl_gene_id <- sapply(targets, function(s) {
+  vec <- unique(unlist(sapply(strsplit(s, ", ")[[1]], function(m) {
+    query$ensembl_gene_id[query$gene_name==m]}, USE.NAMES=FALSE)))
+  vec <- paste(vec[length(vec)!=0], collapse=", ")
+  ifelse(vec=="", NA, vec)}, USE.NAMES=FALSE)
+drug.prep <- cbind(drug.prep[, c(1:4)], targets=targets,
+                   targets_ensembl_gene_id=targets_ensembl_gene_id,
+                   drug.prep[, -c(1:4)])
+rm(targets, query1, query2, query3, query4, query, targets_ensembl_gene_id, 
+   ensembl)
+
 # link drugs to ensembl symbols in their pathway
 drug.reactomeid <- sapply(drug.prep$pathways, function(s) {
   pathwayid$reactomeid[match(strsplit(s, ", ")[[1]], pathwayid$pathway)]})
@@ -365,11 +422,15 @@ drug.ensemblid <- sapply(1:nrow(drug.prep), function(d) {
 # determine for every feature whether it is in the target pathway or not
 inpathway <- lapply(1:nrow(drug.prep), function(d) {
   as.numeric(colnames(expr.prep) %in% drug.ensemblid[[d]])})
+istarget <- lapply(1:nrow(drug.prep), function(d) {
+  val <- ifelse(is.na(drug.prep$targets_ensembl_gene_id[d]), "",
+                drug.prep$targets_ensembl_gene_id[d])
+  as.numeric(colnames(expr.prep) %in% strsplit(val, ", ")[[1]])})
 
 # create object that contains feature information
-feat.prep <- list(inpathway=inpathway)
-rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway,
-   drug, expr, resp, cell, meth, meth1, meth2, mut, mut1)
+feat.prep <- list(inpathway=inpathway, istarget=istarget)
+rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway, 
+   istarget, drug, expr, resp, cell, meth, meth1, meth2, mut, mut1)
 
 save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep, mut.prep,
      file="data/data_gdsc_dat1.Rdata")

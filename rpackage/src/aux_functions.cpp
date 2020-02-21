@@ -6,29 +6,67 @@
 // To use functions in Rcpp library without the need of specifying "Rcpp::"
 using namespace Rcpp;
 
-// function to optimise in EBridge (not tested)
-// // [[Rcpp::export(".f.optim")]]
-// double f.optim(arma::vec alpha, arma::vec lambda, double nu, double zeta, 
-//                arma::mat Cmat, arma::mat Z, int n, arma::vec p, int D, int G, 
-//                int H, arma::mat y, List x, arma::vec yty) {
-// 
-//   arma::vec alphaf = alpha.head(G);
-//   arma::vec alphad = alpha.tail(H);
-// 
-//   arma::vec tau = exp();
-//   tau <- exp(colSums(alphad*t(Z))/2)
-//   gamma <- exp(colSums(alphaf*t(Cmat))/2)
-//   cp <- c(0, cumsum(p))
-//   out <- sum(sapply(1:D, function(d) {
-//     mat1 <- mat2 <- x[[d]] %*% (t(x[[d]])*lambda[d]^2*tau[d]^2*
-//       gamma[(cp[d] + 1):cp[d + 1]]^2);
-//     mat1 <- t(y[, d]) %*% mat1;
-//     diag(mat2) <- diag(mat2) + 1;
-//     -determinant(mat2, log=TRUE)$modulus/2 -
-//       (n/2 + nu)*log(zeta + yty[d]/2 - as.numeric(mat1 %*% y[, d])/2 +
-//       as.numeric(mat1 %*% solve(mat2) %*% t(mat1))/2)}))
-//   return(out)
-// }
+// function to optimise in EBridge with one x (not tested)
+// [[Rcpp::export(".f.optim")]]
+double f_optim(arma::vec alpha, arma::vec lambda, double nu, double zeta,
+               arma::mat Cmat, arma::mat Z, int n, int p, int D, 
+               int G, int H, arma::mat y, arma::mat x, arma::vec yty) {
+  
+  arma::vec alphaf = alpha.head(G);
+  arma::vec alphad = alpha.tail(H);
+  
+  arma::vec tau = exp(0.5*Z*alphad);
+  arma::vec gamma = exp(0.5*Cmat*alphaf);
+  arma::vec out(D);
+  for(int d=0; d<D; d++) {
+    arma::rowvec mat1(n); 
+    arma::mat mat2(n, n);
+    
+    mat2 = x*trans(x.each_row() % square(lambda(d)*tau(d)*
+      gamma.subvec(d*p, (d + 1)*p - 1).t()));
+    mat1 = y.col(d).t()*mat2;
+    mat2.diag() += 1;
+    out(d) = -0.5*real(log_det(mat2)) -
+      (n/2 + nu)*log(zeta + arma::conv_to<double>::from(
+          0.5*yty(d) - 0.5*mat1*y.col(d) + 0.5*mat1*mat2.i()*mat1.t()));
+    
+  }
+  double val = sum(out);
+  return val;
+}
+
+// function to optimise in EBridge with multiple x (not tested)
+// [[Rcpp::export(".f.optim.mult")]]
+double f_optim_mult(arma::vec alpha, arma::vec lambda, double nu, double zeta,
+                    arma::mat Cmat, arma::mat Z, int n, arma::vec p, int D, 
+                    int G, int H, arma::mat y, List x, arma::vec yty) {
+
+  arma::vec alphaf = alpha.head(G);
+  arma::vec alphad = alpha.tail(H);
+
+  arma::vec tau = exp(0.5*Z*alphad);
+  arma::vec gamma = exp(0.5*Cmat*alphaf);
+  arma::vec cp(D + 1);
+  cp.subvec(1, D) = cumsum(p);
+  cp(0) = 0;
+  arma::vec out(D);
+  for(int d=0; d<D; d++) {
+    arma::rowvec mat1(n); 
+    arma::mat mat2(n, n);
+    arma::mat cx = x[d];
+
+    mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
+      gamma.subvec(cp(d), cp(d + 1) - 1).t()));
+    mat1 = y.col(d).t()*mat2;
+    mat2.diag() += 1;
+    out(d) = -0.5*real(log_det(mat2)) -
+      (n/2 + nu)*log(zeta + arma::conv_to<double>::from(
+          0.5*yty(d) - 0.5*mat1*y.col(d) + 0.5*mat1*mat2.i()*mat1.t()));
+
+  }
+  double val = sum(out);
+  return val;
+}
 
 // calculate full covariance with unpenalized covariates (tested)
 // [[Rcpp::export(".Sigma.unp")]]
