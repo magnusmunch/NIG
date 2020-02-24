@@ -261,7 +261,8 @@ fit2.ebridge <- ebridge(xtrain, ytrain, C, Z, mult.lambda=TRUE, foldid=foldid,
                         hyper=list(lambda=fit1.ebridge$lambda, zeta=0, nu=0),
                         control=list(epsilon=sqrt(.Machine$double.eps), 
                                      maxit=500, trace=TRUE, glmnet.fit2=FALSE))
-save(fit1.ebridge, fit2.ebridge, file="results/analysis_gdsc_fit1.2.Rdata")
+save(fit1.ebridge, fit2.ebridge, description, 
+     file="results/analysis_gdsc_fit1.3.Rdata")
 # load(file="results/analysis_gdsc_fit1.2.Rdata")
 
 
@@ -292,15 +293,15 @@ sort(c(ebridge1=mean(pmse1.ebridge), ebridge2=mean(pmse2.ebridge),
   ebridge3=mean(pmse3.ebridge), ebridge4=mean(pmse4.ebridge), 
   ridge=mean(pmse1.ridge), null=mean(pmse.null)))
 
-mean(pmse1.ridge)
-mean(pmse1.ebridge)
-mean(pmse2.ebridge)
 plot((pmse.null - pmse1.ridge)/pmse.null, cex=0.5, pch=16, 
-     ylim=range((pmse.null - c(pmse1.ebridge, pmse1.ridge))/pmse.null),
+     ylim=range((pmse.null - c(pmse3.ebridge, pmse1.ridge))/pmse.null),
      xlab="Drug", ylab="MSE reduction as fraction of null")
-points((pmse.null - pmse1.ebridge)/pmse.null, cex=0.5, pch=16, col=2)
-abline(v=order(abs(pmse1.ridge - pmse1.ebridge)/pmse.null, 
-               decreasing=TRUE)[c(1:5)], lty=2)
+points((pmse.null - pmse3.ebridge)/pmse.null, cex=0.5, pch=16, col=2)
+abline(v=order(abs(pmse1.ridge - pmse3.ebridge)/pmse.null, 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=as.numeric((pmse1.ridge - pmse3.ebridge > 0) + 1)[
+         order(abs(pmse1.ridge - pmse3.ebridge)/pmse.null, 
+               decreasing=TRUE)[c(1:5)]])
 legend("topleft", c("CV", "CV + EB"), pch=16, col=c(1, 2))
 
 id.max <- which.max(abs(pmse1.ridge - pmse2.ebridge)/pmse.null)
