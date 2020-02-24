@@ -4,6 +4,9 @@
 library(gdata)
 library(biomaRt)
 
+### biomart
+ensembl <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
+
 ################################ reading data ##################################
 # loading the data either from a local file or from the GDSC website
 if(file.exists("data/v17.3_fitted_dose_response.csv")) {
@@ -98,6 +101,10 @@ mut1 <- read.table(unz("data/CellLines_CG_BEMs.zip",
 meth1 <- read.table(unz("data/METH_CELL_DATA.txt.zip", "F2_METH_CELL_DATA.txt"), 
                     header=TRUE)
 meth2 <- read.xls("data/methSampleId_2_cosmicIds.xlsx", stringsAsFactors=FALSE)
+
+# Cancer Gene Census (https://cancer.sanger.ac.uk/census)
+census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
+                     stringsAsFactors=FALSE, sep=",", quote='"')
 
 ################################ data cleaning #################################
 # prepping mutation data
@@ -377,7 +384,6 @@ targets <- sapply(targets, function(s) {
   paste(unique(strsplit(s, ", ")[[1]]), collapse=", ")}, USE.NAMES=FALSE)
 
 # matching targets to ensembl ids
-ensembl <- useMart("ensembl",dataset="hsapiens_gene_ensembl")
 # View(listFilters(ensembl))
 # View(listAttributes((ensembl)))
 query1 <- getBM(attributes=c("ensembl_gene_id", "external_gene_name"), 
@@ -427,10 +433,29 @@ istarget <- lapply(1:nrow(drug.prep), function(d) {
                 drug.prep$targets_ensembl_gene_id[d])
   as.numeric(colnames(expr.prep) %in% strsplit(val, ", ")[[1]])})
 
-# create object that contains feature information
-feat.prep <- list(inpathway=inpathway, istarget=istarget)
-rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway, 
-   istarget, drug, expr, resp, cell, meth, meth1, meth2, mut, mut1)
+# cancer gene census cleaning
+cancergene <- strsplit(census$Synonyms, ",")
+cancergene <- sapply(cancergene, function(s) {
+  s <- unlist(strsplit(s[which(substring(s, 1, 4)=="ENSG")], ".", 
+                       fixed=TRUE))[1];
+  ifelse(is.null(s), NA, s)})
 
-save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep, mut.prep,
+# View(listFilters(ensembl))
+# View(listAttributes((ensembl)))
+query <- getBM(attributes=c("ensembl_gene_id", "external_gene_name"), 
+               filters="external_gene_name", 
+               values=na.omit(census$Gene.Symbol[is.na(cancergene)]), 
+               mart=ensembl)  
+cancergene[match(query$external_gene_name, census$Gene.Symbol)] <- 
+  query$external_gene_name
+census$ensembl_gene_id <- cancergene
+cancergene <- as.numeric(colnames(expr.prep) %in% cancergene)
+
+# create object that contains feature information
+feat.prep <- list(inpathway=inpathway, istarget=istarget, cancergene=cancergene)
+rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway, 
+   istarget, drug, expr, resp, cell, meth, meth1, meth2, mut, mut1, census,
+   cancergene)
+
+save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep, mut.prep, 
      file="data/data_gdsc_dat1.Rdata")

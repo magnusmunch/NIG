@@ -190,6 +190,10 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
                             "Zalphad")]
       }
       new.eb <- c(new.ebf, new.ebd)
+      if(fixed.eb=="lambda") {
+        new.eb["lambdad"] <- old.eb["lambdad"]
+        new.eb["lambdaf"] <- old.eb["lambdaf"]
+      }
       
       # paste new hyperparameters to previous
       seq.eb <- sapply(names(seq.eb), function(s) {

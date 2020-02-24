@@ -51,15 +51,29 @@ resp.prep <- resp[rownames(resp) %in% rownames(expr), ]
 # create data objects used in fitting
 set.seed(2020)
 D <- ncol(resp.prep)
-psel <- ncol(expr.prep)
+# psel <- ncol(expr.prep)
+# psel <- 1000
+psel <- 500
 o <- order(-apply(expr.prep, 2, sd))
-idsel <- which(o %in% c(1:psel))
-expr.sel <- expr.prep[, idsel]
+d <- 1
+idsel <- sapply(1:D, function(d) {
+  s <- as.numeric((feat.prep$inpathway[[d]] + feat.prep$inpathway[[d]])!=0)
+  id1 <- which(s==1)
+  m0 <- o[o %in% which(s==0)]; id0 <- head(m0, n=psel)
+  c(id1, id0)})
+# idsel <- which(o %in% c(1:psel))
+# expr.sel <- expr.prep[, idsel]
+expr.sel <- sapply(idsel, function(s) {expr.prep[, s]})
 n <- nrow(resp.prep)
 ntrain <- floor(n/2)
 idtrain <- sample(1:n, ntrain)
-xtrain <- scale(expr.sel[idtrain, ])
-xtest <- scale(expr.sel[-idtrain, ])
+if(is.list(expr.sel)) {
+  xtrain <- lapply(expr.sel, function(s) {s[idtrain, ]})
+  xtest <- lapply(expr.sel, function(s) {s[-idtrain, ]})
+} else {
+  xtrain <- scale(expr.sel[idtrain, ])
+  xtest <- scale(expr.sel[-idtrain, ])  
+}
 ytrain <- scale(resp.prep[idtrain, ])
 ytest <- scale(resp.prep[-idtrain, ])
 if(is.list(xtrain)) {
@@ -67,8 +81,12 @@ if(is.list(xtrain)) {
 } else {
   p <- ncol(xtrain)
 }
+# target <- lapply(1:D, function(d) {
+#   as.numeric((feat.prep$inpathway[[d]] + feat.prep$inpathway[[d]])!=0)[idsel]})
 target <- lapply(1:D, function(d) {
-  as.numeric((feat.prep$inpathway[[d]] + feat.prep$inpathway[[d]])!=0)[idsel]})
+  rep(c(1, 0), c(sum((feat.prep$inpathway[[d]] + feat.prep$inpathway[[d]])!=0),
+                 psel))})
+cancergene <- sapply(idsel, function(s) {feat.prep$cancergene[s]})
 
 ### model fitting
 # setting seed
@@ -92,17 +110,115 @@ foldid <- sample(c(rep(1:nfolds, each=ntrain %/% nfolds),
 #                       standardize=FALSE, intercept=FALSE, fixed.eb="none",
 #                       full.post=TRUE, init=NULL, control=control)
 # 
-# # models with external covariates
-# Z <- model.matrix(~ replace(drug.prep$stage, is.na(drug.prep$stage),
-#                             "experimental") + replace(drug.prep$action, is.na(
-#                               drug.prep$action), "unknown"))
-# colnames(Z) <- c("intercept", "experimental", "in clinical development",
-#                  "targeted", "unknown")
-# C <- lapply(inpathway, function(s) {
-#   s <- cbind(1, s); colnames(s) <- c("intercept", "in pathway"); return(s)})
-# fit2.semnig <- semnig(x=x, y=y, C=C, Z=Z, unpenalized=NULL,
-#                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
-#                       full.post=TRUE, init=NULL, control=control)
+# models with external covariates
+control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
+                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
+Z <- model.matrix(~ replace(drug.prep$stage, is.na(drug.prep$stage),
+                            "experimental") + replace(drug.prep$action, is.na(
+                              drug.prep$action), "unknown"))
+colnames(Z) <- c("intercept", "experimental", "in clinical development",
+                 "targeted", "unknown")
+C <- lapply(1:D, function(d) {
+  s <- cbind(1, target[[d]], cancergene[[d]]); 
+  colnames(s) <- c("intercept", "target", "cancergene"); return(s)})
+if(is.list(xtrain)) {
+  fit2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+  fit3.semnig <- semnig(x=xtrain, y=ytrain, C=C, 
+                        Z=matrix(1, nrow=D, ncol=1, 
+                                 dimnames=list(NULL, "intercept")), 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+  fit4.semnig <- semnig(x=xtrain, y=ytrain, C=lapply(C, function(s) {s[, -2]}), 
+                        Z=Z, 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+} else {
+  fit2.semnig <- semnig(x=replicate(D, list(xtrain)), y=ytrain, C=C, Z=Z, 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+  fit3.semnig <- semnig(x=replicate(D, list(xtrain)), y=ytrain, C=C, 
+                        Z=matrix(1, nrow=D, ncol=1, 
+                                 dimnames=list(NULL, "intercept")), 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+  fit4.semnig <- semnig(x=replicate(D, list(xtrain)), y=ytrain, 
+                        C=lapply(C, function(s) {s[, -2]}), Z=Z, 
+                        unpenalized=NULL, standardize=FALSE, intercept=FALSE, 
+                        fixed.eb="lambda", full.post=TRUE, init=NULL, 
+                        control=control)
+}
+const.gamma.cal <- sapply(fit2.semnig$vb$mpost$gamma.sq, function(s) {
+  exp(-sum(log(s))/length(s))})
+gamma.cal <- lapply(1:D, function(d) {
+  sqrt(fit2.semnig$vb$mpost$gamma.sq[[d]]*const.gamma.cal[d])})
+const.tau.cal <- exp(-sum(log(fit2.semnig$vb$mpost$tau.sq))/D)
+tau.cal <- sqrt(fit2.semnig$vb$mpost$tau.sq*const.tau.cal)
+
+if(is.list(xtrain)) {
+  test1.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], foldid=foldid, alpha=0,
+              intercept=FALSE, penalty.factor=1/(gamma.cal[[d]]*tau.cal[d])^2)})
+  test2.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], foldid=foldid, alpha=0, 
+              intercept=FALSE)})
+} else {
+  test1.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[, d], foldid=foldid, alpha=0,
+              intercept=FALSE, penalty.factor=1/(gamma.cal[[d]]*tau.cal[d])^2)})
+  test2.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[, d], foldid=foldid, alpha=0, intercept=FALSE)})
+}
+
+if(is.list(xtrain)) {
+  pred1.semnig <- sapply(1:D, function(d) {
+    fit2.semnig$vb$mu[[d]] %*% t(xtest[[d]])})
+  pred2.semnig <- sapply(1:D, function(d) {
+    fit3.semnig$vb$mu[[d]] %*% t(xtest[[d]])})
+  pred3.semnig <- sapply(1:D, function(d) {
+    fit4.semnig$vb$mu[[d]] %*% t(xtest[[d]])})
+  pred1.ridge <- sapply(1:D, function(d) {
+    predict(test1.ridge[[d]], newx=xtest[[d]], s="lambda.min")})
+  pred2.ridge <- sapply(1:D, function(d) {
+    predict(test2.ridge[[d]], newx=xtest[[d]], s="lambda.min")})
+} else {
+  pred1.semnig <- sapply(fit2.semnig$vb$mu, "%*%", t(xtest))
+  pred2.semnig <- sapply(fit3.semnig$vb$mu, "%*%", t(xtest))
+  pred1.ridge <- sapply(test1.ridge, predict, newx=xtest, s="lambda.min")
+  pred2.ridge <- sapply(test2.ridge, predict, newx=xtest, s="lambda.min")
+}
+
+library(GRridge)
+part <- sapply(1:D, function(d) {CreatePartition(as.factor(C[[d]][, 2]))})
+fit1.grridge <- sapply(1:D, function(d) {
+  if(length(part[[d]])==1) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE)
+  } else {
+    grridge(t(xtrain[[d]]), ytrain[, d], unpenal=~0, 
+            partitions=list(target=part[[d]]))
+  }})
+  
+
+pmse1.semnig <- colMeans((ytest - pred1.semnig)^2)
+pmse2.semnig <- colMeans((ytest - pred2.semnig)^2)
+pmse3.semnig <- colMeans((ytest - pred3.semnig)^2)
+pmse1.ridge <- colMeans((ytest - pred1.ridge)^2)
+pmse2.ridge <- colMeans((ytest - pred2.ridge)^2)
+
+sort(c(semnig1=mean(pmse1.semnig), semnig2=mean(pmse2.semnig),
+       semnig3=mean(pmse3.semnig),
+       ridge1=mean(pmse1.ridge), ridge2=mean(pmse2.ridge)))
+
+pairs(cbind(semnig1=c(pred1.semnig), semnig2=c(pred2.semnig),
+            ridge1=c(pred1.ridge), ridge2=c(pred2.ridge)),
+      panel=function(x, y) {points(x, y); abline(a=0, b=1, col=2)})
+
 # fit3.semnig <- semnig(x=x, y=y, C=C, Z=NULL, unpenalized=NULL,
 #                       standardize=FALSE, intercept=FALSE, fixed.eb=FALSE,
 #                       full.post=TRUE, init=NULL, control=control)
