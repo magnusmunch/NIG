@@ -1,10 +1,11 @@
-# x=x; y=y; C=C; Z=Z; unpenalized=NULL;
-# standardize=FALSE; intercept=FALSE; fixed.eb="none";
-# full.post=FALSE; init=NULL; control=control
-# control$maxit.block <- 2
-# 
+# x=xtrain; y=ytrain; C=C; Z=Z; unpenalized=NULL;
+# standardize=FALSE; intercept=FALSE; fixed.eb="lambda"; var.scale=1;
+# full.post=TRUE; init=NULL; control=control
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
+# source("rpackage/R/vb_functions.R")
+# source("rpackage/R/aux_functions.R")
+# source("rpackage/R/eb_functions.R")
 # detach("package:cambridge", unload=TRUE)
 # library(cambridge)
 
@@ -24,8 +25,8 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   unp <- intercept | !is.null(unpenalized)
   
   # fixed parameters
-  D <- ncol(y)
-  n <- nrow(y)
+  D <- length(y)
+  n <- sapply(y, length)
   if(is.null(unpenalized)) {
     u <- rep(intercept, D)
   } else {
@@ -47,7 +48,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   }
   if(intercept) {
     if(is.null(xu)) {
-      xu <- rep(list(matrix(1, nrow=n, ncol=1)), D)
+      xu <- lapply(1:D, function(d) {matrix(1, nrow=n[d], ncol=1)})
     } else {
       xu <- lapply(xu, function(s) {cbind(1, s)})  
     }
@@ -57,9 +58,9 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   Cmat <- Reduce("rbind", C)
   
   # fixed data functions
-  yty <- colSums(y^2)
+  yty <- sapply(y, function(s) {sum(s^2)})
   if(!unp) {
-    ytx <- lapply(1:D, function(d) {as.numeric(y[, d] %*% x[[d]])})  
+    ytx <- lapply(1:D, function(d) {colSums(y[[d]]*x[[d]])})  
   }
   
   # set initial values if not given
@@ -105,13 +106,13 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
     old.vb <- lapply(c(1:D), function(d) {
       .single.vb.update.unp(init$aold[d], init$bold[[d]], init$gold[[d]], 
                             init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
-                            init$lambdad, y[, d], xu[[d]], xr[[d]], yty[d], n, 
-                            u[d], r[d], var.scale[d])})
+                            init$lambdad, y[[d]], xu[[d]], xr[[d]], yty[d], 
+                            n[d], u[d], r[d], var.scale[d])})
   } else {
     old.vb <- lapply(c(1:D), function(d) {
       .single.vb.update(init$aold[d], init$bold[[d]], init$gold[[d]], 
                         init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
-                        init$lambdad, y[, d], x[[d]], ytx[[d]], yty[d], n, 
+                        init$lambdad, y[[d]], x[[d]], ytx[[d]], yty[d], n[d], 
                         r[d], var.scale[d])})  
   }
   aux <- lapply(old.vb, function(s) {s$aux})
@@ -121,10 +122,10 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   
   # calculate ELBO
   old.elbo <- sapply(1:D, function(d) {
-    .single.elbo(p[d], n, old.vb$zeta[[d]], yty[[d]], aux[[d]], old.vb$g[[d]],
-                 old.vb$b[[d]], old.vb$delta[[d]], old.vb$eta[[d]],
-                 old.eb$lambdaf, old.eb$lambdad, old.eb$Zalphad[[d]],
-                 old.eb$Calphaf[[d]])})
+    .single.elbo(p[d], n[d], old.vb$zeta[[d]], yty[[d]], aux[[d]], 
+                 old.vb$g[[d]], old.vb$b[[d]], old.vb$delta[[d]], 
+                 old.vb$eta[[d]], old.eb$lambdaf, old.eb$lambdad, 
+                 old.eb$Zalphad[[d]], old.eb$Calphaf[[d]])})
   
   # prepare objects to store EB and ELBO iterations
   seq.eb <- old.eb
@@ -245,14 +246,14 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
           .single.vb.update.unp(
             old.vb$a[[d]], ifelse(is.null(C), rep(1, r[d]), old.vb$b[[d]]), 
             old.vb$g[[d]], old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
-            old.eb$lambdaf, old.eb$lambdad, y[, d], xu[[d]], xr[[d]], yty[d], 
-            n, u[d], r[d], var.scale[d])})  
+            old.eb$lambdaf, old.eb$lambdad, y[[d]], xu[[d]], xr[[d]], yty[d], 
+            n[d], u[d], r[d], var.scale[d])})  
       } else {
         new.vb <- lapply(c(1:D), function(d) {
           .single.vb.update(old.vb$a[[d]], old.vb$b[[d]], old.vb$g[[d]],
                             old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
-                            old.eb$lambdaf, old.eb$lambdad, y[, d], x[[d]], 
-                            ytx[[d]], yty[d], n, r[d], var.scale[d])})  
+                            old.eb$lambdaf, old.eb$lambdad, y[[d]], x[[d]], 
+                            ytx[[d]], yty[d], n[d], r[d], var.scale[d])})  
       }
       aux <- lapply(new.vb, function(s) {s$aux})
       new.vb <- setNames(lapply(names(new.vb[[1]])[
@@ -290,7 +291,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
    
     # calculate ELBO
     new.elbo <- sapply(1:D, function(d) {
-      .single.elbo(p[d], n, new.vb$zeta[[d]], yty[[d]], aux[[d]],
+      .single.elbo(p[d], n[d], new.vb$zeta[[d]], yty[[d]], aux[[d]],
                    new.vb$g[[d]], new.vb$b[[d]], new.vb$delta[[d]],
                    new.vb$eta[[d]], new.eb$lambdaf, new.eb$lambdad,
                    new.eb$Zalphad[[d]], new.eb$Calphaf[[d]])})
@@ -319,7 +320,8 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   if(control$conv.post) {
     post.time <- proc.time()[3] - srt
     if(control$trace) {
-      cat("\n", "Estimated VB parameters in ", round(post.time), " seconds", sep="")
+      cat("\n", "Estimated VB parameters in ", round(post.time), " seconds", 
+          sep="")
     }
   } else {
     post.time <- NULL
@@ -430,35 +432,36 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
+# x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
+# hyper=list(lambda=NULL, zeta=0, nu=0);
+# control=list(epsilon=sqrt(.Machine$double.eps), 
+#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
-# x <- xtrain
-# y <- ytrain
-# mult.lambda=TRUE
-# hyper=list(lambda=0.01, zeta=0, nu=0)
-# control=list(epsilon=sqrt(.Machine$double.eps),
-#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
 # EBridge estimation
 ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
                     control=list(epsilon=sqrt(.Machine$double.eps), 
                                  maxit=500, trace=FALSE, glmnet.fit2=FALSE)) {
   
-  yty <- colSums(y^2)
+  yty <- sapply(y, function(s) {sum(s^2)})
   Cmat <- Reduce("rbind", C)
-  if(is.list(x)) {
-    p <- sapply(x, ncol)
+  n <- sapply(y, length)
+  D <- length(y)
+  if(is.matrix(x)) {
+    p <- replicate(D, ncol(x))
+    idsel <- sapply(y, function(s) {
+      match(names(s), rownames(x))})
   } else {
-    p <- ncol(x)
+    p <- sapply(x, ncol)
   }
-  n <- nrow(y)
-  D <- ncol(y)
   H <- ncol(Z)
   G <- ncol(Cmat)
   
   if(is.null(foldid)) {
-    foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
-                       rep(1:(n %% nfolds), (n %% nfolds)!=0)))
+    foldid <- lapply(1:D, function(d) {
+      sample(c(rep(1:nfolds, each=n[[d]] %/% nfolds),
+               rep(1:(n[[d]] %% nfolds), (n[[d]] %% nfolds)!=0)))})
   }
   
   if(is.null(hyper$lambda)) {
@@ -466,18 +469,20 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     if(control$trace) {
       cat("\r", "Cross-validating penalty parameters")
     }
-    if(is.list(x)) {
+    if(is.matrix(x)) {
       cv.fit1 <- lapply(1:D, function(d) {
-        cv.glmnet(x[[d]], y[, d], alpha=0, intercept=FALSE, foldid=foldid)})  
+        cv.glmnet(x[idsel[[d]], ], y[[d]], alpha=0, intercept=FALSE, 
+                  foldid=foldid[[d]])})  
     } else {
       cv.fit1 <- lapply(1:D, function(d) {
-        cv.glmnet(x, y[, d], alpha=0, intercept=FALSE, foldid=foldid)})  
+        cv.glmnet(x[[d]], y[[d]], alpha=0, intercept=FALSE, 
+                  foldid=foldid[[d]])})  
     }
     if(mult.lambda) {
       hyper$lambda <- 1/sqrt(n*sapply(cv.fit1, "[[", "lambda.min"))
     } else {
-      hyper$lambda <- rep(1/sqrt(n*exp(mean(log(sapply(cv.fit1, "[[", 
-                                                       "lambda.min"))))), D)  
+      hyper$lambda <- 1/sqrt(
+        exp(mean(log(n) + log(sapply(cv.fit1, "[[", "lambda.min")))))
     }
     cv.time <- proc.time()[3] - srt
   } else {
@@ -487,13 +492,15 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     cv.time <- 0
   }
   if(control$glmnet.fit2) {
-    if(is.list(x)) {
+    if(is.matrix(x)) {
       cv.fit2 <- lapply(1:D, function(d) {
-        glmnet(x[[d]], y[, d], alpha=0, 
-               lambda=1/(exp(2*mean(log(hyper$lambda)))*n), intercept=FALSE)})    
+        glmnet(x[idsel[[d]], ], y[[d]], alpha=0, 
+               lambda=1/(exp(2*mean(log(hyper$lambda)))*n[d]), 
+               intercept=FALSE)})
     } else {
       cv.fit2 <- lapply(1:D, function(d) {
-        glmnet(x, y[, d], alpha=0, lambda=1/(exp(2*mean(log(hyper$lambda)))*n), 
+        glmnet(x[[d]], y[[d]], alpha=0, 
+               lambda=1/(exp(2*mean(log(hyper$lambda)))*n[d]), 
                intercept=FALSE)})
     }
   }
@@ -504,13 +511,13 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   if(control$trace) {
     cat("\r", "Estimating EB parameters")
   }
-  if(is.list(x)) {
-    opt <- optim(par=rep(0, H + G), fn=.f.optim.mult, lambda=hyper$lambda, 
+  if(is.matrix(x)) {
+    opt <- optim(par=rep(0, H + G), fn=.f.optim.mat, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
-                 G=G, H=H, y=y, x=x, yty=yty, 
+                 idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 
                  control=control[names(control)!="glmnet.fit2"])
   } else {
-    opt <- optim(par=rep(0, H + G), fn=.f.optim, lambda=hyper$lambda, 
+    opt <- optim(par=rep(0, H + G), fn=.f.optim.list, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
                  G=G, H=H, y=y, x=x, yty=yty, 
                  control=control[names(control)!="glmnet.fit2"])
@@ -525,26 +532,24 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   
   beta1 <- lapply(1:D, function(d) {
     h <- tau[d]*gamma[[d]]
-    if(is.list(x)) {
-      xh <- t(t(x[[d]])*h)
+    if(is.matrix(x)) {
+      xh <- t(t(x[idsel[[d]], ])*h)
     } else {
-      xh <- t(t(x)*h)
-    } 
-    fit <- glmnet(xh, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
+      xh <- t(t(x[[d]])*h)
+    }
+    fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
                   standardize=FALSE, intercept=FALSE)
-    unname(coef(fit)[-1, 1])*h
-  })
+    unname(coef(fit)[-1, 1])*h})
   beta2 <- lapply(1:D, function(d) {
     h <- tau[d]*gamma[[d]]
-    if(is.list(x)) {
-      fit <- glmnet(x[[d]], y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
-                    intercept=FALSE, penalty.factor=1/h^2)
+    if(is.matrix(x)) {
+      xh <- x[idsel[[d]], ]
     } else {
-      fit <- glmnet(x, y[, d], alpha=0, lambda=1/(hyper$lambda[d]^2*n),
-                    intercept=FALSE, penalty.factor=1/h^2)
+      xh <- x[[d]]
     }
-    unname(coef(fit)[-1, 1])
-  })
+    fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
+                  intercept=FALSE, penalty.factor=1/h^2)
+    unname(coef(fit)[-1, 1])})
   
   out <- list(beta1=beta1, beta2=beta2, alphaf=alphaf, alphad=alphad, 
               lambda=hyper$lambda, tau=tau, 

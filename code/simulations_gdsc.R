@@ -624,3 +624,198 @@ rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"),
                          paste0("alphad", 0:3), "lambdad"), each=nreps),
                    rep(c("elbo", "elbot", "lpml"), each=nreps))
 write.table(res, file="results/simulations_gdsc_res3.txt")
+
+
+################################# simulation 4 #################################
+### data preparation
+# select features
+D <- ncol(resp.prep)
+psel <- 100
+o <- order(-apply(expr.prep, 2, sd))
+idsel <- rep(list(o[c(1:psel)]), D)
+expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
+x <- lapply(expr.sel, function(s) {scale(s)})
+
+### data preparation
+p <- sapply(x, ncol)
+n <- nrow(expr.prep)
+ntrain <- floor(n/2)
+
+### simulation settings
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+
+methods <- c("NIGfd-", "NIGfd", "NIGfdb","lasso", "ridge")
+
+# setup cluster
+cl <- makeCluster(ncores) 
+if(ncores > 1) {
+  registerDoParallel(cl)
+} else {
+  registerDoSEQ()
+}
+res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
+  cat("\r", "replication", r)
+  set.seed(2020 + r)
+  
+  ### simulate parameters
+  C <- lapply(1:D, function(d) {
+    cbind(1, t(replicate(p[d], sample(c(1, 0, 0, 0), 4)[-1])))})
+  Z <- cbind(1, t(replicate(D, sample(c(1, 0, 0, 0), 4)[-1])))
+  sigma <- rep(1, D)
+  beta <- lapply(1:D, function(d) {
+    rnorm(p[d], 0, sigma[d]*sqrt(1/as.numeric(C[[d]] %*% alphaf))*
+            sqrt(1/as.numeric(Z %*% alphad)))})
+  
+  # simulate data
+  idtrain <- sample(1:n, ntrain)
+  xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
+  xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
+  ytrain <- scale(sapply(1:D, function(d) {
+    rnorm(ntrain, as.numeric(xtrain[[d]] %*% beta[[d]]), sigma[d])}))
+  ytest <- scale(sapply(1:D, function(d) {
+    rnorm(n - ntrain, as.numeric(xtest[[d]] %*% beta[[d]]), sigma[d])}))
+  
+  ### fitting models
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
+  fit2.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+                        standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                        full.post=TRUE, init=NULL, control=control)
+  
+  # no external covariates
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=0)
+  C <- lapply(1:D, function(d) {matrix(1, nrow=p[d], ncol=1)})
+  Z <- matrix(1, ncol=1, nrow=D)
+  fit1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL,
+                        standardize=FALSE, intercept=FALSE, fixed.eb="none",
+                        full.post=TRUE, init=NULL, control=control)
+  
+  control <- list(conv.post=TRUE, trace=FALSE,
+                  epsilon.eb=1e-3, epsilon.vb=1e-3,
+                  maxit.eb=100, maxit.vb=1, maxit.post=200, maxit.block=10)
+  
+  fit1.lasso <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], intercept=FALSE, standardize=FALSE)})
+  fit1.ridge <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[, d], alpha=0, intercept=FALSE,
+              standardize=FALSE)})
+  
+  best1.semnig <- fit1.semnig$vb$mpost$beta
+  best2.semnig <- fit2.semnig$vb$mpost$beta
+  best1.lasso <- lapply(fit1.lasso, function(s) {
+    coef(s, s="lambda.min")[-1, 1]})
+  best1.ridge <- lapply(fit1.ridge, function(s) {
+    coef(s, s="lambda.min")[-1, 1]})
+  
+  pred1.semnig <- sapply(1:D, function(d) {xtest[[d]] %*% best1.semnig[[d]]})
+  pred2.semnig <- sapply(1:D, function(d) {xtest[[d]] %*% best2.semnig[[d]]})
+  pred1.lasso <- sapply(1:D, function(d) {xtest[[d]] %*% best1.lasso[[d]]})
+  pred1.ridge <- sapply(1:D, function(d) {xtest[[d]] %*% best1.ridge[[d]]})
+  
+  predt1.semnig <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.semnig[[d]]})
+  predt2.semnig <- sapply(1:D, function(d) {xtrain[[d]] %*% best2.semnig[[d]]})
+  predt1.lasso <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.lasso[[d]]})
+  predt1.ridge <- sapply(1:D, function(d) {xtrain[[d]] %*% best1.ridge[[d]]})
+  
+  emse <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]] - beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]] - beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]] - beta[[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]] - beta[[d]])^2)})),
+    mean(unlist(beta)^2))
+  
+  cutoffs <- sapply(1:D, function(d) {quantile(abs(beta[[d]]), probs=0.9)})
+  emseh <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) > cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) > cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) > cutoffs[[d]]]^2)})))
+  
+  emsel <- c(mean(sapply(1:D, function(d) {
+    mean((best1.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+            beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best2.semnig[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.lasso[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean((best1.ridge[[d]][abs(beta[[d]]) <= cutoffs[d]] - 
+              beta[[d]][abs(beta[[d]]) <= cutoffs[d]])^2)})),
+    mean(sapply(1:D, function(d) {
+      mean(beta[[d]][abs(beta[[d]]) <= cutoffs[[d]]]^2)})))
+  
+  pmse <- c(mean(colMeans((pred1.semnig - ytest)^2)),
+            mean(colMeans((pred2.semnig - ytest)^2)),
+            mean(colMeans((pred1.lasso - ytest)^2)),
+            mean(colMeans((pred1.ridge - ytest)^2)),
+            mean(apply(ytest, 1, "-", colMeans(ytrain))^2))
+  
+  pmset <- c(mean(colMeans((predt1.semnig - ytrain)^2)),
+             mean(colMeans((predt2.semnig - ytrain)^2)),
+             mean(colMeans((predt1.lasso - ytrain)^2)),
+             mean(colMeans((predt1.ridge - ytrain)^2)),
+             mean(apply(ytrain, 1, "-", colMeans(ytrain))^2))
+  
+  est <- cbind(c(fit1.semnig$eb$alphaf, rep(NA, 3), fit1.semnig$eb$lambdaf,
+                 fit1.semnig$eb$alphad, rep(NA, 3), fit1.semnig$eb$lambdad),
+               c(fit2.semnig$eb$alphaf, fit2.semnig$eb$lambdaf,
+                 fit2.semnig$eb$alphad, fit2.semnig$eb$lambdad))
+  
+  # calculate ELBO for semnig models
+  elbot <- c(mean(fit1.semnig$seq.elbo[nrow(fit1.semnig$seq.elbo), ]),
+             mean(fit2.semnig$seq.elbo[nrow(fit2.semnig$seq.elbo), ]))
+  
+  elbo <- c(mean(new.elbo(fit1.semnig, xtest, ytest)),
+            mean(new.elbo(fit2.semnig, xtest, ytest)))
+  
+  lpml <- c(sum(logcpo(xtest, ytest, ntrain, fit1.semnig), na.rm=TRUE),
+            sum(logcpo(xtest, ytest, ntrain, fit2.semnig), na.rm=TRUE))
+  
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
+       elbo=elbo, elbot=elbot, lpml=lpml)
+}  
+stopCluster(cl=cl)
+
+errorid <- sapply(res, function(s) {is.numeric(s[[1]])})
+res2 <- res[errorid]
+
+# prepare and save results table
+emse <- t(sapply(res2, "[[", "emse"))
+emsel <- t(sapply(res2, "[[", "emsel"))
+emseh <- t(sapply(res2, "[[", "emseh"))
+pmse <- t(sapply(res2, "[[", "pmse"))
+pmset <- t(sapply(res2, "[[", "pmset"))
+est <- Reduce("rbind", lapply(1:nrow(res2[[1]]$est), function(i) {
+  t(sapply(res2, function(s) {s$est2[i, ]}))}))
+elbo <- t(sapply(res2, "[[", "elbo"))
+elbot <- t(sapply(res2, "[[", "elbot"))
+lpml <- t(sapply(res2, "[[", "lpml"))
+
+res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA), 
+             cbind(elbo, NA, NA), cbind(elbot, NA, NA),
+             cbind(lpml, NA, NA))
+colnames(res) <- c(methods, "null")
+rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                       each=nreps),
+                   rep(c(paste0("alphaf", 0:3), "lambdaf",
+                         paste0("alphad", 0:3), "lambdad"), each=nreps),
+                   rep(c("elbo", "elbot", "lpml"), each=nreps))
+write.table(res, file="results/simulations_gdsc_res4.txt")

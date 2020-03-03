@@ -7,7 +7,7 @@ library(biomaRt)
 ### biomart
 ensembl <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
 
-################################ reading data ##################################
+################################ response data #################################
 # loading the data either from a local file or from the GDSC website
 if(file.exists("data/v17.3_fitted_dose_response.csv")) {
   resp <- read.table("data/v17.3_fitted_dose_response.csv", header=TRUE,
@@ -16,28 +16,26 @@ if(file.exists("data/v17.3_fitted_dose_response.csv")) {
   resp <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/v17.3_fitted_dose_response.xlsx",
                      header=TRUE, sep=",", stringsAsFactors=FALSE)
 }
-if(file.exists("data/sanger1018_brainarray_ensemblgene_rma.txt.gz")) {
-  expr <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
-                     header=TRUE, stringsAsFactors=FALSE)
-  # same data, different file
-  # expr <- read.csv("data/Cell_line_RMA_proc_basalExp.txt", 
-  #                  header=TRUE, sep="\t", header=TRUE, stringsAsFactors=FALSE)
-  
-} else {
-  expr <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
-                     header=TRUE, stringsAsFactors=FALSE)
-  expr <- read.table("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/preprocessed/Cell_line_RMA_proc_basalExp.txt.zip",
-                     header=TRUE, stringsAsFactors=FALSE, sep="\t", dec=",", 
-                     colClasses="character", nrows=1)
-}
-if(file.exists("data/Cell_Lines_Details.xlsx")) {
-  cell <- read.xls("data/Cell_Lines_Details.xlsx",
-                   stringsAsFactors=FALSE)
-} else {
-  cell <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx",
-                   stringsAsFactors=FALSE)
-}
 
+# take average IC50 if more than one measurement for drug cell line combination
+resp.temp <- aggregate(LN_IC50 ~ COSMIC_ID + CELL_LINE_NAME + DRUG_NAME,
+                       data=resp, FUN=mean, na.rm=TRUE)
+
+# put the data in the wide format (cell lines in rows and drugs in columns)
+resp.temp <- reshape(resp.temp, timevar="DRUG_NAME",
+                     idvar=c("COSMIC_ID", "CELL_LINE_NAME"), direction="wide")
+colnames(resp.temp) <- c("id", "cellline",
+                         substr(colnames(resp.temp[-c(1, 2)]), 9, 10000L))
+resp.temp <- resp.temp[order(resp.temp$id), ]
+rownames(resp.temp) <- sort(resp.temp$id)
+resp.temp <- resp.temp[, -c(1, 2)]
+resp.temp <- lapply(resp.temp, function(s) {
+  names(s) <- rownames(resp.temp); s[!is.na(s)]})
+
+resp.prep <- resp.temp
+rm(resp, resp.temp)
+
+#################################### drugs #####################################
 # reading in the preformatted list of compounds
 if(file.exists("data/Screened_Compounds.xlsx")) {
   drug1 <- read.xls("data/Screened_Compounds.xlsx",
@@ -92,52 +90,6 @@ if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
                                   "evidencecode", "species"),
                       header=TRUE, stringsAsFactors=FALSE)
 }
-
-# mutation data
-mut1 <- read.table(unz("data/CellLines_CG_BEMs.zip", 
-                       "CellLines_CG_BEMs/PANCAN_SEQ_BEM.txt"), header=TRUE)
-
-# methylation data
-meth1 <- read.table(unz("data/METH_CELL_DATA.txt.zip", "F2_METH_CELL_DATA.txt"), 
-                    header=TRUE)
-meth2 <- read.xls("data/methSampleId_2_cosmicIds.xlsx", stringsAsFactors=FALSE)
-
-# Cancer Gene Census (https://cancer.sanger.ac.uk/census)
-census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
-                     stringsAsFactors=FALSE, sep=",", quote='"')
-
-################################ data cleaning #################################
-# prepping mutation data
-mut <- t(mut1[, -1])
-rownames(mut) <- substr(rownames(mut), 2, nchar(rownames(mut)))
-mut <- mut[order(as.numeric(rownames(mut))), ]
-colnames(mut) <- mut1$CG
-
-# prepping methylation data
-meth <- t(meth1)
-rownames(meth) <- meth2$cosmic_id[match(
-  paste0("X", meth2$Sentrix_ID, "_", meth2$Sentrix_Position), colnames(meth1))]
-meth <- meth[order(as.numeric(rownames(meth))), ]
-
-# library(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-# library(biomaRt)
-# ann450k <- getAnnotation(IlluminaHumanMethylation450kanno.ilmn12.hg19)
-# annid <- sapply(1:nrow(meth1), function(s) {
-#   which(ann450k$Islands_Name==rownames(meth1)[s])})
-# geneid <- sapply(annid, function(s) {
-#   unique(unlist(strsplit(ann450k$UCSC_RefGene_Name[s], ";")))})
-# island <- sapply(annid, function(s) {
-#   unique(unlist(strsplit(ann450k$Relation_to_Island[s], ";")))})
-# 
-# # View(listEnsembl())
-# # View(listFilters(ensembl))
-# # View(listAttributes(ensembl))
-# ensembl <- useEnsembl(biomart="ensembl", dataset="hsapiens_gene_ensembl")
-# gb <- getBM(attributes=c("external_gene_name", "ensembl_gene_id", 
-#                          "hgnc_symbol"), 
-#             filters=c("external_gene_name"), 
-#             values=unique(unlist(geneid)), 
-#             mart=ensembl)
 
 # combining and removing double drugs and rescreens
 drug <- merge(merge(merge(drug1, drug2, by.x="DRUG_ID", by.y="drug_id",
@@ -280,7 +232,7 @@ action[action=="not defined"] <- NA
 
 # combining the data
 drug <- data.frame(name=name, synonyms=synonyms, id=drug.temp$DRUG_ID,
-                   pubchem=pubchem, targets=targets, pathways=pathways,
+                   pubchem=pubchem, target=targets, pathway=pathways,
                    nsamples=drug.temp$Sample.Size, count=drug.temp$Count,
                    stage=drug.temp$Clinical.Stage, action=action,
                    cluster=drug.temp$Cluster.identifier,
@@ -288,54 +240,6 @@ drug <- data.frame(name=name, synonyms=synonyms, id=drug.temp$DRUG_ID,
                    stringsAsFactors=FALSE)
 drug <- drug[order(drug$id), ]
 rownames(drug) <- 1:nrow(drug)
-rm(drug1, drug2, drug3, drug4, drug.temp, synonyms, name, targets, pathways,
-   action, pubchem)
-
-# take average IC50 if more than one measurement for drug cell line combination
-resp.temp <- aggregate(LN_IC50 ~ COSMIC_ID + CELL_LINE_NAME + DRUG_NAME,
-                       data=resp, FUN=mean, na.rm=TRUE)
-
-# put the data in the wide format (cell lines in rows and drugs in columns)
-resp.temp <- reshape(resp.temp, timevar="DRUG_NAME",
-                     idvar=c("COSMIC_ID", "CELL_LINE_NAME"), direction="wide")
-colnames(resp.temp) <- c("id", "cellline",
-                         substr(colnames(resp.temp[-c(1, 2)]), 9, 10000L))
-resp.temp <- resp.temp[order(resp.temp$id), ]
-rownames(resp.temp) <- sort(resp.temp$id)
-resp <- resp.temp[, -c(1, 2)]
-rm(resp.temp)
-
-# sequentially remove drug or cell line with highest proportion missings
-nomiss <- FALSE
-while(!nomiss) {
-  pcell <- apply(resp, 1, function(x) {sum(is.na(x))/length(x)})
-  pdrug <- apply(resp, 2, function(x) {sum(is.na(x))/length(x)})
-
-  if(max(pcell) >= max(pdrug)) {
-    resp <- resp[-which.max(pcell), ]
-  } else {
-    resp <- resp[, -which.max(pdrug)]
-  }
-  nomiss <- !any(is.na(resp))
-}
-rm(pcell, pdrug, nomiss)
-
-# cell lines in rows and genes in columns
-expr.temp <- t(expr[, -1])
-colnames(expr.temp) <- expr$ensembl_gene
-rownames(expr.temp) <- substr(rownames(expr.temp), 2, 10000L)
-expr <- expr.temp[order(as.numeric(rownames(expr.temp))), ]
-rm(expr.temp)
-
-# prepped data
-mut.prep <- mut
-expr.prep <- expr
-resp.prep <- as.matrix(resp)
-meth.prep <- meth
-
-# keep drugs that are available in both response and drug data
-drug.prep <- drug[drug$name %in% colnames(resp.prep), ]
-drug.prep <- drug.prep[order(drug.prep$name), ]
 
 # hand coded pathway names to KEGG and reactome ids
 pathwayid <- data.frame(
@@ -363,25 +267,42 @@ notes <- c("RTK is a family, many of which have identified pathways",
            "Cytoskeleton consists of actin and tubulin",
            "P53 is the same as TP53")
 
+# link drugs to ensembl symbols in their pathway
+reactomeid <- sapply(drug$pathway, function(s) {
+  pathwayid$reactomeid[match(strsplit(s, ", ")[[1]], pathwayid$pathway)]}, 
+  USE.NAMES=FALSE)
+ensemblid <- sapply(1:nrow(drug), function(d) {
+  vec <- mapid$ensemblid[mapid$reactomeid %in% reactomeid[d]]
+  if(length(vec)==0) {NA} else {vec}}, USE.NAMES=FALSE)
+
 # cleaning targets
-targets <- drug.prep$targets
-targets[2] <- gsub("&", "and", targets[2])
-targets[26] <- "FLT1, FLT3, FLT4, KIT, MET, RET, Tie2, AXL, TIE2, AXL, VEGFR"
-targets[36] <- gsub(" and", ",", targets[36])
-targets[46] <- "PPARdelta, PPARgamma"
-targets[47] <- gsub("/", ", ", targets[47])
-targets[81] <- gsub("and", "family,", targets[81])
-targets[111] <- "AAPK1 agonist, AMPK agonist, Biguanide agent"
-targets[155] <- "HDAC, RAR"
-targets[156] <- paste(paste0("HDAC inhibitor Class ", 
-                             c("I", "IIa", "IIb", "IV")),
-                      collapse=", ")
-targets[-c(2, 36, 99, 113, 168)] <- 
-  sapply(targets[-c(2, 36, 99, 113, 168)], function(s) {
-    gsub(")", "", gsub("(", ", ", gsub(" (", ", ", s, fixed=TRUE), fixed=TRUE), 
-         fixed=TRUE)}, USE.NAMES=FALSE)
-targets <- sapply(targets, function(s) {
-  paste(unique(strsplit(s, ", ")[[1]]), collapse=", ")}, USE.NAMES=FALSE)
+targets <- sapply(drug$target, function(s) {
+  s <- gsub(",", ", ", s, fixed=TRUE)
+  s <- gsub("  ", " ", s, fixed=TRUE)
+  s <- gsub("ABL", "ABL1", s)
+  s <- gsub("ABL11", "ABL1", s)
+  s <- gsub("BCR-ABL1", "BCR, ABL1", s, fixed=TRUE)
+  s <- gsub(" [", ", ", s, fixed=TRUE)
+  s <- gsub("]", "", s, fixed=TRUE)
+  s <- gsub("HDAC inhibitor Class I, IIa, IIb, IV", 
+            paste(paste0("HDAC inhibitor Class ", c("I", "IIa", "IIb", "IV")), 
+                  collapse=", "), s, fixed=TRUE)
+  s <- gsub("Antimetabolite (DNA & RNA)", "RNA antimetabolite", s, fixed=TRUE)
+  s <- gsub("Retinioic X receptor (RXR) agonist", 
+            "Retinioic X receptor agonist", s, fixed=TRUE)
+  s <- gsub("AAPK1 (AMPK) agonist", "AAPK1 agonist, AMPK agonist", s, 
+            fixed=TRUE)
+  s <- gsub("PI3K (Class 1)", "PI3K class 1, PI3K", s, fixed=TRUE)
+  s <- gsub("PI3K (class 1)", "PI3K class 1", s, fixed=TRUE)
+  s <- gsub(" and ", ", ", s, fixed=TRUE)
+  s <- gsub("VEGFR3/FLT4", "VEGFR3, FLT4", s, fixed=TRUE)
+  s <- gsub("PPARdelta, PPARgamma, unknown", "PPARdelta, PPARgamma", s,
+            fixed=TRUE)
+  s <- gsub(" (", ", ", s, fixed=TRUE)
+  s <- gsub("(", ", ", s, fixed=TRUE)
+  s <- gsub(")", "", s, fixed=TRUE)
+  s <- paste(unique(strsplit(s, ", ")[[1]]), collapse=", ")
+  return(s)}, USE.NAMES=FALSE)
 
 # matching targets to ensembl ids
 # View(listFilters(ensembl))
@@ -412,30 +333,61 @@ targets_ensembl_gene_id <- sapply(targets, function(s) {
     query$ensembl_gene_id[query$gene_name==m]}, USE.NAMES=FALSE)))
   vec <- paste(vec[length(vec)!=0], collapse=", ")
   ifelse(vec=="", NA, vec)}, USE.NAMES=FALSE)
-drug.prep <- cbind(drug.prep[, c(1:4)], targets=targets,
-                   targets_ensembl_gene_id=targets_ensembl_gene_id,
-                   drug.prep[, -c(1:4)])
-rm(targets, query1, query2, query3, query4, query, targets_ensembl_gene_id, 
-   ensembl)
 
-# link drugs to ensembl symbols in their pathway
-drug.reactomeid <- sapply(drug.prep$pathways, function(s) {
-  pathwayid$reactomeid[match(strsplit(s, ", ")[[1]], pathwayid$pathway)]})
-drug.ensemblid <- sapply(1:nrow(drug.prep), function(d) {
-  vec <- mapid$ensemblid[mapid$reactomeid %in% drug.reactomeid[d]]
-  if(length(vec)==0) {NA} else {vec}})
+drug$target <- targets
+drug$pathway_reactome_id <- sapply(reactomeid, function(s) {
+  ifelse(all(is.na(s)), NA, paste(s, collapse=", "))})
+drug$pathway_ensembl_gene_id <- sapply(ensemblid, function(s) {
+  ifelse(all(is.na(s)), NA, paste(s, collapse=", "))})
+drug$target_ensembl_gene_id <- targets_ensembl_gene_id
+
+drug.prep <- drug
+
+rm(action, drug, drug.temp, drug1, drug2, drug3, drug4, ensemblid, mapid, name,
+   notes, pathwayid, pathways, pubchem, query, query1, query2, query3, query4, 
+   reactomeid, synonyms, targets, targets_ensembl_gene_id)
+
+############################### gene expression ################################
+expr1 <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
+                    header=FALSE, stringsAsFactors=FALSE, skip=1)
+expr2 <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
+                    header=FALSE, stringsAsFactors=FALSE, nrows=1)
+# expr1 <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
+#                     header=TRUE, stringsAsFactors=FALSE)
+# expr1 <- read.table("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/preprocessed/Cell_line_RMA_proc_basalExp.txt.zip",
+#                     header=TRUE, stringsAsFactors=FALSE, sep="\t", dec=",", 
+#                     colClasses="character", nrows=1)
+
+# cell lines in rows and genes in columns
+expr.temp <- t(expr1[, -1])
+colnames(expr.temp) <- expr1$V1
+rownames(expr.temp) <- as.character(expr2)[-1]
+expr.temp <- expr.temp[order(as.numeric(rownames(expr.temp))), ]
+expr.temp <- expr.temp[, order(colnames(expr.temp))]
+
+# average duplicate rows
+duprows <- rownames(expr.temp)[which(duplicated(rownames(expr.temp)))]
+mat <- t(sapply(duprows, function(s) {
+  apply(expr.temp[rownames(expr.temp)==s, ], 2, mean)}))
+expr.temp <- rbind(expr.temp[!(rownames(expr.temp) %in% duprows), ], mat)
+expr.temp <- expr.temp[order(rownames(expr.temp)), ]
+expr <- expr.temp
 
 # determine for every feature whether it is in the target pathway or not
-inpathway <- lapply(1:nrow(drug.prep), function(d) {
-  as.numeric(colnames(expr.prep) %in% drug.ensemblid[[d]])})
-istarget <- lapply(1:nrow(drug.prep), function(d) {
-  val <- ifelse(is.na(drug.prep$targets_ensembl_gene_id[d]), "",
-                drug.prep$targets_ensembl_gene_id[d])
-  as.numeric(colnames(expr.prep) %in% strsplit(val, ", ")[[1]])})
+in_pathway <- lapply(1:nrow(drug.prep), function(d) {
+  as.numeric(colnames(expr) %in% 
+               strsplit(drug.prep$pathway_ensembl_gene_id[[d]], ", ")[[1]])})
+is_target <- lapply(1:nrow(drug.prep), function(d) {
+  as.numeric(colnames(expr) %in% 
+               strsplit(drug.prep$target_ensembl_gene_id[[d]], ", ")[[1]])})
+
+# Cancer Gene Census (https://cancer.sanger.ac.uk/census)
+census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
+                     stringsAsFactors=FALSE, sep=",", quote='"')
 
 # cancer gene census cleaning
-cancergene <- strsplit(census$Synonyms, ",")
-cancergene <- sapply(cancergene, function(s) {
+cancergenes <- strsplit(census$Synonyms, ",")
+cancergenes <- sapply(cancergenes, function(s) {
   s <- unlist(strsplit(s[which(substring(s, 1, 4)=="ENSG")], ".", 
                        fixed=TRUE))[1];
   ifelse(is.null(s), NA, s)})
@@ -444,18 +396,83 @@ cancergene <- sapply(cancergene, function(s) {
 # View(listAttributes((ensembl)))
 query <- getBM(attributes=c("ensembl_gene_id", "external_gene_name"), 
                filters="external_gene_name", 
-               values=na.omit(census$Gene.Symbol[is.na(cancergene)]), 
+               values=na.omit(census$Gene.Symbol[is.na(cancergenes)]), 
                mart=ensembl)  
-cancergene[match(query$external_gene_name, census$Gene.Symbol)] <- 
-  query$external_gene_name
-census$ensembl_gene_id <- cancergene
-cancergene <- as.numeric(colnames(expr.prep) %in% cancergene)
+cancergenes[match(query$external_gene_name, census$Gene.Symbol)] <- 
+  query$ensembl_gene_id
+census$ensembl_gene_id <- cancergenes
+is_cancergene <- as.numeric(colnames(expr) %in% cancergenes)
 
 # create object that contains feature information
-feat.prep <- list(inpathway=inpathway, istarget=istarget, cancergene=cancergene)
-rm(drug.ensemblid, drug.reactomeid, notes, pathwayid, mapid, inpathway, 
-   istarget, drug, expr, resp, cell, meth, meth1, meth2, mut, mut1, census,
-   cancergene)
+expr.prep <- list(expr=expr, in_pathway=in_pathway, is_target=is_target, 
+                  is_cancergene=is_cancergene)
+rm(cancergenes, census, expr1, expr2, expr, expr.temp, in_pathway, 
+   is_cancergene, is_target, query, duprows, mat)
 
-save(drug.prep, expr.prep, resp.prep, feat.prep, meth.prep, mut.prep, 
-     file="data/data_gdsc_dat1.Rdata")
+################################# cell lines ###################################
+if(file.exists("data/Cell_Lines_Details.xlsx")) {
+  cell <- read.xls("data/Cell_Lines_Details.xlsx",
+                   stringsAsFactors=FALSE)
+} else {
+  cell <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx",
+                   stringsAsFactors=FALSE)
+}
+rm(cell)
+
+################################## mutations ###################################
+mut1 <- read.table(unz("data/CellLines_CG_BEMs.zip", 
+                       "CellLines_CG_BEMs/PANCAN_SEQ_BEM.txt"), header=TRUE)
+
+# prepping mutation data
+mut <- t(mut1[, -1])
+rownames(mut) <- substr(rownames(mut), 2, nchar(rownames(mut)))
+mut <- mut[order(as.numeric(rownames(mut))), ]
+
+# translating gene names to ensembl ids
+query1 <- getBM(attributes=c("ensembl_gene_id", "external_gene_name"), 
+                filters="external_gene_name", 
+                values=mut1$CG, 
+                mart=ensembl) 
+query2 <- getBM(attributes=c("ensembl_gene_id", "external_synonym"), 
+                filters="external_synonym", 
+                values=mut1$CG, 
+                mart=ensembl)  
+colnames(query1) <- colnames(query2) <- c("ensembl_gene_id", "gene_name")
+query <- rbind(query1, query2)
+query <- query[!duplicated(query), ]
+query <- query[!is.na(query$gene_name), ]
+ensemblids <- sapply(mut1$CG, function(s) {
+  query$ensembl_gene_id[query$gene_name==s]})
+ensemblids[sapply(ensemblids, length)!=1] <- 
+  lapply(ensemblids[sapply(ensemblids, length)!=1], function(s) {
+    if(any(s %in% colnames(expr.prep$expr))) {
+      paste(s[s %in% colnames(expr.prep$expr)], collapse=",")
+      } else {
+        s[1]
+      }})
+colnames(mut) <- unlist(ensemblids)
+mut.prep <- mut
+rm(ensemblids, mut, mut1, query, query1, query2)
+
+################################## methylation #################################
+meth1 <- read.table(unz("data/METH_CELL_DATA.txt.zip", "F2_METH_CELL_DATA.txt"), 
+                    header=TRUE)
+meth2 <- read.xls("data/methSampleId_2_cosmicIds.xlsx", stringsAsFactors=FALSE)
+
+# prepping methylation data
+meth <- t(meth1)
+rownames(meth) <- meth2$cosmic_id[match(
+  paste0("X", meth2$Sentrix_ID, "_", meth2$Sentrix_Position), colnames(meth1))]
+meth <- meth[order(as.numeric(rownames(meth))), ]
+colnames(meth)
+meth.prep <- meth
+rm(meth, meth1, meth2)
+
+################################### save data ##################################
+drug <- drug.prep
+expr <- expr.prep
+meth <- meth.prep
+mut <- mut.prep
+resp <- resp.prep
+rm(ensembl, drug.prep, expr.prep, meth.prep, mut.prep, resp.prep)
+save(drug, expr, resp, meth, mut, file="data/data_gdsc_dat1.Rdata")

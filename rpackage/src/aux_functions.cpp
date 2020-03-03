@@ -7,39 +7,42 @@
 using namespace Rcpp;
 
 // function to optimise in EBridge with one x (not tested)
-// [[Rcpp::export(".f.optim")]]
-double f_optim(arma::vec alpha, arma::vec lambda, double nu, double zeta,
-               arma::mat Cmat, arma::mat Z, int n, int p, int D, 
-               int G, int H, arma::mat y, arma::mat x, arma::vec yty) {
-  
+// [[Rcpp::export(".f.optim.mat")]]
+double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
+                   arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D,
+                   List idsel, int G, int H, List y, arma::mat x,
+                   arma::vec yty) {
+
   arma::vec alphaf = alpha.head(G);
   arma::vec alphad = alpha.tail(H);
-  
+
   arma::vec tau = exp(0.5*Z*alphad);
   arma::vec gamma = exp(0.5*Cmat*alphaf);
   arma::vec out(D);
   for(int d=0; d<D; d++) {
-    arma::rowvec mat1(n); 
-    arma::mat mat2(n, n);
-    
-    mat2 = x*trans(x.each_row() % square(lambda(d)*tau(d)*
+    arma::rowvec mat1(n(d));
+    arma::mat mat2(n(d), n(d));
+    arma::uvec cidsel = idsel[d];
+    arma::mat cx = x.rows(cidsel);
+    arma::vec cy = y[d];
+
+    mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
       gamma.subvec(d*p, (d + 1)*p - 1).t()));
-    mat1 = y.col(d).t()*mat2;
+    mat1 = cy.t()*mat2;
     mat2.diag() += 1;
     out(d) = -0.5*real(log_det(mat2)) -
-      (n/2 + nu)*log(zeta + arma::conv_to<double>::from(
-          0.5*yty(d) - 0.5*mat1*y.col(d) + 0.5*mat1*mat2.i()*mat1.t()));
-    
+      (n(d)/2 + nu)*log(zeta + arma::conv_to<double>::from(
+          0.5*yty(d) - 0.5*mat1*cy + 0.5*mat1*mat2.i()*mat1.t()));
   }
   double val = sum(out);
   return val;
 }
 
 // function to optimise in EBridge with multiple x (not tested)
-// [[Rcpp::export(".f.optim.mult")]]
-double f_optim_mult(arma::vec alpha, arma::vec lambda, double nu, double zeta,
-                    arma::mat Cmat, arma::mat Z, int n, arma::vec p, int D, 
-                    int G, int H, arma::mat y, List x, arma::vec yty) {
+// [[Rcpp::export(".f.optim.list")]]
+double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta,
+                    arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, 
+                    int D, int G, int H, List y, List x, arma::vec yty) {
 
   arma::vec alphaf = alpha.head(G);
   arma::vec alphad = alpha.tail(H);
@@ -51,17 +54,18 @@ double f_optim_mult(arma::vec alpha, arma::vec lambda, double nu, double zeta,
   cp(0) = 0;
   arma::vec out(D);
   for(int d=0; d<D; d++) {
-    arma::rowvec mat1(n); 
-    arma::mat mat2(n, n);
+    arma::rowvec mat1(n(d)); 
+    arma::mat mat2(n(d), n(d));
     arma::mat cx = x[d];
+    arma::vec cy = y[d];
 
     mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
       gamma.subvec(cp(d), cp(d + 1) - 1).t()));
-    mat1 = y.col(d).t()*mat2;
+    mat1 = cy.t()*mat2;
     mat2.diag() += 1;
     out(d) = -0.5*real(log_det(mat2)) -
-      (n/2 + nu)*log(zeta + arma::conv_to<double>::from(
-          0.5*yty(d) - 0.5*mat1*y.col(d) + 0.5*mat1*mat2.i()*mat1.t()));
+      (n(d)/2 + nu)*log(zeta + arma::conv_to<double>::from(
+          0.5*yty(d) - 0.5*mat1*cy + 0.5*mat1*mat2.i()*mat1.t()));
 
   }
   double val = sum(out);
