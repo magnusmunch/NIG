@@ -464,7 +464,6 @@ meth <- t(meth1)
 rownames(meth) <- meth2$cosmic_id[match(
   paste0("X", meth2$Sentrix_ID, "_", meth2$Sentrix_Position), colnames(meth1))]
 meth <- meth[order(as.numeric(rownames(meth))), ]
-colnames(meth)
 meth.prep <- meth
 rm(meth, meth1, meth2)
 

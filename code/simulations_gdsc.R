@@ -632,13 +632,13 @@ x <- lapply(expr.sel, function(s) {scale(s)})
 
 ### data preparation
 p <- sapply(x, ncol)
-n <- nrow(expr.sel)
+n <- nrow(expr.sel[[1]])
 ntrain <- floor(n/2)
 
 ### simulation settings
 alphaf <- c(1, 1, 3, 7)*10
 alphad <- c(1, 1, 3, 7)
-C <- lapply(1:D, function(s) {
+C <- lapply(1:D, function(d) {
   unname(model.matrix(~ as.factor(rep(c(1:4), each=p[d]/4))))})
 Z <- unname(model.matrix(~ as.factor(rep(c(1:4), each=D/4))))
 
