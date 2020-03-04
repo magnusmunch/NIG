@@ -645,7 +645,7 @@ ntrain <- floor(n/2)
 alphaf <- c(1, 1, 3, 7)
 alphad <- c(1, 1, 3, 7)
 
-methods <- c("NIGfd-", "NIGfd", "NIGfdb","lasso", "ridge")
+methods <- c("NIGfd-", "NIGfd", "lasso", "ridge")
 
 # setup cluster
 cl <- makeCluster(ncores) 
@@ -804,14 +804,14 @@ emseh <- t(sapply(res2, "[[", "emseh"))
 pmse <- t(sapply(res2, "[[", "pmse"))
 pmset <- t(sapply(res2, "[[", "pmset"))
 est <- Reduce("rbind", lapply(1:nrow(res2[[1]]$est), function(i) {
-  t(sapply(res2, function(s) {s$est2[i, ]}))}))
+  t(sapply(res2, function(s) {s$est[i, ]}))}))
 elbo <- t(sapply(res2, "[[", "elbo"))
 elbot <- t(sapply(res2, "[[", "elbot"))
 lpml <- t(sapply(res2, "[[", "lpml"))
 
-res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA), 
-             cbind(elbo, NA, NA), cbind(elbot, NA, NA),
-             cbind(lpml, NA, NA))
+res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
+             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
+             cbind(lpml, NA, NA, NA))
 colnames(res) <- c(methods, "null")
 rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
                        each=nreps),
