@@ -664,7 +664,7 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   Z <- cbind(1, t(replicate(D, sample(c(1, 0, 0, 0), 4)[-1])))
   sigma <- rep(1, D)
   beta <- lapply(1:D, function(d) {
-    rnorm(p[d], 0, sigma[d]*sqrt(1/as.numeric(C[[d]] %*% alphaf))*
+    rnorm(p[d], 0, sqrt(1/as.numeric(C[[d]] %*% alphaf))*
             sqrt(1/as.numeric(Z %*% alphad)))})
   
   # simulate data

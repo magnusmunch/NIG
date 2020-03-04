@@ -246,20 +246,24 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 		  \beta_{jd} | \gamma^2_{jd}, \tau_d^2, \sigma^2_d & \sim \mathcal{N}_{p} 
 		  (0, \gamma_{jd}^2 \tau_d^2 \sigma_d^2), 
 		  \label{eq:betaprior}\\
-		  \gamma_{jd}^{2} & \sim \mathcal{IG}(\phi_{jd}, \lambda_{\text{feat}}), \\
+		  \gamma_{jd}^{2} & \sim \mathcal{IG}(\phi_{jd}, \lambda_{\text{feat}}), 
+		  \label{eq:gammaprior}\\
 		  \tau_d^{2} & \sim \mathcal{IG}(\chi_d, \lambda_{\text{drug}}), 
 		  \label{eq:tauprior}\\
-		  \sigma_d^{2} & \sim 1/\sigma_d^{3},
+		  \sigma_d^{2} & \sim 1/\sigma_d^{3}, \label{eq:sigmaprior}
 		\end{align}
 	\end{subequations}
 	where $\mathcal{IG}(\phi, \lambda)$ denotes an inverse Gaussian distribution 
 	with mean $\phi$ and shape $\lambda$. 
 	
-	In model (\ref{eq:prior}), $\gamma_{jd}^2$ denotes a local variance 
+	In model (\ref{eq:prior}), $\gamma_{jd}^2$ in (\ref{eq:gammaprior}) denotes a 
+	local variance 
 	component that is supposed to capture local, feature-specific variation in the
-	model parameters $\beta_{jd}$, while the global variance component $\tau$ 
-	captures the, drug-specific, general trend in $\bm{\beta}_{d}$. Each drug is
-	endowed with a random error variance $\sigma_d^2$.
+	model parameters $\beta_{jd}$ in (\ref{eq:betaprior}), 
+	while the global variance components $\tau_d^2$ in (\ref{eq:tauprior})
+	capture the drug-specific, general trend in $\bm{\beta}_{d}$. Each drug 
+	response is endowed with a random error variance $\sigma_d^2$, distributed
+	according to (\ref{eq:sigmaprior}).
 	
 	Prior distributions of the form
 	(\ref{eq:prior}) are often referred to as global-local shrinkage rules 
@@ -290,14 +294,17 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \ref{fig:dens_kappa} depicts the prior on $\kappa_{jd}$ implied by 
   several choices of $\beta_{jd}$ prior.
   
-<<dens_kappa, fig.cap="Implied prior densities $\\pi(\\kappa_{jd})$ for the (a) NIG, (b) Student's $t$, and (c) lasso priors. Different line types correspond to different hyperparameter settings. The hyperparameter settings were chosen to show some possible, distinct shapes that each of the priors can take.", out.width="100%", fig.asp=1/3>>=
+<<dens_kappa, fig.cap="Implied prior densities $\\pi(\\kappa_{jd})$ for the (a) NIG, (b) Student's $t$, and (c) lasso priors. Different line types correspond to different hyperparameter settings. The hyperparameter settings (given in Section \\ref{sm-sec:hyperparameters} of the SM) were chosen to show some possible, distinct shapes that each of the priors can take.", out.width="100%", fig.asp=1/3>>=
 @
   
   Figure \ref{fig:dens_kappa} shows that, depending on the choice
   of hyperparameters, the NIG prior can behave similarly to the Student's $t$ 
-  prior (decreasing form zero, with substantial mass close to 0), 
-  but also rather differently. Our argumentation to model the 
-  $\gamma^2_{jd}$ by an inverse Gaussian 
+  prior (decreasing form zero, with substantial mass close to zero and 
+  little mass close to one, like the
+  solid lines in Figure \ref{fig:dens_kappa}a-\ref{fig:dens_kappa}b), 
+  but also rather differently (dashed and dotted lines in 
+  Figure \ref{fig:dens_kappa}a-\ref{fig:dens_kappa}b). Our argumentation to 
+  model the $\gamma^2_{jd}$ by an inverse Gaussian 
   distribution, as has been suggested in \cite{fabrizi_specification_2016} and 
   \cite{caron_sparse_2008}, is three-fold: (i) the NIG model is more flexible 
   than the lasso prior (as seen from Figure 
@@ -305,9 +312,10 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   the means of the $\gamma_{jd}^2$ ($\phi_{jd}$) and $\tau_{jd}^2$ 
   ($\chi_{d}$) as a function of external data 
   more conveniently than the Student's $t$ prior, as explained in Section 
-  \ref{sec:empiricalbayes}, and (iii) like the horseshoe, the NIG shrinkage
-  weights prior can put mass both near 0 and 1, a desirable property of 
-  shrinkage priors.
+  \ref{sec:empiricalbayes}, and (iii) like the horseshoe 
+  \cite[]{carvalho_handling_2009}, the NIG shrinkage
+  weights prior can put mass both near zero and one, a desirable property of 
+  shrinkage priors \cite[]{bernardo_shrink_2011}.
 
   A few remarks on the choice of error variance prior are justified here: 
   many authors endow error variance components with vague gamma priors. 
@@ -691,13 +699,16 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	(ii) the NIG model estimated as in Section \ref{sec:estimation} that includes
 	all external covariates, called NIG$_{\text{f}}$, NIG$_{\text{d}}$, or
 	NIG$_{\text{f}+\text{d}}$, again depending on which variance components are 
-	estimated, and regular (iii) lasso and (iv) ridge models.
+	estimated, and frequentist (iii) lasso and (iv) ridge models.
 	Exclusion of the external covariates as in the NIG$_{\text{f}}^-$, 
 	NIG$_{\text{d}}^-$, and NIG$_{\text{f}+\text{d}}^-$ models
 	amounts to direct estimation of common expected 
 	prior means $\phi$ and/or $\chi$, instead of regression estimates for the
 	$\phi_{jd}$ and/or $\chi_d$ as in the 
 	NIG$_{\text{f}}$, NIG$_{\text{d}}$, and NIG$_{\text{f}+\text{d}}$ models. 
+	The lasso and ridge models were fit using the \texttt{R} package 
+	\texttt{glmnet} \cite[]{friedman_regularization_2010} with cross validated
+	penalty parameters.
 	All models are fit on 241 randomly selected cell lines, while performance
 	measures are estimated from the remaining 241 cell lines. We repeat every
 	simulation Scenario 50 times.

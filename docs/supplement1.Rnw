@@ -166,7 +166,22 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  3.
 	\end{align*}
 	
-	\section{Jeffrey's prior}
+	\section{Hyperparameter settings}\label{sec:hyperparameters}
+	For the NIG shrinkage weights prior in Figure \ref{md-fig:dens_kappa}a the 
+	following hyperparameter settings (in terms of the inverse Gaussian prior) 
+	were used: $\lambda=1$, $\phi=10$ (solid),
+	$\lambda=0.1$, $\phi=10$ (dashed), and $\lambda=1$, $\phi=1$ (dotted).
+	The Student`s $t$ prior on the regression parameters $\beta_{jd}$ arises if
+	$\gamma_{jd}^2 \sim \Gamma^{-1}(a,b)$, with $\Gamma^{-1}(a,b)$ an inverse
+	Gamma distribution with shape $a$ and scale $b$. Figure 
+	\ref{md-fig:dens_kappa}b is then obtained by setting: $a=0.9$, $b=1.3$ 
+	(solid), $a=1$, $b=4$ (dashed), and $a=1$, $b=0.2$ (dotted).
+	The lasso prior results from an exponential prior on $\gamma_{jd}^2$. To
+	create Figure \ref{md-fig:dens_kappa}c the following settings were
+	used for rate $\lambda$: $\lambda=1$ (solid), $\lambda=0.2$ (dashed), and 
+	$\lambda=0.1$ (dotted).
+	
+	\section{Jeffrey's prior}\label{sec:jeffreysprior}
 	We parametrise the data with a Gaussian distribution with unknown mean and 
 	variance, i.e., $y_i \sim \mathcal{N} (\mu, \sigma^2)$. This gives us the
 	following Hessian (matrix of second derivatives) of the log density:

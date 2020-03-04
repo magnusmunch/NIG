@@ -1,7 +1,7 @@
 ################################# main document ################################
 # ---- figures ----
 # ---- dens_kappa ----
-library(sp)
+suppressWarnings(suppressMessages(library(sp)))
 labels <- c("NIG", "Student's t", "lasso")
 col <- bpy.colors(length(labels), cutoff.tail=0.3)
 lty <- c(1:length(labels))
@@ -33,8 +33,8 @@ lines(x.seq, dknig(x.seq, 1, 1), col=col[1], lty=lty[3])
 
 plot(x.seq, dkstudentst(x.seq, a=0.9, b=1.3), type="l", ylim=c(0, 4), 
      xlab=expression(kappa), ylab=expression(pi(kappa)), main="(b)", col=col[2], 
-     lty=lty[1])
-lines(x.seq, dkstudentst(x.seq, a=1, b=4), col=col[2], lty=lty[2])
+     lty=lty[2])
+lines(x.seq, dkstudentst(x.seq, a=1, b=4), col=col[2], lty=lty[1])
 lines(x.seq, dkstudentst(x.seq, a=1, b=0.2), col=col[2], lty=lty[3])
 
 plot(x.seq, dklasso(x.seq, 1), type="l", ylim=c(0, 3.5), 
@@ -45,7 +45,7 @@ lines(x.seq, dklasso(x.seq, 0.1), col=col[3], lty=lty[3])
 par(opar)
 
 # ---- simulations_gdsc_est1 ----
-library(sp)
+suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
@@ -77,7 +77,7 @@ points(c(1:4), phi, pch=2, col=col[c(1:4)], cex=1.5,
 par(opar)
 
 # ---- simulations_gdsc_est2 ----
-library(sp)
+suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
@@ -109,7 +109,7 @@ points(c(1:4), phi, pch=2, col=col[c(1:4)], cex=1.5,
 par(opar)
 
 # ---- simulations_gdsc_est3 ----
-library(sp)
+suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
@@ -159,6 +159,63 @@ boxplot(est4, ylim=ylim4, main="(d)", ylab=expression(hat(chi)),
 points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5, 
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
+
+# ---- simulations_gdsc_est4 ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
+chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
+est1 <- sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphaf" ,s), 2]})
+est2 <- 1/(est1 %*% t(cbind(1, rbind(0, diag(3)))))
+est3 <- sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphad" ,s), 2]})
+est4 <- 1/(est3 %*% t(cbind(1, rbind(0, diag(3)))))
+
+col <- bpy.colors(length(alphad), cutoff.tail=0.3)
+labels1 <- expression(alpha["feat,0"], alpha["feat,1"], alpha["feat,2"], 
+                      alpha["feat,3"])
+labels2 <- expression(phi["1"], phi["2"], phi["3"], phi["4"])
+labels3 <- expression(alpha["drug,0"], alpha["drug,1"], alpha["drug,2"], 
+                      alpha["drug,3"])
+labels4 <- expression(chi["1"], chi["2"], chi["3"], chi["4"])
+
+ylim1 <- range(c(unlist(boxplot(est1, plot=FALSE)[c("stats", "out")]), alphaf))
+ylim2 <- range(c(unlist(boxplot(est2, plot=FALSE)[c("stats", "out")]), phi))
+ylim3 <- range(c(unlist(boxplot(est3, plot=FALSE)[c("stats", "out")]), alphad))
+ylim4 <- range(c(unlist(boxplot(est4, plot=FALSE)[c("stats", "out")]), chi))
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+              nrow=4, ncol=4, byrow=TRUE))
+boxplot(est1, ylim=ylim1, main="(a)", ylab=expression(hat(alpha)), 
+        names=labels1, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
+points(c(1:4), alphaf, pch=2, col=col[c(1:4)], cex=1.5, 
+       cex.lab=1.5, cex.axis=1.4)
+boxplot(est2, ylim=ylim2, main="(b)", ylab=expression(hat(phi)), 
+        names=labels2, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
+points(c(1:4), phi, pch=2, col=col[c(1:4)], cex=1.5, 
+       cex.lab=1.5, cex.axis=1.5)
+boxplot(est3, ylim=ylim3, main="(c)", ylab=expression(hat(alpha)), 
+        names=labels3, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
+points(c(1:4), alphad, pch=2, col=col[c(1:4)], cex=1.5, 
+       cex.lab=1.5, cex.axis=1.4)
+boxplot(est4, ylim=ylim4, main="(d)", ylab=expression(hat(chi)), 
+        names=labels4, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
+points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5, 
+       cex.lab=1.5, cex.axis=1.5)
+par(opar)
+
+pmse <- res[rownames(res)=="pmse", ]
+boxplot(pmse[, -5])
+
+
 
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 

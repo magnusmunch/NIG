@@ -7,6 +7,31 @@
 
 using namespace Rcpp;
 
+// f_optim_mat
+double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D, List idsel, int G, int H, List y, arma::mat x, arma::vec yty);
+RcppExport SEXP _cambridge_f_optim_mat(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP idselSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< arma::vec >::type alpha(alphaSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type lambda(lambdaSEXP);
+    Rcpp::traits::input_parameter< double >::type nu(nuSEXP);
+    Rcpp::traits::input_parameter< double >::type zeta(zetaSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Cmat(CmatSEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type Z(ZSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type n(nSEXP);
+    Rcpp::traits::input_parameter< int >::type p(pSEXP);
+    Rcpp::traits::input_parameter< int >::type D(DSEXP);
+    Rcpp::traits::input_parameter< List >::type idsel(idselSEXP);
+    Rcpp::traits::input_parameter< int >::type G(GSEXP);
+    Rcpp::traits::input_parameter< int >::type H(HSEXP);
+    Rcpp::traits::input_parameter< List >::type y(ySEXP);
+    Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
+    Rcpp::traits::input_parameter< arma::vec >::type yty(ytySEXP);
+    rcpp_result_gen = Rcpp::wrap(f_optim_mat(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, idsel, G, H, y, x, yty));
+    return rcpp_result_gen;
+END_RCPP
+}
 // f_optim_list
 double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, int D, int G, int H, List y, List x, arma::vec yty);
 RcppExport SEXP _cambridge_f_optim_list(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP) {
@@ -97,6 +122,7 @@ RcppExport SEXP _rcpp_module_boot_stan_fit4nig_mod();
 RcppExport SEXP _rcpp_module_boot_stan_fit4nig_full_mod();
 
 static const R_CallMethodDef CallEntries[] = {
+    {"_cambridge_f_optim_mat", (DL_FUNC) &_cambridge_f_optim_mat, 15},
     {"_cambridge_f_optim_list", (DL_FUNC) &_cambridge_f_optim_list, 14},
     {"_cambridge_Sigma_unp", (DL_FUNC) &_cambridge_Sigma_unp, 6},
     {"_cambridge_Sigma", (DL_FUNC) &_cambridge_Sigma, 3},
