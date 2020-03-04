@@ -10,12 +10,6 @@ sapply(packages, library, character.only=TRUE)
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
 
-# reassign data
-resp <- resp.prep
-expr <- expr.prep
-meth <- meth.prep
-mut <- mut.prep
-
 # number of reps
 nreps <- 100
 
@@ -629,21 +623,24 @@ write.table(res, file="results/simulations_gdsc_res3.txt")
 ################################# simulation 4 #################################
 ### data preparation
 # select features
-D <- ncol(resp.prep)
+D <- 100
 psel <- 100
-o <- order(-apply(expr.prep, 2, sd))
+o <- order(-apply(expr$expr, 2, sd))
 idsel <- rep(list(o[c(1:psel)]), D)
-expr.sel <- lapply(idsel, function(s) {expr.prep[, s]})
+expr.sel <- lapply(idsel, function(s) {expr$expr[, s]})
 x <- lapply(expr.sel, function(s) {scale(s)})
 
 ### data preparation
 p <- sapply(x, ncol)
-n <- nrow(expr.prep)
+n <- nrow(expr.sel)
 ntrain <- floor(n/2)
 
 ### simulation settings
-alphaf <- c(1, 1, 3, 7)
+alphaf <- c(1, 1, 3, 7)*10
 alphad <- c(1, 1, 3, 7)
+C <- lapply(1:D, function(s) {
+  unname(model.matrix(~ as.factor(rep(c(1:4), each=p[d]/4))))})
+Z <- unname(model.matrix(~ as.factor(rep(c(1:4), each=D/4))))
 
 methods <- c("NIGfd-", "NIGfd", "lasso", "ridge")
 
@@ -659,13 +656,10 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   set.seed(2020 + r)
   
   ### simulate parameters
-  C <- lapply(1:D, function(d) {
-    cbind(1, t(replicate(p[d], sample(c(1, 0, 0, 0), 4)[-1])))})
-  Z <- cbind(1, t(replicate(D, sample(c(1, 0, 0, 0), 4)[-1])))
   sigma <- rep(1, D)
   beta <- lapply(1:D, function(d) {
-    rnorm(p[d], 0, sqrt(1/as.numeric(C[[d]] %*% alphaf))*
-            sqrt(1/as.numeric(Z %*% alphad)))})
+    rnorm(p[d], 0, sigma[d]*sqrt(1/as.numeric(C[[d]] %*% alphaf))*
+            sqrt(1/as.numeric(Z %*% alphad)[d]))})
   
   # simulate data
   idtrain <- sample(1:n, ntrain)
