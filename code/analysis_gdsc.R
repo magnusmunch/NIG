@@ -57,6 +57,7 @@ resp.sel <- sapply(resp.sel, function(s) {
   s <- s[order(names(s))]})
 expr.sel <- expr$expr[, colnames(expr$expr) %in% rownames(feat)]
 feat.sel <- feat[rownames(feat) %in% colnames(expr$expr), ]
+drug.sel <- drug[match(names(resp.sel), drug$name), ]
 
 # split into training and test data
 set.seed(2020)

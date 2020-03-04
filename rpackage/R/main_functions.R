@@ -432,10 +432,10 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
-# x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
-# hyper=list(lambda=NULL, zeta=0, nu=0);
-# control=list(epsilon=sqrt(.Machine$double.eps), 
-#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
+x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
+hyper=list(lambda=NULL, zeta=0, nu=0);
+control=list(epsilon=sqrt(.Machine$double.eps),
+             maxit=500, trace=TRUE, glmnet.fit2=FALSE)
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
 # EBridge estimation
