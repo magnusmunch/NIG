@@ -390,7 +390,7 @@ write.table(res, file="results/simulations_gdsc_res2.txt")
 ### data preparation
 # select features
 D <- 100
-psel <- 100
+psel <- 400
 o <- order(-apply(expr$expr, 2, sd))
 idsel <- rep(list(o[c(1:psel)]), D)
 expr.sel <- lapply(idsel, function(s) {expr$expr[, s]})
