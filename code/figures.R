@@ -115,7 +115,7 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-alphaf <- c(1, 1, 3, 7)
+alphaf <- c(1, 1, 3, 7)*10
 alphad <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
 chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
@@ -159,6 +159,10 @@ boxplot(est4, ylim=ylim4, main="(d)", ylab=expression(hat(chi)),
 points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5, 
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
+
+pmse <- res[rownames(res)=="pmse", ]
+boxplot(pmse[, -5])
+apply(pmse, 2, median)
 
 # ---- simulations_gdsc_est4 ----
 suppressWarnings(suppressMessages(library(sp)))

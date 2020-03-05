@@ -437,11 +437,9 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   xtrain <- lapply(x, function(s) {scale(s[idtrain, ])})
   xtest <- lapply(x, function(s) {scale(s[-idtrain, ])})
   ytrain <- scale(sapply(1:D, function(d) {
-    rnorm(ntrain, as.numeric(xtrain[[d]] %*% beta[[d]]), sigma[d])}),
-    scale=FALSE)
+    rnorm(ntrain, as.numeric(xtrain[[d]] %*% beta[[d]]), sigma[d])}))
   ytest <- scale(sapply(1:D, function(d) {
-    rnorm(n - ntrain, as.numeric(xtest[[d]] %*% beta[[d]]), sigma[d])}),
-    scale=FALSE)
+    rnorm(n - ntrain, as.numeric(xtest[[d]] %*% beta[[d]]), sigma[d])}))
 
   ### fitting models
   control <- list(conv.post=TRUE, trace=FALSE,
