@@ -55,3 +55,15 @@ hist(test1$tau^2)
 summary(c(test1$gamma^2))
 test1$alphad
 test1$alphaf
+
+
+
+### permutation distribution
+x <- expr.sel[[1]]
+test1 <- Reduce("+", lapply(1:nrow(x), function(i) {
+  as.matrix(x[i, ]) %*% t(as.matrix(x[i, ]))}))/nrow(x)
+str(test1)
+diag(test1)
+  
+cbind(diag(x[1, ] %*% t(x[1, ])  ), x[1, ]^2)
+

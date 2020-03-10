@@ -436,8 +436,8 @@ x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
 hyper=list(lambda=NULL, zeta=0, nu=0);
 control=list(epsilon=sqrt(.Machine$double.eps),
              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
-# library(Rcpp)
-# sourceCpp("rpackage/src/aux_functions.cpp")
+library(Rcpp)
+sourceCpp("rpackage/src/aux_functions.cpp")
 # EBridge estimation
 ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
@@ -449,7 +449,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   n <- sapply(y, length)
   D <- length(y)
   if(is.matrix(x)) {
-    p <- replicate(D, ncol(x))
+    p <- ncol(x)
     idsel <- sapply(y, function(s) {
       match(names(s), rownames(x))})
   } else {
@@ -512,6 +512,9 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     cat("\r", "Estimating EB parameters")
   }
   if(is.matrix(x)) {
+    .f.optim.mat(rep(0, H + G), lambda=hyper$lambda, 
+                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
+                 idsel=idsel, G=G, H=H, y=y, x=x, yty=yty)
     opt <- optim(par=rep(0, H + G), fn=.f.optim.mat, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
                  idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 

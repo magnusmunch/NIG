@@ -163,6 +163,7 @@ par(opar)
 pmse <- res[rownames(res)=="pmse", ]
 boxplot(pmse[, -5])
 apply(pmse, 2, median)
+apply(est2, 2, median)
 
 # ---- simulations_gdsc_est4 ----
 suppressWarnings(suppressMessages(library(sp)))

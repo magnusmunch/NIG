@@ -5,6 +5,7 @@
 
 // To use functions in Rcpp library without the need of specifying "Rcpp::"
 using namespace Rcpp;
+using namespace arma;
 
 // function to optimise in EBridge with one x (not tested)
 // [[Rcpp::export(".f.optim.mat")]]
@@ -18,24 +19,23 @@ double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
 
   arma::vec tau = exp(0.5*Z*alphad);
   arma::vec gamma = exp(0.5*Cmat*alphaf);
-  arma::vec out(D);
+  double out=0.0;
   for(int d=0; d<D; d++) {
     arma::rowvec mat1(n(d));
-    arma::mat mat2(n(d), n(d));
+    arma::mat mat2(n(d), n(d)); 
     arma::uvec cidsel = idsel[d];
-    arma::mat cx = x.rows(cidsel);
+    arma::mat cx = x.rows(cidsel - 1);
     arma::vec cy = y[d];
 
     mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
       gamma.subvec(d*p, (d + 1)*p - 1).t()));
     mat1 = cy.t()*mat2;
     mat2.diag() += 1;
-    out(d) = -0.5*real(log_det(mat2)) -
+    out += -0.5*real(log_det(mat2)) -
       (n(d)/2 + nu)*log(zeta + arma::conv_to<double>::from(
-          0.5*yty(d) - 0.5*mat1*cy + 0.5*mat1*mat2.i()*mat1.t()));
+          0.5*yty(d) - 0.5*mat1*y[d] + 0.5*mat1*mat2.i()*mat1.t()));
   }
-  double val = sum(out);
-  return val;
+  return out;
 }
 
 // function to optimise in EBridge with multiple x (not tested)

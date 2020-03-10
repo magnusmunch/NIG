@@ -402,12 +402,15 @@ n <- nrow(expr.sel[[1]])
 ntrain <- floor(n/2)
 
 ### simulation settings
-alphaf <- c(1, 1, 3, 7)*10
-alphad <- c(1, 1, 3, 7)
+alphaf <- c(1, 1, 3, 7)*4
+alphad <- c(1, 1, 3, 7)*8
 lambdaf <- 1
 lambdad <- 1
 shape <- 3
 rate <- 2
+
+mean(sum(rep(p[1]/4, 4)/as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphaf))/
+  as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphad))
 
 methods <- c("NIGfd-", "NIGfd", "lasso", "ridge")
 
