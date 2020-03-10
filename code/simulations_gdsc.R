@@ -409,8 +409,9 @@ lambdad <- 1
 shape <- 3
 rate <- 2
 
-mean(sum(rep(p[1]/4, 4)/as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphaf))/
-  as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphad))
+SNR <- sum(rep(p[1]/4, 4)/
+             as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphaf))/
+  as.numeric(model.matrix(~as.factor(c(1:4))) %*% alphad)
 
 methods <- c("NIGfd-", "NIGfd", "lasso", "ridge")
 
