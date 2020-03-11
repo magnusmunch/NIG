@@ -1,5 +1,5 @@
 # x=xtrain; y=ytrain; C=C; Z=Z; unpenalized=NULL;
-# standardize=FALSE; intercept=FALSE; fixed.eb="lambda"; var.scale=1;
+# standardize=FALSE; intercept=FALSE; fixed.eb="none"; var.scale=1;
 # full.post=TRUE; init=NULL; control=control
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
@@ -25,7 +25,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
   unp <- intercept | !is.null(unpenalized)
   
   # fixed parameters
-  D <- length(y)
+  D <- ifelse(is.matrix(y), ncol(y), length(y))
   n <- sapply(y, length)
   if(is.null(unpenalized)) {
     u <- rep(intercept, D)
@@ -106,14 +106,15 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
     old.vb <- lapply(c(1:D), function(d) {
       .single.vb.update.unp(init$aold[d], init$bold[[d]], init$gold[[d]], 
                             init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
-                            init$lambdad, y[[d]], xu[[d]], xr[[d]], yty[d], 
-                            n[d], u[d], r[d], var.scale[d])})
+                            init$lambdad, 
+                            switch(is.list(y) + 1, y[, d], y[[d]]), xu[[d]], 
+                            xr[[d]], yty[d], n[d], u[d], r[d], var.scale[d])})
   } else {
     old.vb <- lapply(c(1:D), function(d) {
       .single.vb.update(init$aold[d], init$bold[[d]], init$gold[[d]], 
                         init$Calphaf[[d]], init$Zalphad[[d]], init$lambdaf, 
-                        init$lambdad, y[[d]], x[[d]], ytx[[d]], yty[d], n[d], 
-                        r[d], var.scale[d])})  
+                        init$lambdad, switch(is.list(y) + 1, y[, d], y[[d]]), 
+                        x[[d]], ytx[[d]], yty[d], n[d], r[d], var.scale[d])})  
   }
   aux <- lapply(old.vb, function(s) {s$aux})
   old.vb <- setNames(lapply(names(old.vb[[1]])[
@@ -246,13 +247,15 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
           .single.vb.update.unp(
             old.vb$a[[d]], ifelse(is.null(C), rep(1, r[d]), old.vb$b[[d]]), 
             old.vb$g[[d]], old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
-            old.eb$lambdaf, old.eb$lambdad, y[[d]], xu[[d]], xr[[d]], yty[d], 
+            old.eb$lambdaf, old.eb$lambdad, 
+            switch(is.list(y) + 1, y[, d], y[[d]]), xu[[d]], xr[[d]], yty[d], 
             n[d], u[d], r[d], var.scale[d])})  
       } else {
         new.vb <- lapply(c(1:D), function(d) {
           .single.vb.update(old.vb$a[[d]], old.vb$b[[d]], old.vb$g[[d]],
                             old.eb$Calphaf[[d]], old.eb$Zalphad[[d]],
-                            old.eb$lambdaf, old.eb$lambdad, y[[d]], x[[d]], 
+                            old.eb$lambdaf, old.eb$lambdad, 
+                            switch(is.list(y) + 1, y[, d], y[[d]]), x[[d]], 
                             ytx[[d]], yty[d], n[d], r[d], var.scale[d])})  
       }
       aux <- lapply(new.vb, function(s) {s$aux})
@@ -432,12 +435,12 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
-x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
-hyper=list(lambda=NULL, zeta=0, nu=0);
-control=list(epsilon=sqrt(.Machine$double.eps),
-             maxit=500, trace=TRUE, glmnet.fit2=FALSE)
-library(Rcpp)
-sourceCpp("rpackage/src/aux_functions.cpp")
+# x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
+# hyper=list(lambda=NULL, zeta=0, nu=0);
+# control=list(epsilon=sqrt(.Machine$double.eps),
+#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
+# library(Rcpp)
+# sourceCpp("rpackage/src/aux_functions.cpp")
 # EBridge estimation
 ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
