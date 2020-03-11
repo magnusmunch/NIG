@@ -88,6 +88,23 @@ C <- lapply(1:D, function(d) {
   s <- cbind(1, feat.sel$harmonic^(1/10)); 
   colnames(s) <- c("intercept", "pvalues"); s})
 
+
+ 
+fit1.glmnet <- cv.glmnet(xtrain[match(names(ytrain[[1]]), rownames(xtrain)), ], 
+                         ytrain[[1]], alpha=0, standardize=FALSE)
+fit1.xtune <- xtune(xtrain[match(names(ytrain[[1]]), rownames(xtrain)), ], 
+                    ytrain[[1]], matrix(C[[1]][, -1]), family="linear",
+                    method="ridge", control=list(intercept=FALSE))
+pred <- cbind(ridge=predict(fit1.glmnet, 
+                            xtrain[match(names(ytest[[1]]), rownames(xtest)), ],
+                            s="lambda.min"),
+              xtune=predict(fit1.xtune, 
+                            xtrain[match(names(ytest[[1]]), rownames(xtest)), ],
+                            type="response"))
+pmse <- colMeans((pred - ytest[[1]])^2)
+
+
+
 # fit model
 fit1.ebridge <- ebridge(xtrain, ytrain, C, Z, mult.lambda=TRUE, foldid=foldid,
                         hyper=list(lambda=NULL, zeta=0, nu=0),

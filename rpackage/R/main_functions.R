@@ -512,9 +512,6 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     cat("\r", "Estimating EB parameters")
   }
   if(is.matrix(x)) {
-    .f.optim.mat(rep(0, H + G), lambda=hyper$lambda, 
-                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
-                 idsel=idsel, G=G, H=H, y=y, x=x, yty=yty)
     opt <- optim(par=rep(0, H + G), fn=.f.optim.mat, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
                  idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 
