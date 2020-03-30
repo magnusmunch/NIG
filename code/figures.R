@@ -160,11 +160,6 @@ points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5,
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
 
-pmse <- res[rownames(res)=="pmse", ]
-boxplot(pmse[, -5])
-apply(pmse, 2, median)
-apply(est2, 2, median)
-
 # ---- simulations_gdsc_est4 ----
 suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
@@ -217,9 +212,6 @@ points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5,
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
 
-pmse <- res[rownames(res)=="pmse", ]
-boxplot(pmse[, -5])
-
 
 
 ################################# presentation #################################
@@ -239,96 +231,3 @@ legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3,
 dev.off()
 
 
-################################################################################
-################################################################################
-################################################################################
-
-res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-test1 <- Reduce("rbind", by(res[substr(rownames(res), 1, 4)=="pmse", ], 
-                            list(as.factor(rownames(res)[substr(rownames(res), 1, 
-                                                                4)=="pmse"])), 
-                            function(s) {apply(s, 2, median)}))
-D <- 168
-nfolds <- 10
-test2 <- Reduce("rbind", by(res[substr(rownames(res), 1, 4)=="pmse", ], 
-                            list(as.factor(rep(1:nfolds, each=D))), 
-                            colMeans))
-
-pairs(test1[, 1:9])
-boxplot(test2)
-sort(apply(test2, 2, median))
-
-res <- read.table("results/analysis_gdsc_res1.2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-boxplot(res[substr(rownames(res), 1, 4)=="pmse", ])
-pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
-mpmse <- aggregate(pmse, list(rep(c(1:10), each=D)), mean)[, -1]
-medpmse <- aggregate(pmse, list(rownames(pmse)), median)[, -1]
-sort(apply(mpmse, 2, median))
-boxplot(mpmse)
-pairs(medpmse, panel=function(x, y) {
-  points(x, y); abline(a=0, b=1)})
-
-str(medpmse)
-
-mean(medpmse$EBridge2 <= medpmse$ridge1)
-mean(medpmse$EBridge2 > medpmse$ridge1)
-
-sort(apply(res[rownames(res)=="pmse", ], 2, median))
-sort(apply(res[rownames(res)=="elbo", ], 2, median), decreasing=TRUE)
-sort(apply(res[rownames(res)=="lpml", ], 2, median), decreasing=TRUE)
-sort(apply(res[rownames(res)=="brankdist", ], 2, median))
-boxplot(res[rownames(res)=="elbo", ])
-boxplot(res[rownames(res)=="lpml", ])
-boxplot(res[rownames(res)=="brankdist", ])
-
-load("results/analysis_gdsc_fit1.Rdata")
-fit1.semnig$eb$alphaf
-fit1.semnig$eb$alphad
-fit2.semnig$eb$alphaf
-fit2.semnig$eb$alphad
-fit3.semnig$eb$alphaf
-fit4.semnig$eb$alphad
-fit5.semnig$eb$alphaf
-fit5.semnig$eb$alphad
-
-
-test1 <- Reduce("cbind", fit2.semnig$vb$mu)
-test2 <- sapply(fit1.ridge, function(s) {as.numeric(coef(s, s="lambda.min"))[-1]})
-test3 <- sapply(1:D, function(d) {
-  fit1.optim[[d]]$par[names(fit1.optim[[d]]$par) %in% paste0("beta[", 1:p[d], "]")]})
-plot(test1, test3)
-abline(a=0, b=1, col=2)
-
-plot(colMeans((y - x[[1]] %*% test2)^2),
-      colMeans((y - x[[1]] %*% test3)^2), xlab="ridge", ylab="NIG")
-abline(a=0, b=1, col=2)
-
-mean(colMeans((y - x[[1]] %*% test2)^2))
-mean(colMeans((y - x[[1]] %*% test3)^2))
-
-plot(y - x[[1]] %*% test2, y - x[[1]] %*% test3)
-plot(y, x[[1]] %*% test2)
-plot(y, x[[1]] %*% test3)
-abline(a=0, b=1, col=2)
-
-dim(x[[1]])
-100*168
-length(fit2.semnig$eb$alphaf) + length(fit2.semnig$eb$alphad) +
-  length(fit2.semnig$eb$lambdaf) + length(fit2.semnig$eb$lambdad)
-
-
-library(plotly)
-mat <- matrix(colMeans(test$cvmat), ncol=length(chi), nrow=length(phi))
-cv.plot <- plot_ly(x=chi, y=phi, z=mat) %>% 
-  add_surface() %>%
-  layout(title="Cross-validated mean squared error",
-         scene=list(xaxis=list(title="chi"),
-                    yaxis=list(title="phi"),
-                    zaxis=list(title="MSE")))
-cv.plot

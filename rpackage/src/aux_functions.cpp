@@ -13,7 +13,7 @@ double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
                    arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D,
                    List idsel, int G, int H, List y, arma::mat x,
                    arma::vec yty) {
-
+  
   arma::vec alphaf = alpha.head(G);
   arma::vec alphad = alpha.tail(H);
 
@@ -22,7 +22,7 @@ double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
   double out=0.0;
   for(int d=0; d<D; d++) {
     arma::rowvec mat1(n(d));
-    arma::mat mat2(n(d), n(d)); 
+    arma::mat mat2(n(d), n(d));
     arma::uvec cidsel = idsel[d];
     arma::mat cx = x.rows(cidsel - 1);
     arma::vec cy = y[d];
@@ -31,9 +31,9 @@ double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
       gamma.subvec(d*p, (d + 1)*p - 1).t()));
     mat1 = cy.t()*mat2;
     mat2.diag() += 1;
-    out += -0.5*real(log_det(mat2)) -
-      (n(d)/2 + nu)*log(zeta + arma::conv_to<double>::from(
-          0.5*yty(d) - 0.5*mat1*y[d] + 0.5*mat1*mat2.i()*mat1.t()));
+    out += -0.5*real(log_det(mat2))  -
+      (n(d)/2 + nu)*log(zeta + 0.5*yty(d) - 0.5*as_scalar(mat1*cy) +
+      0.5*as_scalar(mat1*mat2.i()*mat1.t()));
   }
   return out;
 }

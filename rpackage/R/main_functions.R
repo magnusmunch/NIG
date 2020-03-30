@@ -1,6 +1,7 @@
-# x=xtrain; y=ytrain; C=C; Z=Z; unpenalized=NULL;
-# standardize=FALSE; intercept=FALSE; fixed.eb="none"; var.scale=1;
-# full.post=TRUE; init=NULL; control=control
+# x=rep(list(xtrain), D); y=ytrain
+# unpenalized=NULL; standardize=FALSE; 
+# intercept=FALSE; fixed.eb="none"; var.scale=1;
+# full.post=FALSE; init=NULL;
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
 # source("rpackage/R/vb_functions.R")
@@ -15,7 +16,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
                    full.post=FALSE, init=NULL,
                    control=list(conv.post=TRUE, trace=TRUE,
                                 epsilon.eb=1e-3, epsilon.vb=1e-3,
-                                maxit.eb=10, maxit.vb=2, maxit.post=100,
+                                maxit.eb=100, maxit.vb=2, maxit.post=100,
                                 maxit.block=0)) {
   
   # save the arguments
@@ -271,7 +272,7 @@ semnig <- function(x, y, C, Z, unpenalized=NULL, standardize=FALSE,
                                 control$epsilon.vb)
       
       # save times
-      if(check.eb & iter.vb[iter.eb]==control$maxit.vb) {
+      if(check.eb & iter.vb[iter.eb]==1) {
         eb.time <- proc.time()[3] - srt
         srt <- proc.time()[3]
         if(control$trace) {
@@ -435,17 +436,21 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
   return(fit)
 }
 
-# x=xtrain; y=ytrain; mult.lambda=TRUE; foldid=foldid;
-# hyper=list(lambda=NULL, zeta=0, nu=0);
-# control=list(epsilon=sqrt(.Machine$double.eps),
-#              maxit=500, trace=TRUE, glmnet.fit2=FALSE)
+
+# x=xtrain; y=ytrain; mult.lambda=TRUE; C=lapply(C, function(s) {s[, -1]})
+# hyper=list(lambda=1/sqrt(n*sapply(
+#   fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0);
+# hyper=list(lambda=rep(1, D), zeta=0, nu=0);
+# Z=Z[, -1]; foldid=rep(list(foldid), D);
+# control=control.ebridge;
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
 # EBridge estimation
 ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
                     control=list(epsilon=sqrt(.Machine$double.eps), 
-                                 maxit=500, trace=FALSE, glmnet.fit2=FALSE)) {
+                                 maxit=500, trace=FALSE, glmnet.fit2=FALSE,
+                                 beta2=FALSE)) {
   
   yty <- sapply(y, function(s) {sum(s^2)})
   Cmat <- Reduce("rbind", C)
@@ -453,7 +458,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   D <- length(y)
   if(is.matrix(x)) {
     p <- ncol(x)
-    idsel <- sapply(y, function(s) {
+    idsel <- lapply(y, function(s) {
       match(names(s), rownames(x))})
   } else {
     p <- sapply(x, ncol)
@@ -514,16 +519,19 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   if(control$trace) {
     cat("\r", "Estimating EB parameters")
   }
+  
   if(is.matrix(x)) {
     opt <- optim(par=rep(0, H + G), fn=.f.optim.mat, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
                  idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 
-                 control=control[names(control)!="glmnet.fit2"])
+                 control=control[!(names(control) %in% 
+                                     c("glmnet.fit2", "beta2"))])
   } else {
     opt <- optim(par=rep(0, H + G), fn=.f.optim.list, lambda=hyper$lambda, 
                  nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
                  G=G, H=H, y=y, x=x, yty=yty, 
-                 control=control[names(control)!="glmnet.fit2"])
+                 control=control[!(names(control) %in% 
+                                     c("glmnet.fit2", "beta2"))])
   }
   eb.time <- proc.time()[3] - srt
   conv <- opt$convergence
@@ -543,16 +551,20 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
                   standardize=FALSE, intercept=FALSE)
     unname(coef(fit)[-1, 1])*h})
-  beta2 <- lapply(1:D, function(d) {
-    h <- tau[d]*gamma[[d]]
-    if(is.matrix(x)) {
-      xh <- x[idsel[[d]], ]
-    } else {
-      xh <- x[[d]]
-    }
-    fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
-                  intercept=FALSE, penalty.factor=1/h^2)
-    unname(coef(fit)[-1, 1])})
+  if(control$beta2) {
+    beta2 <- lapply(1:D, function(d) {
+      h <- tau[d]*gamma[[d]]
+      if(is.matrix(x)) {
+        xh <- x[idsel[[d]], ]
+      } else {
+        xh <- x[[d]]
+      }
+      fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
+                    intercept=FALSE, penalty.factor=1/h^2)
+      unname(coef(fit)[-1, 1])})
+  } else {
+    beta2 <- NULL
+  }
   
   out <- list(beta1=beta1, beta2=beta2, alphaf=alphaf, alphad=alphad, 
               lambda=hyper$lambda, tau=tau, 
@@ -568,7 +580,502 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   } else {
     out$glmnet.fit2 <- NULL
   }
+  if(exists("beta2")) {
+    out$beta2 <- beta2
+  } else {
+    out$beta2 <- NULL
+  }
   
   return(out)
   
+}
+
+################################### ebridge2 ###################################
+# theta update
+.single.theta.update <- function(mat, x, y, n, lambda, nu, zeta) {
+  theta <- lambda^2*colSums(x*(mat %*% x))/2
+  phi <- (n/2 + nu)/(lambda^2*(2*zeta + sum(y*(mat %*% y))))
+  return(c(phi, theta))
+}
+
+theta.update <- function(mat, x, y, n, p, D, lambda, nu, zeta, idsel,
+                         fix.sigma) {
+  theta <- lapply(1:D, function(d) {
+    .single.theta.update(mat[[d]], x[idsel[[d]], ], y[[d]], n[d], lambda[d], nu,
+                         zeta)})
+  if(fix.sigma[1]!=FALSE) {
+    out <- list(theta=unlist(lapply(theta, "[", -1)), phi=1/fix.sigma^2)
+  } else {
+    out <- list(theta=unlist(lapply(theta, "[", -1)), phi=sapply(theta, "[", 1))
+  }
+  return(out)
+}
+
+# alpha update
+alpha.update <- function(delta, theta, phi, alpha.old, tCmat, p, D, lambda,
+                         method, maxit) {
+  phi <- rep(phi, times=p)
+  deltatildesq <- delta^2*phi
+  opt <- optim(alpha.old, .f.opt.alpha, tCmat=tCmat, theta=theta,
+               deltatildesq=deltatildesq, method=method,
+               control=list(maxit=maxit))
+  alpha <- opt$par
+  h <- exp(colSums(tCmat*alpha))*rep(lambda^2, times=p)
+  return(list(alpha=alpha, h=h, conv=opt$convergence, iter=opt$counts))
+}
+
+.f.opt.alpha <- function(alpha, tCmat, theta, deltatildesq) {
+  vec <- exp(colSums(tCmat*alpha))
+  return(sum(theta*vec) + sum(deltatildesq/vec))
+}
+
+# update delta
+.single.delta.update <- function(h, x, y) {
+  fit <- glmnet(t(t(x)*sqrt(h)), y, alpha=0, lambda=1, intercept=FALSE, 
+                standardize=FALSE)
+  return(sqrt(h)*coef(fit, s=1, exact=TRUE)[-1, ])
+  # temp <- t(x)*h
+  # mat <- x %*% temp
+  # diag(mat) <- diag(mat) + 1
+  # mat <- solve(mat)
+  # delta <- colSums(t(temp %*% mat)*y)
+  # return(list(delta=delta, mat=mat))
+}
+
+delta.update <- function(h, x, y, idsel, D, p) {
+  h <- split(h, rep(1:D, p))
+  delta <- lapply(1:D, function(d) {
+    .single.delta.update(h[[d]], x[idsel[[d]], ], y[[d]])})
+  return(list(delta=unlist(lapply(delta, "[[", "delta")),
+              mat=lapply(delta, "[[", "mat")))
+}
+
+# x=xtrain; y=ytrain; C=C; Z=Z; foldid=foldid;
+# varsel=NULL
+# hyper=list(lambda=fit1.ebridge$lambda, zeta=0, nu=0);
+# control=list(epsilon=sqrt(.Machine$double.eps),
+#              maxit=list(eb.outer=500, eb.inner=100,
+#                         opt=500),
+#              fix.sigma=FALSE, trace=TRUE,
+#              opt.method="Nelder-Mead",
+#              standardize.C=FALSE,
+#              standardize.Z=FALSE)
+# ebridge2 function
+ebridge2 <- function(x, y, C, Z, varsel=NULL, nfolds=10, foldid=NULL,
+                     hyper=list(lambda=NULL, zeta=0, nu=0),
+                     control=list(epsilon=sqrt(.Machine$double.eps),
+                                  maxit=list(eb.outer=500, eb.inner=100,
+                                             opt=500),
+                                  fix.sigma=FALSE, trace=TRUE,
+                                  opt.method="Nelder-Mead",
+                                  standardize.C=TRUE,
+                                  standardize.Z=TRUE)) {
+  
+  # auxiliary variables
+  D <- length(y)
+  if(is.null(varsel)) {
+    p <- rep(ncol(x), D)
+  } else {
+    p <- sapply(varsel, length)
+  }
+  n <- sapply(y, length)
+  H <- ncol(Z)
+  G <- ncol(C[[1]])
+  idsel <- lapply(y, function(s) {
+    match(names(s), rownames(x))})
+  if(control$standardize.C) {
+    C <- lapply(C, function(s) {t(t(s) - colMeans(s))})
+  }
+  if(control$standardize.Z) {
+    Z <- t(t(Z) - colMeans(Z))
+  }
+  Ctilde <- lapply(1:D, function(d) {
+    cbind(C[[d]], matrix(rep(Z[d, ], each=p[d]), ncol=H))})
+  tCmat <- t(Reduce("rbind", Ctilde))
+
+  # cross-validate overall penalty
+  if(is.null(foldid)) {
+    foldid <- lapply(1:D, function(d) {
+      sample(c(rep(1:nfolds, each=n[[d]] %/% nfolds),
+               rep(1:(n[[d]] %% nfolds), (n[[d]] %% nfolds)!=0)))})
+  }
+  if(is.null(hyper$lambda)) {
+    check.cv <- TRUE
+    srt <- proc.time()[3]
+    if(control$trace) {
+      cat("Estimating penalty parameters by CV", "\n", sep="")
+    }
+    cv.fit <- lapply(1:D, function(d) {
+      cv.glmnet(x[idsel[[d]], ], y[[d]], alpha=0, intercept=FALSE,
+                foldid=foldid[[d]])})
+    hyper$lambda <- 1/sqrt(n*sapply(cv.fit, "[[", "lambda.min"))
+    cv.time <- proc.time()[3] - srt
+    if(control$trace) {
+      printtext <- round(hyper$lambda, 2)
+      printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                         printtext[length(printtext)], sep=", and ")
+      if(nchar(printtext) < 50) {
+        cat("\r", "Penalty parameters estimated at ", printtext,
+            " in ", round(cv.time, 2), " seconds ", sep="")
+      } else {
+        cat("\r", "Penalty parameters estimated at ", substr(printtext, 1, 47),
+            "..., in ", round(cv.time, 2), " seconds ", sep="")
+      }
+    }
+  } else {
+    check.cv <- FALSE
+    if(length(hyper$lambda)==1) {
+      hyper$lambda <- rep(hyper$lambda, D)
+    }
+    cv.time <- 0
+  }
+
+  # starting values
+  alpha.old <- alpha.seq <- rep(0, G + H)
+  delta.old <- rep(0, sum(p))
+  theta.old <- rep(hyper$lambda^2/2, p)
+  if(control$fix.sigma[1]!=FALSE) {
+    control$fix.sigma <- as.numeric(rep(
+      control$fix.sigma, ifelse(length(control$fix.sigma)==1, D, 1)))
+    phi.old <- 1/control$fix.sigma^2
+  } else {
+    phi.old <- (n/2 + hyper$nu)/(hyper$lambda^2*(2*hyper$zeta + 1))
+  }
+  par2.new <- list(mat=lapply(1:D, function(d) {0.5*diag(n[d])}))
+
+  # outer loop
+  iter.inner <- iter.opt <- numeric(0)
+  conv.inner <- conv.opt <- logical(0)
+  iter.outer <- 0
+  check.outer <- FALSE
+  if(control$trace) {
+    if(check.cv) {
+      cat("\n", "Estimating hyperparameters by EB", "\n", sep="")
+    } else {
+      cat("Estimating hyperparameters by EB", "\n", sep="")
+    }
+  }
+  srt <- proc.time()[3]
+  while(!check.outer) {
+
+    # track iterations
+    iter.outer <- iter.outer + 1
+    if(control$trace) {
+      printtext <- round(alpha.old, 2)
+      printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                         printtext[length(printtext)], sep=", and ")
+      if(nchar(printtext) < 50) {
+        cat("\r", "Iteration ", iter.outer, ", estimated EB parameters: ",
+            printtext, "      ", sep="")
+      } else {
+        cat("\r", "Iteration ", iter.outer, ", estimated EB parameters: ",
+            substr(printtext, 1, 47), "...", "      ", sep="")
+      }
+    }
+
+    # update theta and phi
+    par1.new <- theta.update(par2.new$mat, x, y, n, p, D, hyper$lambda,
+                             hyper$nu, hyper$zeta, idsel, control$fix.sigma)
+    theta.new <- par1.new$theta
+    phi.new <- par1.new$phi
+
+    # check convergence of outer loop
+    conv.outer <- all(abs((theta.new - theta.old)/theta.old) < control$epsilon) &
+      all(abs((phi.new - phi.old)/phi.old) < control$epsilon)
+    check.outer <- conv.outer | (iter.outer >= control$maxit$eb.outer)
+
+    # inner loop
+    iter.inner <- c(iter.inner, 0)
+    conv.inner <- c(conv.inner, FALSE)
+    check.inner <- FALSE
+    while(!check.inner) {
+      iter.inner[iter.outer] <- iter.inner[iter.outer] + 1
+      print(iter.inner[iter.outer])
+
+      # update parameters
+      eb.new <- alpha.update(delta.old, theta.new, phi.new, alpha.old, tCmat,
+                             p, D, hyper$lambda, control$opt.method,
+                             control$maxit$opt)
+      par2.new <- delta.update(eb.new$h, x, y, idsel, D, p)
+      alpha.new <- eb.new$alpha
+      delta.new <- par2.new$delta
+      conv.opt <- c(conv.opt, eb.new$conv)
+      iter.opt <- rbind(iter.opt, eb.new$iter)
+
+      # check convergence
+      conv.inner[iter.outer] <-
+        all(abs((alpha.old - alpha.new)/alpha.old) < control$epsilon)
+      check.inner <- conv.inner[iter.outer] | (iter.inner[iter.outer] >=
+                                                 control$maxit$eb.inner)
+
+      # assign old parameters
+      alpha.seq <- rbind(alpha.seq, alpha.new)
+      alpha.old <- alpha.new
+      delta.old <- delta.new
+    }
+
+    # assign old theta
+    theta.old <- theta.new
+    phi.old <- phi.new
+
+  }
+  eb.time <- proc.time()[3] - srt
+  if(control$trace) {
+    printtext <- round(alpha.new, 2)
+    printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                       printtext[length(printtext)], sep=", and ")
+    if(nchar(printtext) < 50) {
+      cat("\r", "Hyperparameters estimated at ", printtext,
+          " in ", round(eb.time, 2), " seconds ", sep="")
+    } else {
+      cat("\r", "Hyperparameters estimated at ", substr(printtext, 1, 47), "...,",
+          " in ", round(eb.time, 2), " seconds ", sep="")
+    }
+  }
+
+  # fitting final betas
+  beta <- lapply(1:D, function(d) {
+    h <- exp(colSums(t(Ctilde[[d]])*alpha.new))
+    xh <- t(t(x[idsel[[d]], ])*h)
+    fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
+                  standardize=FALSE, intercept=FALSE)
+    unname(coef(fit)[-1, 1])*h})
+
+  # creating and returning output object
+  if(!exists("cv.fit")) {
+    cv.fit <- NULL
+  }
+  out <- list(beta=beta, alphaf=alpha.new[1:G], alphad=alpha.new[-c(1:G)],
+              lambda=hyper$lambda, glmnet=cv.fit,
+              time=list(cv=cv.time, eb=eb.time),
+              conv=list(eb.outer=conv.outer, eb.inner=conv.inner,
+                        opt=conv.opt==0),
+              iter=list(eb.outer=iter.outer, eb.inner=iter.inner,
+                        opt=iter.opt))
+  return(out)
+}
+
+################################### ebridge3 ###################################
+# alpha <- alpha.old; lambda <- hyper$lambda;
+# nu <- hyper$nu; zeta <- hyper$zeta; fix.sigma <- control$fix.sigma
+# theta update
+par.update <- function(alpha, x, y, idsel, D, n, Ctilde, lambda, nu, zeta,
+                       fix.sigma) {
+  par <- lapply(1:D, function(d) {
+    mat <- lambda[d]^2*x[idsel[[d]], ] %*% 
+      (t(x[idsel[[d]], ])*exp(colSums(t(Ctilde[[d]])*alpha)))
+    diag(mat) <- diag(mat) + 1
+    mat <- solve(mat)
+    theta <- lambda[d]^2*colSums(x[idsel[[d]], ]*(mat %*% x[idsel[[d]], ]))
+    if(fix.sigma[d]==FALSE) {
+      phi <- (n[d] + 2*nu)/(2*zeta + sum(colSums(mat*y[[d]])*y[[d]]))
+    } else {
+      phi <- 1/fix.sigma[d]^2
+    }
+    return(c(phi, theta))})
+  return(list(theta=unlist(lapply(par, "[", -1)), phi=sapply(par, "[", 1)))
+}
+
+# theta <- theta.new; phi <- phi.new; lambda <- hyper$lambda; 
+# method <- control$opt.method; maxit <- control$maxit$opt
+# alpha update
+eb.update <- function(theta, phi, alpha.old, tCmat, x, y, idsel, cp, D, 
+                      lambda, method, maxit) {
+  opt <- optim(alpha.old, .f.opt.alpha, theta=theta, phi=phi, tCmat=tCmat, x=x,
+               y=y, idsel=idsel, cp=cp, D=D, lambda=lambda, 
+               method=method, control=list(maxit=maxit))
+  alpha <- opt$par
+  return(list(alpha=alpha, conv=opt$convergence, iter=opt$counts))
+}
+.f.opt.alpha <- function(alpha, theta, phi, tCmat, x, y, idsel, cp, D, lambda) {
+  vec <- exp(colSums(alpha*tCmat))
+  val <- sapply(1:D, function(d) {
+    mat <- lambda[d]^2*x[idsel[[d]], ] %*% 
+      (t(x[idsel[[d]], ])*vec[(cp[d] + 1):cp[d + 1]])
+    diag(mat) <- diag(mat) + 1
+    sum(colSums(solve(mat)*y[[d]])*y[[d]])})
+  return(sum(theta*vec) + sum(phi*val))
+}
+
+
+# x=xtrain; y=ytrain; C=C; Z=Z; foldid=foldid;
+# varsel=NULL
+# hyper=list(lambda=fit1.ebridge$lambda, zeta=0, nu=0);
+# control=list(epsilon=sqrt(.Machine$double.eps),
+#              maxit=list(eb=500, opt=500),
+#              fix.sigma=FALSE, trace=TRUE,
+#              opt.method="Nelder-Mead",
+#              standardize.C=FALSE,
+#              standardize.Z=FALSE)
+# ebridge2 function
+ebridge3 <- function(x, y, C, Z, varsel=NULL, nfolds=10, foldid=NULL,
+                     hyper=list(lambda=NULL, zeta=0, nu=0),
+                     control=list(epsilon=sqrt(.Machine$double.eps),
+                                  maxit=list(eb=500, opt=500),
+                                  fix.sigma=FALSE, trace=TRUE,
+                                  opt.method="Nelder-Mead",
+                                  standardize.C=TRUE,
+                                  standardize.Z=TRUE)) {
+ 
+  # auxiliary variables
+  D <- length(y)
+  if(is.null(varsel)) {
+    p <- rep(ncol(x), D)
+  } else {
+    p <- sapply(varsel, length)
+  }
+  cp <- c(0, cumsum(p))
+  n <- sapply(y, length)
+  H <- ncol(Z)
+  G <- ncol(C[[1]])
+  idsel <- lapply(y, function(s) {
+    match(names(s), rownames(x))})
+  if(control$standardize.C) {
+    C <- lapply(C, function(s) {t(t(s) - colMeans(s))})
+  }
+  if(control$standardize.Z) {
+    Z <- t(t(Z) - colMeans(Z))
+  }
+  Ctilde <- lapply(1:D, function(d) {
+    cbind(C[[d]], matrix(rep(Z[d, ], each=p[d]), ncol=H))})
+  tCmat <- t(Reduce("rbind", Ctilde))
+  
+  # cross-validate overall penalty
+  if(is.null(foldid)) {
+    foldid <- lapply(1:D, function(d) {
+      sample(c(rep(1:nfolds, each=n[[d]] %/% nfolds),
+               rep(1:(n[[d]] %% nfolds), (n[[d]] %% nfolds)!=0)))})
+  }
+  if(is.null(hyper$lambda)) {
+    check.cv <- TRUE
+    srt <- proc.time()[3]
+    if(control$trace) {
+      cat("Estimating penalty parameters by CV", "\n", sep="")
+    }
+    cv.fit <- lapply(1:D, function(d) {
+      cv.glmnet(x[idsel[[d]], ], y[[d]], alpha=0, intercept=FALSE,
+                foldid=foldid[[d]])})
+    hyper$lambda <- 1/sqrt(n*sapply(cv.fit, "[[", "lambda.min"))
+    cv.time <- proc.time()[3] - srt
+    if(control$trace) {
+      printtext <- round(hyper$lambda, 2)
+      printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                         printtext[length(printtext)], sep=", and ")
+      if(nchar(printtext) < 50) {
+        cat("\r", "Penalty parameters estimated at ", printtext,
+            " in ", round(cv.time, 2), " seconds ", sep="")
+      } else {
+        cat("\r", "Penalty parameters estimated at ", substr(printtext, 1, 47),
+            "..., in ", round(cv.time, 2), " seconds ", sep="")
+      }
+    }
+  } else {
+    check.cv <- FALSE
+    if(length(hyper$lambda)==1) {
+      hyper$lambda <- rep(hyper$lambda, D)
+    }
+    cv.time <- 0
+  }
+  control$fix.sigma <- rep(control$fix.sigma, 
+                           ifelse(length(control$fix.sigma)==1, D, 1))
+  
+  # starting values
+  alpha.old <- alpha.seq <- rep(0, G + H)
+  theta.old <- rep(1, sum(p))
+  phi.old <- ifelse(control$fix.sigma==FALSE, 
+                    (n/2 + hyper$nu)/(hyper$lambda^2*(2*hyper$zeta + 1)),
+                    1/control$fix.sigma^2)
+  
+  # outer loop
+  iter.eb <- 0
+  iter.opt <- numeric(0)
+  conv.eb <- FALSE
+  conv.opt <- numeric(0)
+  check.eb <- FALSE
+  if(control$trace) {
+    if(check.cv) {
+      cat("\n", "Estimating hyperparameters by EB", "\n", sep="")
+    } else {
+      cat("Estimating hyperparameters by EB", "\n", sep="")
+    }
+  }
+  srt <- proc.time()[3]
+  while(!check.eb) {
+    
+    # track iterations
+    iter.eb <- iter.eb + 1
+    if(control$trace) {
+      printtext <- round(alpha.old, 2)
+      printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                         printtext[length(printtext)], sep=", and ")
+      if(nchar(printtext) < 50) {
+        cat("\r", "Iteration ", iter.eb, ", estimated EB parameters: ",
+            printtext, "      ", sep="")
+      } else {
+        cat("\r", "Iteration ", iter.eb, ", estimated EB parameters: ",
+            substr(printtext, 1, 47), "...", "      ", sep="")
+      }
+    }
+    
+    # update theta and phi
+    par.new <- par.update(alpha.old, x, y, idsel, D, n, Ctilde, hyper$lambda,
+                          hyper$nu, hyper$zeta, control$fix.sigma)
+    theta.new <- par.new$theta
+    phi.new <- par.new$phi
+    
+    # update alpha
+    eb.new <- eb.update(theta.new, phi.new, alpha.old, tCmat, x, y, idsel, cp,
+                        D, hyper$lambda, control$opt.method, 
+                        control$maxit$opt)
+    alpha.new <- eb.new$alpha
+    
+    # check convergence of EB loop
+    conv.eb <- all(abs(c((theta.new - theta.old)/theta.old, 
+                         (phi.new - phi.old)/phi.old,
+                         (alpha.new - alpha.old)/alpha.old)) < control$epsilon)
+    check.eb <- conv.eb | (iter.eb >= control$maxit$eb)
+    
+    # track convergence and iterations of optimisation
+    conv.opt <- c(conv.opt, eb.new$conv)
+    iter.opt <- c(iter.opt, eb.new$iter)
+    
+    # assign old parameters
+    theta.old <- theta.new
+    phi.old <- phi.new
+    alpha.old <- alpha.new
+    alpha.seq <- rbind(alpha.seq, alpha.new)
+    
+  }
+  eb.time <- proc.time()[3] - srt
+  if(control$trace) {
+    printtext <- round(alpha.new, 2)
+    printtext <- paste(paste(printtext[-length(printtext)], collapse=", "),
+                       printtext[length(printtext)], sep=", and ")
+    if(nchar(printtext) < 50) {
+      cat("\r", "Hyperparameters estimated at ", printtext,
+          " in ", round(eb.time, 2), " seconds ", sep="")
+    } else {
+      cat("\r", "Hyperparameters estimated at ", substr(printtext, 1, 47), "...,",
+          " in ", round(eb.time, 2), " seconds ", sep="")
+    }
+  }
+  
+  # fitting final betas
+  beta <- lapply(1:D, function(d) {
+    h <- exp(colSums(t(Ctilde[[d]])*alpha.new))
+    xh <- t(t(x[idsel[[d]], ])*h)
+    fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
+                  standardize=FALSE, intercept=FALSE)
+    unname(coef(fit)[-1, 1])*h})
+  
+  # creating and returning output object
+  if(!exists("cv.fit")) {
+    cv.fit <- NULL
+  }
+  out <- list(beta=beta, alphaf=alpha.new[1:G], alphad=alpha.new[-c(1:G)],
+              lambda=hyper$lambda, glmnet=cv.fit,
+              time=list(cv=cv.time, eb=eb.time),
+              conv=list(eb=conv.eb, opt=conv.opt),
+              iter=list(eb=iter.eb, opt=iter.opt))
+  return(out)
 }

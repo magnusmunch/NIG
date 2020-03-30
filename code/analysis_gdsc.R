@@ -6,7 +6,7 @@
 
 ### libraries
 packages <- c("foreach", "doParallel", "rstan", "glmnet", "pInc", "Hyperpar", 
-              "cambridge", "GRridge")
+              "cambridge", "GRridge", "xtune")
 sapply(packages, library, character.only=TRUE)
 
 # number of CV folds
@@ -51,12 +51,14 @@ load(file="data/data_gdsc_dat1.Rdata")
 feat <- read.table(file="results/analysis_ccle_res1.txt", header=TRUE)
 
 # select data
+psel <- 1000
 resp.sel <- resp[names(resp) %in% drug$name]
 resp.sel <- sapply(resp.sel, function(s) {
   s <- s[names(s) %in% rownames(expr$expr)]
   s <- s[order(names(s))]})
 expr.sel <- expr$expr[, colnames(expr$expr) %in% rownames(feat)]
-feat.sel <- feat[rownames(feat) %in% colnames(expr$expr), ]
+expr.sel <- expr.sel[, order(-apply(expr.sel, 2, sd))[c(1:psel)]]
+feat.sel <- feat[rownames(feat) %in% colnames(expr.sel), ]
 drug.sel <- drug[match(names(resp.sel), drug$name), ]
 
 # split into training and test data
@@ -79,71 +81,42 @@ foldid <- lapply(1:D, function(d) {
            rep(1:(ntrain[[d]] %% nfolds), (ntrain[[d]] %% nfolds)!=0)))})
 
 # create co-data
-Z <- model.matrix(~ replace(drug.sel$stage, is.na(drug.sel$stage), 
-                            "experimental") + 
-                    replace(drug.sel$action, is.na(drug.sel$action), "unknown"))
-colnames(Z) <- c("intercept", "experimental", "in clinical development",
+Z <- scale(model.matrix(
+  ~ replace(drug.sel$stage, is.na(drug.sel$stage), "experimental") + 
+    replace(drug.sel$action, is.na(drug.sel$action), "unknown"))[, -1])
+colnames(Z) <- c("experimental", "in clinical development",
                  "targeted", "unknown")
 C <- lapply(1:D, function(d) {
-  s <- cbind(1, feat.sel$harmonic^(1/10)); 
-  colnames(s) <- c("intercept", "pvalues"); s})
+  s <- scale(cbind(feat.sel$harmonic^(1/9))); 
+  colnames(s) <- c("pvalues"); s})
 
+# fit xtune
+fit1.xtune <- lapply(1:D, function(d) {
+  xtune(xtrain[match(names(ytrain[[d]]), rownames(xtrain)), ], ytrain[[d]], 
+        C[[d]], family="linear", method="ridge", 
+        control=list(intercept=FALSE))})
 
- 
-fit1.glmnet <- cv.glmnet(xtrain[match(names(ytrain[[1]]), rownames(xtrain)), ], 
-                         ytrain[[1]], alpha=0, standardize=FALSE)
-fit1.xtune <- xtune(xtrain[match(names(ytrain[[1]]), rownames(xtrain)), ], 
-                    ytrain[[1]], matrix(C[[1]][, -1]), family="linear",
-                    method="ridge", control=list(intercept=FALSE))
-pred <- cbind(ridge=predict(fit1.glmnet, 
-                            xtrain[match(names(ytest[[1]]), rownames(xtest)), ],
-                            s="lambda.min"),
-              xtune=predict(fit1.xtune, 
-                            xtrain[match(names(ytest[[1]]), rownames(xtest)), ],
-                            type="response"))
-pmse <- colMeans((pred - ytest[[1]])^2)
-
-
-
-# fit model
+# fit ebridge model
 fit1.ebridge <- ebridge(xtrain, ytrain, C, Z, mult.lambda=TRUE, foldid=foldid,
                         hyper=list(lambda=NULL, zeta=0, nu=0),
                         control=list(epsilon=sqrt(.Machine$double.eps), 
-                                     maxit=500, trace=TRUE, glmnet.fit2=FALSE))
+                                     maxit=500, trace=TRUE, glmnet.fit2=FALSE,
+                                     beta2=FALSE))
 
-  drug.sel <- drug[drug$name %in% names(resp.sel), ]
-drug.sel <- drug.sel[order(drug.sel$name), ]
-D <- length(resp.sel)
-
-n <- sapply(resp.sel, length)
-ntrain <- sapply(n, function(s) {floor(s/2)})
-idtrain <- sapply(1:D, function(d) {sample(1:n[d], ntrain[d])})
-
-xtrain <- lapply(1:D, function(d) {scale(expr.sel[[d]][idtrain[[d]], ])})
-xtest <- lapply(1:D, function(d) {scale(expr.sel[[d]][-idtrain[[d]], ])})
-
-ytrain <- lapply(1:D, function(d) {scale(resp.sel[[d]][idtrain[[d]]])[, 1]})
-ytest <- lapply(1:D, function(d) {scale(resp.sel[[d]][-idtrain[[d]]])[, 1]})
-
-target.sel <- lapply(1:D, function(d) {target[[d]][idsel[[d]]]})
-
-### model fitting
-# setting seed
-set.seed(2020)
-foldid <- lapply(1:D, function(d) {
-  sample(c(rep(1:nfolds, each=ntrain[[d]] %/% nfolds),
-           rep(1:(ntrain[[d]] %% nfolds), (ntrain[[d]] %% nfolds)!=0)))})
-  
-# settings and external data
-control <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, epsilon.vb=1e-3,
-                maxit.eb=200, maxit.vb=1, maxit.post=100, maxit.block=0)
-Z <- model.matrix(~ replace(drug.sel$stage, is.na(drug.sel$stage), 
-                            "experimental") + 
-                    replace(drug.sel$action, is.na(drug.sel$action), "unknown"))
-colnames(Z) <- c("intercept", "experimental", "in clinical development",
-                 "targeted", "unknown")
-C <- lapply(1:D, function(d) {
-  s <- cbind(1, target.sel[[d]]); colnames(s) <- c("intercept", "target"); s})
+# fit2.ebridge <- ebridge2(xtrain, ytrain, C, Z, foldid=foldid, 
+#                          hyper=list(lambda=fit1.ebridge$lambda, zeta=0, nu=0),
+#                          control=list(epsilon=sqrt(.Machine$double.eps), 
+#                                       maxit=list(eb.outer=500, eb.inner=100, 
+#                                                  opt=500),
+#                                       fix.sigma=FALSE, trace=TRUE, 
+#                                       opt.method="Nelder-Mead",
+#                                       standardize.C=FALSE,
+#                                       standardize.Z=FALSE))
+# plot(alpha.seq[, 1], ylim=range(alpha.seq), col=1, type="l")
+# lines(alpha.seq[, 2], col=2)
+# lines(alpha.seq[, 3], col=3)
+# lines(alpha.seq[, 4], col=4)
+# lines(alpha.seq[, 5], col=5)
 
 # models with external covariates
 fit1.semnig <- semnig(x=xtrain, y=ytrain, C=C, Z=Z, unpenalized=NULL, 
@@ -168,27 +141,34 @@ fit1.grridge <- sapply(1:D, function(d) {
   grridge(t(xtrain[[d]]), ytrain[[d]], unpenal=~0, 
           partitions=list(target=CreatePartition(as.factor(target.sel[[d]]))))})
 
-# empirical Bayes ridge regression
-fit1.ebridge <- ebridge(xtrain, ytrain, C, Z, mult.lambda=TRUE, foldid=foldid,
-                        hyper=list(lambda=NULL, zeta=0, nu=0),
-                        control=list(epsilon=sqrt(.Machine$double.eps), 
-                                     maxit=500, trace=TRUE, glmnet.fit2=FALSE))
+save(fit1.ebridge, fit1.xtune, file="results/analysis_gdsc_fit1.Rdata")
+# load(file="results/analysis_gdsc_fit1.Rdata")
 
 best <- list(ebridge1=fit1.ebridge$beta1, ebridge2=fit1.ebridge$beta2,
-             ridge1=sapply(fit1.ebridge$glmnet.fit1, function(s) {
-               coef(s, s="lambda.min")[-1, ]}))
-
+             ridge1=lapply(fit1.ebridge$glmnet.fit1, function(s) {
+               coef(s, s="lambda.min")[-1, ]}),
+             xtune1=lapply(fit1.xtune, function(s) {
+               unname(s$beta.est[-1, ])}))
 pred <- lapply(best, function(s) {
-  sapply(1:D, function(d) {as.numeric(xtest[[d]] %*% s[[d]])})})
-pmse <- lapply(pred, function(s) {
-  sapply(1:D, function(d) {mean((s[[d]] - ytest[[d]])^2)})})
-sort(sapply(pmse, mean))
+  sapply(1:D, function(d) {
+    as.numeric(xtrain[match(names(ytest[[d]]), rownames(xtrain)), ] %*% 
+                 s[[d]])})})
+pmse <- cbind(sapply(pred, function(s) {
+  sapply(1:D, function(d) {mean((s[[d]] - ytest[[d]])^2)})}),
+  null=sapply(ytest, function(s) {mean(s^2)}))
+sort(colMeans(pmse))
 
-
-
-save(file="results/analysis_gdsc_fit1.4.Rdata")
-# load(file="results/analysis_gdsc_fit1.2.Rdata")
-
+plot((pmse[, "null"] - pmse[, "ridge1"])/pmse[, "null"], cex=0.5, pch=16, 
+     ylim=range((pmse[, "null"] - c(pmse[, "ebridge1"], pmse[, "ridge1"]))/
+                  pmse[, "null"]),
+     xlab="Drug", ylab="MSE reduction as fraction of null")
+points((pmse[, "null"] - pmse[, "ebridge1"])/pmse[, "null"], cex=0.5, pch=16, col=2)
+abline(v=order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"])/pmse[, "null"], 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=as.numeric((pmse[, "ridge1"] - pmse[, "ebridge1"] > 0) + 1)[
+         order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"])/pmse[, "null"], 
+               decreasing=TRUE)[c(1:5)]])
+legend("topleft", c("CV", "CV + EB"), pch=16, col=c(1, 2))
 
 library(mvtnorm)
 library(glmnet)

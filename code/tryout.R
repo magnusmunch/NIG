@@ -1,69 +1,37 @@
-# 
-# .f.optim(rep(0, H + G), lambda=hyper$lambda, nu=hyper$nu, zeta=hyper$zeta, 
-#          Cmat=Cmat, Z=Z, n=n, p=p, D=D, G=G, y=y, x=x, yty=yty)
-# alpha=rep(0, H + G); lambda=hyper$lambda; nu=hyper$nu; zeta=hyper$zeta; 
-# Cmat=Cmat; Z=Z; n=n; p=p; D=D; G=G; y=y; x=x; yty=yty
-# 
+### MM algorithm
+# libraries
+library(cambridge)
 
-
-library(glmnet)
-set.seed(2020)
-n <- 80
-ntest <- 1000
-p <- 100
-D <- 50
-C <- replicate(D, matrix(rnorm(p)), simplify=FALSE)
-Z <- matrix(rnorm(D))
+# data generation
+set.seed(123)
+D <- 100
+n <- rep(100, D)
+p <- rep(200, D)
+x <- matrix(rnorm(n[1]*p[1]), nrow=n[1], ncol=p[1])
+rownames(x) <- 1:nrow(x)
+alpha <- c(1, 1)
+C <- lapply(1:D, function(d) {
+  cbind(matrix(rnorm(p[d])))})
+Z <- cbind(matrix(rnorm(D)))
 G <- ncol(C[[1]])
 H <- ncol(Z)
-lambda <- 1
-alpha <- c(1, 1)
-beta <- sapply(1:D, function(d) {
-  rnorm(p, 0, lambda^2*exp(C[[d]]*alpha[1]/2)*exp(Z[d, ]*alpha[2]/2))})
-x <- scale(matrix(rnorm(n*p), ncol=p, nrow=n))
-xtest <- scale(matrix(rnorm(ntest*p), ncol=p, nrow=ntest))
-y <- scale(x %*% beta + matrix(rnorm(n*D), ncol=D, nrow=n))
-ytest <- scale(xtest %*% beta + matrix(rnorm(ntest*D), ncol=D, nrow=ntest))
+lambda <- rep(1, D)
+beta <- lapply(1:D, function(d) {
+  rnorm(p[d], 0, lambda[d]^2*exp(colSums(t(
+    cbind(C[[d]], matrix(rep(Z[d, ], each=p[d]), ncol=H)))*alpha)))})
+y <- lapply(1:D, function(d) {
+  vec <- rnorm(n[d], x %*% beta[[d]], 1);
+  names(vec) <- 1:n[d];
+  return(vec)})
 
-x=xtrain[[1]]; y=ytrain; C=C2; Z=Z2; mult.lambda=TRUE
-hyper=list(lambda=NULL, zeta=0, nu=0);
-control=list(epsilon=sqrt(.Machine$double.eps), 
-             maxit=500, trace=TRUE)
+# estimation
+test.ebridge <- ebridge2(x, y, C, Z)
+test.ebridge$alphad
 
-
-
-test1 <- ebridge(x, y, C, Z, mult.lambda=FALSE,
-                 hyper=list(lambda=1, zeta=0, nu=0),
-                 control=list(epsilon=sqrt(.Machine$double.eps), 
-                              maxit=500, trace=TRUE))
-best1 <- test1$beta1
-best2 <- test1$beta2
-best3 <- sapply(test1$glmnet.fit2, function(s) {coef(s)[-1, 1]})
-
-pairs(cbind(ebridge1=c(best1), ebridge2=c(best2), ridge=c(best3)))
-
-pred1 <- xtest %*% best1
-pred2 <- xtest %*% best2
-pred3 <- xtest %*% best3
-
-c(ebridge1=mean((pred1 - ytest)^2), ebridge2=mean((pred2 - ytest)^2),
-  ridge=mean((pred3 - ytest)^2), null=mean((ytest - colMeans(ytest))^2))
-
-hist(test1$tau^2)
-hist(test1$gamma^2)
-hist(test1$tau^2)
-summary(c(test1$gamma^2))
-test1$alphad
-test1$alphaf
-
-
-
-### permutation distribution
-x <- expr.sel[[1]]
-test1 <- Reduce("+", lapply(1:nrow(x), function(i) {
-  as.matrix(x[i, ]) %*% t(as.matrix(x[i, ]))}))/nrow(x)
-str(test1)
-diag(test1)
+vprior <- lapply(1:D, function(d) {
+  test.ebridge$lambda[d]^2*exp(
+    colSums(t(C[[d]])*test.ebridge$alphaf) + sum(Z[d, ]*test.ebridge$alphaf))})
+plot(Z, sapply(vprior, function(s) {mean(log(s))}))
+plot(unlist(C), log(unlist(vprior)))
+hist(log(unlist(vprior)))
   
-cbind(diag(x[1, ] %*% t(x[1, ])  ), x[1, ]^2)
-

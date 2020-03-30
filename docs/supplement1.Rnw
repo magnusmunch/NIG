@@ -410,6 +410,82 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \end{align*}
   Similar reasoning holds for the drug scale parameter $\lambda_{\text{drug}}$.
   
+  \section{Estimation of alternative prior}\label{sec:altprior}
+  The hyperparameters $\bm{\alpha} = \begin{bmatrix} \bm{\alpha}_{\text{feat}}
+  \tr & \bm{\alpha}_{\text{drug}} \tr \end{bmatrix} \tr$ in model 
+  (\ref{md-eq:altprior}) are estimated by empirical Bayes maximisation of
+  the marginal log likelihood:
+  \begin{subequations}\label{eq:altmll}
+    \begin{align}
+      \log p (\bm{\alpha} | \mathbf{Y}) & = \sum_{d=1}^D
+      \log \[ \int_{\bm{\beta}_d} \int_{\sigma^2_d} \mathcal{L} 
+      (\mathbf{y}_d | \bm{\beta}_d, \sigma^2_d ) \pi(\bm{\beta}_d | \sigma^2_d) 
+      \pi(\sigma^2_d) d\bm{\beta}_d d\sigma_d^2 \] \\
+      & \propto - \sum_{d=1}^D \bigg[ \log \left|\I + \mathbf{X} 
+      \diag \[ \exp\( \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} \tr 
+      \right| \\
+      & \,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\,\, + (n + 1) \log \( \mathbf{y}_d \tr 
+      \left\{ \I + \mathbf{X} 
+      \diag \[ \exp\( \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} 
+      \tr\right\}^{-1} \mathbf{y}_d \) \bigg],
+    \end{align}
+  \end{subequations}
+  where $\tilde{\mathbf{C}}_d = \begin{bmatrix} \mathbf{C}_d & 
+  \mathbf{1}_{p \times 1} \cdot \mathbf{z}_d \tr \end{bmatrix}$, and
+  $\mathbf{C}_d = \begin{bmatrix} \mathbf{c}_{1d} & \cdots & 
+  \mathbf{c}_{pd} \end{bmatrix} \tr$.
+  The first term in the sum of (\ref{eq:altmll}) is concave in 
+  $\bm{\alpha}$, while the second term is convex in $\bm{\alpha}$. This renders
+  the marginal log likelihood a sum of non-concave (as well as non-convex) 
+  functions. General purpose optimisers, such as \texttt{optim} in \texttt{R} 
+  are generally not well suited to maximise non-concave functions. Maximisation
+  is therefore done through a minorise-maximisation (MM) algorithm, 
+  similar to \cite{zeng_incorporating_2020}.
+  
+  The MM algorithm seeks to minorise the marginal log likelihood,
+  $\log p(\bm{\alpha} | \mathbf{Y})$, at current
+  parameter estimate $\bm{\alpha}^{(t)}$ with function 
+  $g(\bm{\alpha} | \bm{\alpha}^{(t)})$, such that
+  $\forall \bm{\alpha}: g(\bm{\alpha} | \bm{\alpha}^{(t)}) \leq 
+  \log p(\bm{\alpha} | \mathbf{Y})$ 
+  and $g(\bm{\alpha}^{(t)} | \bm{\alpha}^{(t)}) = 
+  \log p(\bm{\alpha} | \mathbf{Y})$. Then, the sequence
+  $$
+  \bm{\alpha}^{(t + 1)} = \underset{\bm{\alpha}}{\argmax} 
+  g(\bm{\alpha} | \bm{\alpha}^{(t+1)})
+  $$
+  converges to a local maximum of $f(\bm{\alpha})$. Generally, the minorisation
+  function is chosen such that it is concave and easy to maximise. In our case,
+  a suitable minorisation is:
+  \begin{subequations}\label{eq:minor}
+    \begin{align}
+      g(\bm{\alpha} | \bm{\alpha}^{(t+1)}) = -\sum_{d=1}^D \bigg[
+      & \diag \( \X \tr \mathbf{A}_d^{(t)} \X \) \tr \exp (\tilde{\mathbf{C}}_d
+      \bm{\alpha}) \\
+      & + \frac{n + 1}{\mathbf{y}_d \tr \mathbf{A}_d^{(t)} \mathbf{y}_d} 
+      \mathbf{y}_d \tr \left\{ \I + \mathbf{X} \diag \[ \exp\( 
+      \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} \tr \right\}^{-1} 
+      \mathbf{y}_d\bigg],
+    \end{align}
+  \end{subequations}
+  where $\mathbf{A}_d^{(t)} = \left\{ \I + \mathbf{X} \diag \[ \exp\( 
+  \tilde{\mathbf{C}}_d \bm{\alpha}^{(t)} \) \] \mathbf{X} \tr \right\}^{-1}$.
+  Note that (\ref{eq:minor}) is concave. However, it is slow to optimise. 
+  In \cite{zeng_incorporating_2020}, another minorization is proposed for
+  the second term:
+  $$
+  \mathbf{y}_d \tr \left\{ \I + \mathbf{X} \diag \[ \exp\( 
+  \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} \tr \right\}^{-1} 
+  \mathbf{y}_d = \underset{\delta}{\max} 
+  - ||\mathbf{y}_d - \mathbf{X} \delta ||_2^2 - 
+  \delta \tr \diag \[ \exp\(
+  -\tilde{\mathbf{C}}_d \bm{\alpha} \) \] \delta.
+  $$
+  The extra parameter $\delta$ is estimated by any standard ridge regression
+  package, such as \texttt{glmnet} in \texttt{R}. 
+  
+  
+  
   \section{Gibbs sampler}\label{sec:gibbssampler}
   MCMC samples from the posterior corresponding to model 
   (\ref{md-eq:prior}) may be generated for each equation independently.
