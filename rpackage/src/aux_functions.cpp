@@ -12,13 +12,14 @@ using namespace arma;
 double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
                    arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D,
                    List idsel, int G, int H, List y, arma::mat x,
-                   arma::vec yty) {
+                   arma::vec yty, bool Zpres) {
   
-  arma::vec alphaf = alpha.head(G);
-  arma::vec alphad = alpha.tail(H);
-
-  arma::vec tau = exp(0.5*Z*alphad);
-  arma::vec gamma = exp(0.5*Cmat*alphaf);
+  arma::vec gamma = exp(0.5*Cmat*alpha.head(G));
+  arma::vec tau = ones<vec>(D);
+  if(Zpres) {
+    tau = exp(0.5*Z*alpha.tail(H));
+  }
+  
   double out=0.0;
   for(int d=0; d<D; d++) {
     arma::rowvec mat1(n(d));
@@ -42,17 +43,18 @@ double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
 // [[Rcpp::export(".f.optim.list")]]
 double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta,
                     arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, 
-                    int D, int G, int H, List y, List x, arma::vec yty) {
-
-  arma::vec alphaf = alpha.head(G);
-  arma::vec alphad = alpha.tail(H);
-
-  arma::vec tau = exp(0.5*Z*alphad);
-  arma::vec gamma = exp(0.5*Cmat*alphaf);
+                    int D, int G, int H, List y, List x, arma::vec yty,
+                    bool Zpres) {
+  
+  arma::vec gamma = exp(0.5*Cmat*alpha.head(G));
+  arma::vec tau = ones<vec>(D);
+  if(Zpres) {
+    tau = exp(0.5*Z*alpha.tail(H));
+  }
   arma::vec cp(D + 1);
   cp.subvec(1, D) = cumsum(p);
   cp(0) = 0;
-  arma::vec out(D);
+  double out=0.0;
   for(int d=0; d<D; d++) {
     arma::rowvec mat1(n(d)); 
     arma::mat mat2(n(d), n(d));
@@ -63,13 +65,11 @@ double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta,
       gamma.subvec(cp(d), cp(d + 1) - 1).t()));
     mat1 = cy.t()*mat2;
     mat2.diag() += 1;
-    out(d) = -0.5*real(log_det(mat2)) -
-      (n(d)/2 + nu)*log(zeta + arma::conv_to<double>::from(
-          0.5*yty(d) - 0.5*mat1*cy + 0.5*mat1*mat2.i()*mat1.t()));
-
+    out += -0.5*real(log_det(mat2)) -
+      (n(d)/2 + nu)*log(zeta + 0.5*yty(d) - 0.5*as_scalar(mat1*cy) + 
+      0.5*as_scalar(mat1*mat2.i()*mat1.t()));
   }
-  double val = sum(out);
-  return val;
+  return out;
 }
 
 // calculate full covariance with unpenalized covariates (tested)

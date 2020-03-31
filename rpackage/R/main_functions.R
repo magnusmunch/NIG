@@ -437,16 +437,17 @@ cv.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL, phi=phi,
 }
 
 
-# x=xtrain; y=ytrain; mult.lambda=TRUE; C=lapply(C, function(s) {s[, -1]})
-# hyper=list(lambda=1/sqrt(n*sapply(
-#   fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0);
-# hyper=list(lambda=rep(1, D), zeta=0, nu=0);
-# Z=Z[, -1]; foldid=rep(list(foldid), D);
-# control=control.ebridge;
+# x=xtrain; y=ytrain; C=lapply(C, function(s) {matrix(s[, -1])}); Z=NULL;
+# mult.lambda=TRUE; fix.lambda=TRUE;
+# nfolds=10; foldid=foldid;
+# hyper=list(lambda=1/sqrt(n*sapply(fit.ridge1, "[[", "lambda.min")), 
+#            zeta=0, nu=0);
+# control=control.ebridge
 # library(Rcpp)
 # sourceCpp("rpackage/src/aux_functions.cpp")
 # EBridge estimation
-ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
+ebridge <- function(x, y, C, Z, mult.lambda=TRUE, fix.lambda=TRUE, 
+                    nfolds=10, foldid=NULL,
                     hyper=list(lambda=NULL, zeta=0, nu=0),
                     control=list(epsilon=sqrt(.Machine$double.eps), 
                                  maxit=500, trace=FALSE, glmnet.fit2=FALSE,
@@ -463,7 +464,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   } else {
     p <- sapply(x, ncol)
   }
-  H <- ncol(Z)
+  H <- ifelse(is.null(Z), 0, ncol(Z))
   G <- ncol(Cmat)
   
   if(is.null(foldid)) {
@@ -472,7 +473,7 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
                rep(1:(n[[d]] %% nfolds), (n[[d]] %% nfolds)!=0)))})
   }
   
-  if(is.null(hyper$lambda)) {
+  if(is.null(hyper$lambda) & fix.lambda) {
     srt <- proc.time()[3]
     if(control$trace) {
       cat("\r", "Cross-validating penalty parameters")
@@ -493,13 +494,24 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
         exp(mean(log(n) + log(sapply(cv.fit1, "[[", "lambda.min")))))
     }
     cv.time <- proc.time()[3] - srt
-  } else {
+  } else if(!is.null(hyper$lambda)) {
     if(length(hyper$lambda)==1) {
       hyper$lambda <- rep(hyper$lambda, D)  
     }
     cv.time <- 0
+  } else {
+    if(mult.lambda) {
+      Cmat <- cbind(model.matrix(
+        ~ as.character(rep(c(1:D), times=rep(p, ifelse(length(p)==1, D, 1))))), 
+        Cmat)
+    } else {
+      Cmat <- cbind(1, Cmat)    
+    }
+    G <- ncol(Cmat)
+    cv.time <- 0
+    hyper$lambda <- rep(1, D)
   }
-  if(control$glmnet.fit2) {
+  if(control$glmnet.fit2 & fix.lambda) {
     if(is.matrix(x)) {
       cv.fit2 <- lapply(1:D, function(d) {
         glmnet(x[idsel[[d]], ], y[[d]], alpha=0, 
@@ -513,6 +525,9 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     }
   }
   
+  method <- ifelse((H + G)==1, "Brent", "Nelder-Mead")
+  lower <- ifelse(method=="Brent", -20, -Inf)
+  upper <- ifelse(method=="Brent", 20, Inf)
   control$fnscale=-1
   names(control)[1] <- "reltol"
   srt <- proc.time()[3]
@@ -522,14 +537,20 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   
   if(is.matrix(x)) {
     opt <- optim(par=rep(0, H + G), fn=.f.optim.mat, lambda=hyper$lambda, 
-                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
-                 idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 
+                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, 
+                 Z=switch(as.numeric(is.null(Z)) + 1, Z, matrix(0)), 
+                 n=n, p=p, D=D, idsel=idsel, G=G, H=H, y=y, x=x, yty=yty, 
+                 Zpres=!is.null(Z), method=method, lower=lower, 
+                 upper=upper,
                  control=control[!(names(control) %in% 
                                      c("glmnet.fit2", "beta2"))])
   } else {
     opt <- optim(par=rep(0, H + G), fn=.f.optim.list, lambda=hyper$lambda, 
-                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, Z=Z, n=n, p=p, D=D, 
-                 G=G, H=H, y=y, x=x, yty=yty, 
+                 nu=hyper$nu, zeta=hyper$zeta, Cmat=Cmat, 
+                 Z=switch(as.numeric(is.null(Z)) + 1, Z, matrix(0)), 
+                 n=n, p=p, D=D, G=G, H=H, y=y, x=x, yty=yty, Zpres=!is.null(Z),
+                 method=method, lower=lower, 
+                 upper=upper,
                  control=control[!(names(control) %in% 
                                      c("glmnet.fit2", "beta2"))])
   }
@@ -537,10 +558,26 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
   conv <- opt$convergence
   niter <- unname(opt$counts[1])
   alphaf <- opt$par[1:G]
-  alphad <- opt$par[-c(1:G)]
-  tau <- exp(colSums(alphad*t(Z))/2)
-  gamma <- lapply(C, function(s) {exp(colSums(alphaf*t(s))/2)})
+  if(fix.lambda) {
+    gamma <- lapply(C, function(s) {exp(colSums(alphaf*t(s))/2)})  
+  } else {
+    if(mult.lambda) {
+      hyper$lambda <- exp((alphaf[1] + c(0, alphaf[2:D]))/2)
+      gamma <- lapply(C, function(s) {exp(colSums(alphaf[-c(1:D)]*t(s))/2)})
+    } else {
+      hyper$lambda <- exp(rep(alphaf[1], D)/2)
+      gamma <- lapply(C, function(s) {exp(colSums(alphaf[-1]*t(s))/2)})
+    }
+  }
+  if(is.null(Z)) {
+    alphad <- NULL
+    tau <- rep(1, D)
+  } else {
+    alphad <- opt$par[-c(1:G)]
+    tau <- exp(colSums(alphad*t(Z))/2)
+  }
   
+  # create estimates
   beta1 <- lapply(1:D, function(d) {
     h <- tau[d]*gamma[[d]]
     if(is.matrix(x)) {
@@ -551,7 +588,8 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
     fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
                   standardize=FALSE, intercept=FALSE)
     unname(coef(fit)[-1, 1])*h})
-  if(control$beta2) {
+  
+  if(control$beta2 & fix.lambda) {
     beta2 <- lapply(1:D, function(d) {
       h <- tau[d]*gamma[[d]]
       if(is.matrix(x)) {
@@ -562,6 +600,18 @@ ebridge <- function(x, y, C, Z, mult.lambda=TRUE, nfolds=10, foldid=NULL,
       fit <- glmnet(xh, y[[d]], alpha=0, lambda=1/(hyper$lambda[d]^2*n[d]),
                     intercept=FALSE, penalty.factor=1/h^2)
       unname(coef(fit)[-1, 1])})
+  } else if(control$beta2) {
+    beta2 <- lapply(1:D, function(d) {
+      h <- 1/(n[d]*hyper$lambda[d]^2*tau[d]*gamma[[d]])^2
+      s <- mean(h)
+      if(is.matrix(x)) {
+        xh <- x[idsel[[d]], ]
+      } else {
+        xh <- x[[d]]
+      }
+      fit <- glmnet(xh, y[[d]], alpha=0, intercept=FALSE)
+      unname(coef(fit, x=xh, y=y[[d]], exact=TRUE, s=s, penalty.factor=h, 
+                  intercept=FALSE)[-1, 1])})
   } else {
     beta2 <- NULL
   }

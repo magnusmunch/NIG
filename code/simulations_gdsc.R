@@ -47,8 +47,8 @@ nreps <- 100
 }
 
 ### simulation settings
-D <- 100
-p <- 100
+D <- 200
+p <- 500
 n <- 500
 ntest <- 1000
 G <- 4
@@ -64,13 +64,14 @@ muz <- rep(1, H)
 sigmaz <- c(0, rep(1, H - 1))
 ESNRf <- 100
 ESNRd <- 100
-ESNR <- 4
+ESNR <- 100
 momentsc <- .cmtnorm(muc, sigmac)
 momentsz <- .cmtnorm(muz, sigmaz)
 lambdaf <- .simlambda(momentsc$m1, diag(momentsc$m2), momentsc$m3, alphaf, 
                       ESNRf)
 lambdad <- .simlambda(momentsz$m1, diag(momentsz$m2), momentsz$m3, alphad, 
                       ESNRd)
+set.seed(2020)
 Egammasq <- rep(mean(1/colSums(matrix(rtnorm(G*100000, lower=0), nrow=G, 
                                       ncol=100000)*alphaf)), p)
 Etausq <- mean(1/colSums(matrix(rtnorm(H*100000, lower=0), nrow=H, 
@@ -81,11 +82,11 @@ mux <- 0
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=200, maxit.vb=2, 
+control.semnig <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
+                       trace=TRUE, glmnet.fit2=FALSE, beta2=FALSE)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -148,9 +149,16 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     xtune(xtrain, ytrain[[d]], C[[d]][, -1], family="linear", method="ridge", 
           control=list(intercept=FALSE))})
   fit.ebridge1 <- ebridge(xtrain, ytrain, lapply(C, function(s) {s[, -1]}), 
+                          Z[, -1], foldid=rep(list(foldid), D), 
                           hyper=list(lambda=1/sqrt(n*sapply(
                             fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
-                          Z[, -1], foldid=rep(list(foldid), D), 
+                          control=control.ebridge)
+  fit.ebridge2 <- ebridge(xtrain, ytrain, lapply(C, function(s) {s[, -1]}), 
+                          NULL, foldid=rep(list(foldid), D), 
+                          hyper=list(#lambda=1/sqrt(n*sapply(
+                            #fit.ridge1, "[[", "lambda.min")), 
+                            lambda=rep(0.01, D),
+                            zeta=0, nu=0),
                           control=control.ebridge)
   
   # estimates
@@ -185,9 +193,9 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     colMeans((s - Reduce("cbind", ytrain))^2)})
   
   # save alpha estimates
-  est <- cbind(c(fit.semnig1$eb$alphaf, rep(NA, 3), fit.semnig1$eb$alphaf, 
+  est <- cbind(c(fit.semnig1$eb$alphaf, rep(NA, 3), fit.semnig1$eb$alphad, 
                  rep(NA, 3), fit.semnig1$eb$lambdaf, fit.semnig1$eb$lambdad),
-               c(fit.semnig2$eb$alphaf, fit.semnig2$eb$alphaf, 
+               c(fit.semnig2$eb$alphaf, fit.semnig2$eb$alphad, 
                  fit.semnig2$eb$lambdaf, fit.semnig2$eb$lambdad),
                rep(NA, 10), rep(NA, 10),
                c(colMeans(-t(sapply(fit.xtune1, "[[", "alpha.est"))), 
