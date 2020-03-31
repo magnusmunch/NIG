@@ -225,26 +225,30 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
 stopCluster(cl=cl)
 
 # prepare and save results table
-emse <- t(sapply(res, "[[", "emse"))
-emsel <- t(sapply(res, "[[", "emsel"))
-emseh <- t(sapply(res, "[[", "emseh"))
-pmse <- t(sapply(res, "[[", "pmse"))
-pmset <- t(sapply(res, "[[", "pmset"))
+emse <- Reduce("rbind", lapply(res, "[[", "emse"))
+emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
+emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
+pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
+pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
 est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
   t(sapply(res, function(s) {s$est[i, ]}))}))
-elbo <- t(sapply(res, "[[", "elbo"))
-elbot <- t(sapply(res, "[[", "elbot"))
-lpml <- t(sapply(res, "[[", "lpml"))
+elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
+elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
+lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 
-res <- rbind(emse, emsel, emseh, pmse, pmset, cbind(est, NA, NA, NA), 
-             cbind(elbo, NA, NA, NA), cbind(elbot, NA, NA, NA),
-             cbind(lpml, NA, NA, NA))
-colnames(res) <- c(methods, "null")
-rownames(res) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
-                       each=nreps),
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
+colnames(res2) <- c(methods)
+rownames(res2) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                        each=nreps),
                    rep(c(paste0("alphaf", 0:3), "lambdaf"), each=nreps),
                    rep(c("elbo", "elbot", "lpml"), each=nreps))
-write.table(res, file="results/simulations_gdsc_res1.txt")
+nrow(res2)
+rownames(res2) <- c(sapply(c("emse", "emsel", "emseh", "pmse", "pmset", "elbo", 
+                             "elbot", "lpml"), function(s) {
+                               rep(paste0(s, c(1:D)), nreps)}),
+                    rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
+                          "lambdaf", "lambdad"), each=nreps))
+write.table(res2, file="results/simulations_gdsc_res1.txt")
 
 
 
