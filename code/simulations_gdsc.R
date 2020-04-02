@@ -33,8 +33,8 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -200,8 +200,8 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -362,8 +362,8 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -540,8 +540,8 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
