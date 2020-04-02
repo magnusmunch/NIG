@@ -1256,6 +1256,8 @@ time2.semnig <- 1
 	data-driven and adaptive empirical Bayes estimation of the hyperparameters in 
 	the normal inverse Gaussian prior model (\ref{eq:prior}). Estimation is 
 	efficient and scales well with the number of features and samples.
+	
+	
 	Estimation of the NIG model that includes both external drugs and feature
 	covariates (NIG$_{\text{f}+\text{d}}$ in Section \ref{sec:gdsc}) on the GDSC
 	data from Section
@@ -1293,6 +1295,38 @@ time2.semnig <- 1
 	proposed NIG model. PMSEs are almost uniformly lower over the drugs for the 
 	NIG model compared to bSEM. Consequently, the total PMSE is significantly
 	lower for the NIG model. 
+	
+	An alternative strategy to include external covariates is the varying 
+	coefficient (VC) model \cite[]{hastie_varying-coefficient_1993}. The VC model
+	treats the mean of the regression coefficients as a deterministic function of 
+	external covariates, as opposed to our probabilistic model for the variance
+	of the regression coefficients. \cite{ni_bayesian_2019} introduces a Bayesian 
+	VC model where the relation between the regression 
+	coefficients and external covariates is no longer deterministic, but still
+	based on the mean of the coefficients. Besides our computationally more
+	feasible VB-EM estimation, we advocate for a more indirect
+	model for the relation between external covariates and regression 
+	coefficients, i.e., through their random variance components. This indirect 
+	model assumes less structure about the relation between external covariates
+	and regression coefficients than the direct VC mean model approach.
+  In particular, a VC mean model describes both magnitude and direction of the 
+  external covariates effects, while our variance model only describes the
+  magnitude and is invariant to the direction of the effects.
+  
+  The choice to model the $\bm{\alpha}$`s, as hyperparameters instead of
+  full Bayesian parameters is three-fold: (i) it allows fast and stable 
+  empirical Bayes estimation as compared to badly mixing (see Comment 5)
+  full Bayesian MCMC sampling. (ii) \cite{wiel_learning_2019} shows that in a 
+  somewhat similar model, empirical Bayes is competitive to full Bayesian 
+  inference in terms of frequentist coverage of credible intervals, i.e.,
+  uncertainty propagation of the hyperparameters is not always necessary.
+  Additionally, (iii) in SM Section \ref{sm-sec:gibbssampler} a full Bayes
+  Gibbs sampler is described, where the full conditional of the $\bm{\alpha}$ is
+  Gaussian. For vague $\bm{\alpha}$ and $\lambda$ priors, the mean of this 
+  Gaussian coincides 
+  with the empirical Bayes updates as described in the MD, a strong 
+  indication that the posterior point estimates of our EB approach and the full
+  Bayes model are similar.
 	
 	A possible direction of future research to attempt
 	to lower PMSE of the NIG model is the introduction of a cross-validated global

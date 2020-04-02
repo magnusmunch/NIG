@@ -47,37 +47,67 @@ nreps <- 100
 }
 
 ### simulation settings
-D <- 200
-p <- 500
-n <- 500
+D <- 100
+p <- 200
+n <- 200
 ntest <- 1000
 G <- 4
 H <- 4
-alphaf <- rep(1, G)
-alphad <- rep(1, H)
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+# alphaf <- c(1, 1/sqrt(0.1) - 1, 1/sqrt(10) - 1)
+# alphad <- c(1, 1/sqrt(0.1) - 1, 1/sqrt(10) - 1)
+# alphaf <- rep(1, G)
+# alphad <- rep(1, H)
 shape <- 3
 rate <- 2
-muc <- rep(1, G)
-sigmac <- c(0, rep(1, G - 1))
+# muc <- rep(1, G)
+# sigmac <- c(0, rep(1, G - 1))
 # sigmac <- rep(1, G)
-muz <- rep(1, H)
-sigmaz <- c(0, rep(1, H - 1))
-ESNRf <- 100
-ESNRd <- 100
-ESNR <- 100
-momentsc <- .cmtnorm(muc, sigmac)
-momentsz <- .cmtnorm(muz, sigmaz)
-lambdaf <- .simlambda(momentsc$m1, diag(momentsc$m2), momentsc$m3, alphaf, 
-                      ESNRf)
-lambdad <- .simlambda(momentsz$m1, diag(momentsz$m2), momentsz$m3, alphad, 
-                      ESNRd)
-set.seed(2020)
-Egammasq <- rep(mean(1/colSums(matrix(rtnorm(G*100000, lower=0), nrow=G, 
-                                      ncol=100000)*alphaf)), p)
-Etausq <- mean(1/colSums(matrix(rtnorm(H*100000, lower=0), nrow=H, 
-                                ncol=100000)*alphad))
-sigmax <- .sigmax(shape, Etausq, Egammasq, ESNR)
+# muz <- rep(1, H)
+# sigmaz <- c(0, rep(1, H - 1))
+# sigmaz <- rep(0.1, H)
+# ESNRf <- 100
+# ESNRd <- 10
+# ESNR <- 10
+# momentsc <- .cmtnorm(muc, sigmac)
+# momentsz <- .cmtnorm(muz, sigmaz)
+# lambdaf <- .simlambda(momentsc$m1, diag(momentsc$m2), momentsc$m3, alphaf, 
+#                       ESNRf)
+# lambdad <- .simlambda(momentsz$m1, diag(momentsz$m2), momentsz$m3, alphad, 
+#                       ESNRd)
+# set.seed(2020)
+# Egammasq <- rep(mean(1/colSums(matrix(rtnorm(G*100000, lower=0), nrow=G, 
+#                                       ncol=100000)*alphaf)), p)
+# Etausq <- mean(1/colSums(matrix(rtnorm(H*100000, lower=0), nrow=H, 
+#                                 ncol=100000)*alphad))
+# sigmax <- .sigmax(shape, Etausq, Egammasq, ESNR)
+lambdaf <- 1
+lambdad <- 1
+sigmax <- 1
 mux <- 0
+
+### simulate parameters
+Z <- model.matrix(~ factor(rep(1:H, each=D/H)))
+C <- replicate(D, list(unname(model.matrix(~ factor(rep(1:G, each=p/G))))))
+gamma <- sapply(C, function(s) {
+  sqrt(rinvgauss(p, 1/as.numeric(s %*% alphaf), lambdaf))})
+tau <- sqrt(rinvgauss(D, 1/as.numeric(Z %*% alphad), lambdad))
+sigma <- rep(1, D)
+beta <- sapply(1:D, function(d) {rnorm(p, 0, tau[d]*gamma[, d]*sigma[d])})
+xtrain <- scale(matrix(rnorm(n*p, 0, sigmax), nrow=n, ncol=p,
+                       dimnames=list(c(1:n), NULL)))
+ytrain <- lapply(1:D, function(d) {
+  s <- as.numeric(scale(rnorm(n, xtrain %*% beta[, d], sigma[d])))
+  names(s) <- c(1:length(s))
+  return(s)})
+fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=Z, 
+                      full.post=TRUE, control=control.semnig)
+plot(1/unique(as.numeric(C[[1]] %*% alphaf)), 
+     1/unique(as.numeric(C[[1]] %*% fit.semnig2$eb$alphaf)))
+plot(1/unique(as.numeric(Z %*% alphad)), 
+     1/unique(as.numeric(Z %*% fit.semnig2$eb$alphad)))
+
 
 # estimation settings
 nfolds <- 10

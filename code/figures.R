@@ -46,10 +46,30 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
+
+pmse <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+mpmse <- aggregate(pmse, by=list(substr(rownames(pmse), 6, 1000000L)), 
+                   FUN="mean")[, -1]
+boxplot(mpmse)
+
+
+est <- sapply(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
+                  "lambdaf", "lambdad"), function(s) {
+                    s <- res[rownames(res)==s, ]; rownames(s) <- NULL
+                    s}, simplify=FALSE)
+
+alpha <- sapply(est, function(s) {s[, 2]})
+boxplot(alpha[, -c(5, 9, 10)])
+abline(h=1)
+test <- alpha$alphad0
+boxplot(cbind(test[, c(1, 2)], exp(-test[, 5])), outline=FALSE)
+
+apply(alphaf0, 2, median, na.rm=TRUE)
+alphaf0
 
 alphaf <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
@@ -212,7 +232,47 @@ points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5,
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
 
+# ---- analysis_gdsc_res1 ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
 
+ylim1 <- range(1 - c(res[, "semnig1"], res[, "ridge1"]))
+ylim2 <- range(1 - c(res[, "ebridge1"], res[, "ridge1"]))
+
+col <- bpy.colors(3, cutoff.tail=0.2)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(c(1:2), each=2), nrow=2, ncol=2, byrow=TRUE))
+plot(1 - pmse[, "ridge1"], xlab="Drug", 
+     ylab="MSE reduction", main="(a)",
+     cex=0.5, pch=16, ylim=ylim1, col=col[1])
+points(1 - pmse[, "semnig1"], cex=0.5, pch=16, col=col[2])
+abline(v=order(abs(pmse[, "ridge1"] - pmse[, "semnig1"]), 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=col[as.numeric((pmse[, "ridge1"] - pmse[, "semnig1"] > 0) + 1)[
+         order(abs(pmse[, "ridge1"] - pmse[, "semnig1"]), 
+               decreasing=TRUE)[c(1:5)]]])
+abline(h=0, lty=3)
+legend("topleft", c("ridge + CV", "NIG"), pch=16, col=col[c(1, 2)])
+
+plot(1 - pmse[, "ridge1"], xlab="Drug", 
+     ylab="MSE reduction", main="(b)",
+     cex=0.5, pch=16, ylim=ylim2, col=col[1])
+points(1 - pmse[, "ebridge1"], cex=0.5, pch=16, col=col[3])
+abline(v=order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"]), 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=col[as.numeric((pmse[, "ridge1"] - pmse[, "ebridge1"] > 0)*2 + 1)[
+         order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"]), 
+               decreasing=TRUE)[c(1:5)]]])
+abline(h=0, lty=3)
+legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
+
+par(opar)
 
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 
