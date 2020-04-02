@@ -33,8 +33,8 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=1e-6, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=2, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -193,15 +193,18 @@ alphad <- c(1, 1, 3, 7)
 H <- length(alphad)
 shape <- 3
 rate <- 2
-lambdad <- 1
+lambdad <- 10
 Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
 x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+# control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-3, 
+#                        epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+#                        maxit.post=100, maxit.block=0)
+control.semnig <- list(conv.post=TRUE, trace=TRUE, epsilon.eb=sqrt(.Machine$double.eps), 
+                       epsilon.vb=1e-3, maxit.eb=5000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -242,11 +245,15 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                      rep(1:(n %% nfolds), (n %% nfolds)!=0)))
   
   # fitting models
-  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain, 
-                        C=NULL, Z=matrix(rep(1, D)), full.post=TRUE, 
+  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain,
+                        C=NULL, Z=matrix(rep(1, D)), full.post=TRUE,
                         control=control.semnig)
   fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=NULL, Z=Z, 
                         full.post=TRUE, control=control.semnig)
+  plot(fit.semnig2$seq.eb$alphad[, 1], type="l")
+  plot(fit.semnig2$seq.eb$alphad[, 2], type="l")
+  plot(fit.semnig2$seq.eb$alphad[, 3], type="l")
+  plot(fit.semnig2$seq.eb$alphad[, 4], type="l")
   
   # standard penalized methods
   fit.lasso1 <- lapply(1:D, function(d) {

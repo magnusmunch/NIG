@@ -46,30 +46,10 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
-
-pmse <- res[substr(rownames(res), 1, 5)=="pmse.", ]
-mpmse <- aggregate(pmse, by=list(substr(rownames(pmse), 6, 1000000L)), 
-                   FUN="mean")[, -1]
-boxplot(mpmse)
-
-
-est <- sapply(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
-                  "lambdaf", "lambdad"), function(s) {
-                    s <- res[rownames(res)==s, ]; rownames(s) <- NULL
-                    s}, simplify=FALSE)
-
-alpha <- sapply(est, function(s) {s[, 2]})
-boxplot(alpha[, -c(5, 9, 10)])
-abline(h=1)
-test <- alpha$alphad0
-boxplot(cbind(test[, c(1, 2)], exp(-test[, 5])), outline=FALSE)
-
-apply(alphaf0, 2, median, na.rm=TRUE)
-alphaf0
 
 alphaf <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
