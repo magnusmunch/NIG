@@ -1256,8 +1256,6 @@ time2.semnig <- 1
 	data-driven and adaptive empirical Bayes estimation of the hyperparameters in 
 	the normal inverse Gaussian prior model (\ref{eq:prior}). Estimation is 
 	efficient and scales well with the number of features and samples.
-	
-	
 	Estimation of the NIG model that includes both external drugs and feature
 	covariates (NIG$_{\text{f}+\text{d}}$ in Section \ref{sec:gdsc}) on the GDSC
 	data from Section
