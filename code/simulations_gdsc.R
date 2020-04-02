@@ -48,7 +48,7 @@ if(ncores > 1) {
 }
 res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   cat("\r", "rep", r)
-  set.seed(2019 + r)
+  set.seed(2020 + r)
 
   ### simulate parameters
   gamma <- sapply(C, function(s) {
@@ -215,7 +215,7 @@ if(ncores > 1) {
 }
 res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   cat("\r", "rep", r)
-  set.seed(2019 + r)
+  set.seed(2020 + r)
   
   ### simulate parameters
   tau <- sqrt(rinvgauss(D, 1/as.numeric(Z %*% alphad), lambdad))
@@ -377,7 +377,7 @@ if(ncores > 1) {
 }
 res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   cat("\r", "rep", r)
-  set.seed(2019 + r)
+  set.seed(2020 + r)
 
   ### simulate parameters
   gamma <- sapply(C, function(s) {
