@@ -684,23 +684,25 @@ res <- foreach(q=fracs) %:%
 stopCluster(cl=cl)
 
 # prepare and save results table
-emse <- Reduce("rbind", lapply(res, "[[", "emse"))
-emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
-emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
-pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
-pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
-elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
-est <- Reduce("rbind", lapply(res, "[[", "est"))
+res2 <- Reduce("rbind", lapply(res, function(r) {
+  emse <- Reduce("rbind", lapply(r, "[[", "emse"))
+  emsel <- Reduce("rbind", lapply(r, "[[", "emsel"))
+  emseh <- Reduce("rbind", lapply(r, "[[", "emseh"))
+  pmse <- Reduce("rbind", lapply(r, "[[", "pmse"))
+  pmset <- Reduce("rbind", lapply(r, "[[", "pmset"))
+  elbo <- Reduce("rbind", lapply(r, "[[", "elbo"))
+  elbot <- Reduce("rbind", lapply(r, "[[", "elbot"))
+  lpml <- Reduce("rbind", lapply(r, "[[", "lpml"))
+  est <- Reduce("rbind", lapply(r, "[[", "est"))
+  rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)}))
 
-
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
 colnames(res2) <- c(methods)
-rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot", "lpml"), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
-                    rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
-                          "lambdaf", "lambdad"), times=nreps))
+rownames(res2) <- 
+  paste0(rep(paste0("frac", fracs), each=8*D*nreps + 10*nreps), ".",
+         c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
+                        "elbo", "elbot", "lpml"), each=D*nreps),
+                  rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+           rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
+                 "lambdaf", "lambdad"), times=nreps)))
 write.table(res2, file="results/simulations_gdsc_res4.txt")
   
