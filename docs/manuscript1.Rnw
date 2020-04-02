@@ -1311,20 +1311,15 @@ time2.semnig <- 1
   external covariates effects, while our variance model only describes the
   magnitude and is invariant to the direction of the effects.
   
-  The choice to model the $\bm{\alpha}$`s, as hyperparameters instead of
-  full Bayesian parameters is three-fold: (i) it allows fast and stable 
-  empirical Bayes estimation as compared to badly mixing (see Comment 5)
-  full Bayesian MCMC sampling. (ii) \cite{wiel_learning_2019} shows that in a 
-  somewhat similar model, empirical Bayes is competitive to full Bayesian 
-  inference in terms of frequentist coverage of credible intervals, i.e.,
-  uncertainty propagation of the hyperparameters is not always necessary.
-  Additionally, (iii) in SM Section \ref{sm-sec:gibbssampler} a full Bayes
-  Gibbs sampler is described, where the full conditional of the $\bm{\alpha}$ is
-  Gaussian. For vague $\bm{\alpha}$ and $\lambda$ priors, the mean of this 
-  Gaussian coincides 
-  with the empirical Bayes updates as described in the MD, a strong 
-  indication that the posterior point estimates of our EB approach and the full
-  Bayes model are similar.
+  Another possible criticism is the treatment of $\bm{\alpha}$ as fixed
+  hyperparameters instead of random. A Bayesian could argue that endowment of 
+  $\bm{\alpha}$ with a hyperprior results in propagation of 
+  uncertainty about $\bm{\alpha}$ and as a result improved regression parameter 
+  uncertainty quantification. \cite{wiel_learning_2019} show in a similar 
+  setting that EB estimation of hyperparameters does not necessarily lead to
+  worse uncertainty quantification as measured by frequentist coverage of
+  Bayesian credible intervals, as compared to a full Bayes treatment of the
+  hyperparameters. 
 	
 	A possible direction of future research to attempt
 	to lower PMSE of the NIG model is the introduction of a cross-validated global
