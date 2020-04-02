@@ -375,11 +375,15 @@ expr <- expr.temp
 
 # determine for every feature whether it is in the target pathway or not
 in_pathway <- lapply(1:nrow(drug.prep), function(d) {
-  as.numeric(colnames(expr) %in% 
-               strsplit(drug.prep$pathway_ensembl_gene_id[[d]], ", ")[[1]])})
+  s <- colnames(expr) %in% strsplit(drug.prep$pathway_ensembl_gene_id[[d]], 
+                                    ", ")[[1]]
+  names(s) <- colnames(expr)
+  s})
 is_target <- lapply(1:nrow(drug.prep), function(d) {
-  as.numeric(colnames(expr) %in% 
-               strsplit(drug.prep$target_ensembl_gene_id[[d]], ", ")[[1]])})
+  s <- colnames(expr) %in% strsplit(drug.prep$target_ensembl_gene_id[[d]], 
+                                    ", ")[[1]]
+  names(s) <- colnames(expr)
+  s})
 
 # Cancer Gene Census (https://cancer.sanger.ac.uk/census)
 census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
@@ -402,6 +406,7 @@ cancergenes[match(query$external_gene_name, census$Gene.Symbol)] <-
   query$ensembl_gene_id
 census$ensembl_gene_id <- cancergenes
 is_cancergene <- as.numeric(colnames(expr) %in% cancergenes)
+names(is_cancergene) <- colnames(expr)
 
 # create object that contains feature information
 expr.prep <- list(expr=expr, in_pathway=in_pathway, is_target=is_target, 
