@@ -230,25 +230,20 @@ emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
 emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
 pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
-  t(sapply(res, function(s) {s$est[i, ]}))}))
 elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
 elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
 lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
+est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
+  t(sapply(res, function(s) {s$est[i, ]}))}))
 
 res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
 colnames(res2) <- c(methods)
-rownames(res2) <- c(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
-                        each=nreps),
-                   rep(c(paste0("alphaf", 0:3), "lambdaf"), each=nreps),
-                   rep(c("elbo", "elbot", "lpml"), each=nreps))
-nrow(res2)
-rownames(res2) <- c(sapply(c("emse", "emsel", "emseh", "pmse", "pmset", "elbo", 
-                             "elbot", "lpml"), function(s) {
-                               rep(paste0(s, c(1:D)), nreps)}),
-                    rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
-                          "lambdaf", "lambdad"), each=nreps))
-write.table(res2, file="results/simulations_gdsc_res1.txt")
+rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
+                                 "elbo", "elbot", "lpml"), each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+                    rep(c(paste0("alphaf", 0:3), "lambdaf", 
+                          paste0("alphad", 0:3), "lambdad"), times=nreps))
+write.table(res2, file="results/simulations_gdsc_res1.2.txt")
 
 
 
