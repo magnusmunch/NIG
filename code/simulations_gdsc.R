@@ -233,19 +233,17 @@ pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
 elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
 elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
 lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
-est <- Reduce("rbind", lapply(1:nrow(res[[1]]$est), function(i) {
-  t(sapply(res, function(s) {s$est[i, ]}))}))
+est <- Reduce("rbind", lapply(res, "[[", "est"))
+  
 
 res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
 colnames(res2) <- c(methods)
 rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
                                  "elbo", "elbot", "lpml"), each=D*nreps),
                            rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
-                    rep(c(paste0("alphaf", 0:3), "lambdaf", 
-                          paste0("alphad", 0:3), "lambdad"), times=nreps))
+                    rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
+                          "lambdaf", "lambdad"), times=nreps))
 write.table(res2, file="results/simulations_gdsc_res1.2.txt")
-
-
 
 
 ################################# simulation 2 #################################
