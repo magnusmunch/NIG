@@ -436,34 +436,6 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     hyperparameters.}
     \label{fig:dag}
   \end{figure}
-  
-  \subsection{Alternative prior}\label{sec:altprior}
-  Consider the following simpler hyperprior alternative to (\ref{eq:prior}):
-  \begin{subequations}\label{eq:altprior}
-		\begin{align}
-		  \beta_{jd} | \gamma^2_{jd}, \tau_d^2, \sigma^2_d & \sim \mathcal{N}_{p} 
-		  (0, \gamma_{jd}^2 \tau_d^2 \sigma_d^2), \\
-		  \log \gamma_{jd}^{2} & = \mathbf{c}_{jd} \tr \bm{\alpha}_{\text{feat}}, \\
-		  \log \tau_d^{2} & = \mathbf{z}_{d} \tr \bm{\alpha}_{\text{drug}}\\
-		  \sigma_d^{2} & \sim \Gamma^{-1} (\nu, \zeta).
-		\end{align}
-	\end{subequations}
-	This model is a Bayesian, multivariate extension of 
-	\cite{zeng_incorporating_2020}. The model does 
-	not propagate uncertainty in the variance components $\gamma_{jd}^{2}$
-	and $\tau_d^{2}$, but directly models the variance components as an
-	exponentiated linear function of the external covariates. The linear functions
-	are modelled on the log-scale to ensure non-negative variance components.
-	Additionally, it allows for more flexibility in the error variance
-	prior model. Note that in the limit $\zeta \to 0$ and $\nu=1/2$, the error
-	variance follows the Jeffrey`s prior from (\ref{eq:prior}). Throughout the
-	following, whenever $\zeta$ and $\nu$ are not specified, we use $\zeta \to 0$ 
-	and $\nu=1/2$.
-	
-	Estimation of $\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{feat}}$, and
-	ultimately $\bm{\beta}_d$ is explained in Section \ref{sm-sec:altprior} of the
-	SM. The results in Sections \ref{sec:simulations} and \ref{sec:gdsc}
-	include model (\ref{eq:altprior}) as an alternative to (\ref{eq:prior}).
 	
 	\section{Estimation}\label{sec:estimation}
 	\subsection{Variational Bayes}\label{sec:variationalbayes}
@@ -685,27 +657,28 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	Bayes estimation properties of the model in a simulated setting; its main aim 
 	is to assess hyperparameter estimation. It is a data based simulation,
 	wherein the responses are simulated from a synthetic model, but the
-	features are taken from the real GDSC data introducted in Section 
-	\ref{sec:gdsc}. 
-	The real GDSC features contain strong collinearities. Such strong
-	collinearities in the design matrix impede correct parameter estimation. 
+	features are taken from the real GDSC expression data introducted in Section 
+	\ref{sec:gdsc}. The real GDSC features contain strong collinearities 
+	(correlations ranging from -0.89 to 0.99). Such
+	strong collinearities in the design matrix impede correct parameter estimation
+	with small sample sizes. 
 	We therefore replace the ambition of correctly estimating the $\beta_{jd}$
 	with the more modest aim of approximately correct estimation of the 
 	hyperparameters.
 	
-	A pre-processing step selects 100 features with largest variance, while the 
-	168 drug sensitivities for 482 cell lines are 
+	A pre-processing step selects 100 features with largest variance, while
+	100 drug sensitivities for 1014 cell lines are 
 	simulated from model (\ref{eq:likelihood}) and 
 	(\ref{eq:prior}). We draw the error
 	variances as $\forall d: \sigma_d^2 \sim \Gamma^{-1}(3,2)$,
 	such that the prior $\sigma_d^2$ mean and variance are both one. 
-	We consider the following three scenarios for the simulation of the 
+	We consider the following four scenarios for the simulation of the 
 	drug and feature variance components:
 	\begin{itemize}
 	  \item{Scenario 1 fixes $\forall d: \tau_d^2=1$ and draws the 
 	    $\gamma_{jd}^2$ according to model (\ref{eq:prior}). We
 	    create four external dummy feature covariates that code for four 
-	    randomly assigned approximately equally sized groups of features. We set
+	    approximately equally sized groups of features. We set
 	    $\bm{\alpha}_{\text{feat}}$ such that the $\gamma_{jd}^2$ of the four
 	    groups of features have prior means $\phi_{jd} \in \{ 1, 1/2, 1/4, 1/8 \}$
 	    ($\bm{\alpha}_{\text{feat}}=\begin{bmatrix} 1 & 1 & 3 & 7 \end{bmatrix} 
@@ -713,33 +686,43 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  \item{Scenario 2 fixes $\forall j,d: \gamma_{jd}^2=1$ and draws the 
 	    $\tau_d^2$ according to model (\ref{eq:prior}), following a procedure
 	    similar to the procedure for the $\gamma_{jd}^2$ in Scenario 1: we 
-	    randomly create four groups of drugs with corresponding external drug 
+	    create four groups of drugs with corresponding external drug 
 	    dummy variables and set $\bm{\alpha}_{\text{drug}}=\begin{bmatrix} 
 	    1 & 1 & 3 & 7 \end{bmatrix} \tr$, such that we have $\chi_{d} \in 
 	    \{ 1, 1/2, 1/4, 1/8 \}$. The scale is set to $\lambda_{\text{drug}}=1$.}
 	  \item{Scenario 3 combines the procedures from Scenarios 1 and 2 to draw both
 	    the $\gamma_{jd}^2$ and $\tau_d^2$ according to (\ref{eq:prior}).}
+	  \item{Scenario 4 is equal to Scenario three, except that the rows of the
+	    external covariates matrix are permuted. Permutation
+	    adds noise and is supposed to mimic a low external covariates signal. We
+	    mimic different noise levels by permutation of fractions 
+	    $q \in \{0.1, 0.2, 0.33, 0.5, 0.67, 0.8, 1\}$ of the 
+	    number of rows.}
 	\end{itemize}
-	We estimate four models: (i) the NIG model that only includes an intercept in
+	We estimate two models: (i) the NIG model that only includes an intercept in
 	the external covariates, called NIG$_{\text{f}}^-$, NIG$_{\text{d}}^-$, or
 	NIG$_{\text{f}+\text{d}}^-$, depending on which variance components are 
-	estimated (feature, drug, or both in Scenarios 1, 2, and 3, respectively),
+	estimated (feature, drug, or both in Scenarios 1, 2, and 3/4, respectively),
 	(ii) the NIG model estimated as in Section \ref{sec:estimation} that includes
 	all external covariates, called NIG$_{\text{f}}$, NIG$_{\text{d}}$, or
 	NIG$_{\text{f}+\text{d}}$, again depending on which variance components are 
-	estimated, and frequentist (iii) lasso and (iv) ridge models.
+	estimated, frequentist 
 	Exclusion of the external covariates as in the NIG$_{\text{f}}^-$, 
 	NIG$_{\text{d}}^-$, and NIG$_{\text{f}+\text{d}}^-$ models
 	amounts to direct estimation of common expected 
 	prior means $\phi$ and/or $\chi$, instead of regression estimates for the
 	$\phi_{jd}$ and/or $\chi_d$ as in the 
-	NIG$_{\text{f}}$, NIG$_{\text{d}}$, and NIG$_{\text{f}+\text{d}}$ models. 
-	The lasso and ridge models were fit using the \texttt{R} package 
-	\texttt{glmnet} \cite[]{friedman_regularization_2010} with cross validated
-	penalty parameters.
-	All models are fit on 241 randomly selected cell lines, while performance
-	measures are estimated from the remaining 241 cell lines. We repeat every
-	simulation Scenario 50 times.
+	NIG$_{\text{f}}$, NIG$_{\text{d}}$, and NIG$_{\text{f}+\text{d}}$ models.
+	All models are fit on 100 randomly selected cell lines. We repeat every
+	simulation Scenario 100 times.
+	
+	SM Section \ref{sm-sec:simulations} contains additional simulation results for
+	the NIG model, plus results for 
+	four alternative methods: frequentist (i) lasso and (ii) ridge models, 
+	and two EB versions of the ridge model: (iii) \texttt{xtune} 
+	\cite[]{ni_bayesian_2019} and (iv) its
+	multivariate Bayesian extension as introduced in MD Section 
+	\ref{sm-sec:altprior}.
 	
 	\subsection{Results}
 <<simulation_gdsc_res1>>=
@@ -747,84 +730,25 @@ res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
+
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
 est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
-
-
-tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
-             apply(res[rownames(res)=="emseh", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median))
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")     
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}}^-$",
-                            "NIG$_{\\text{f}}$")
 @	
   Figure \ref{fig:simulations_gdsc_est1} shows the estimated
 	$\bm{\alpha}_{\text{feat}}$ together with its true value for NIG$_{\text{f}}$ 
 	in Scenario 1 of the simulation study (fixed $\tau_d^2$). Figure 
 	\ref{fig:simulations_gdsc_est1}a shows that 
 	$\bm{\alpha}_{\text{feat}}$ is slightly but 
-	consistently underestimated. On the $\phi_{jd}$ scale this underestimation is
-	almost undetectable as depicted in Figure
-	\ref{fig:simulations_gdsc_est1}b. $\lambda_{\text{feat}}$ is slightly 
-	overestimated with median estimate \Sexpr{round(est.lambdaf[2], 2)} (the
-	true value is 1). The overestimated $\lambda_{\text{feat}}$ translates 
-	into underestimated $\gamma_{jd}^2$ variances. Underestimation of variances is 
-	a common phenomenon in variational Bayes approximations. In addition, 
-	$\lambda_{\text{feat}}$ is a higher level scale
-	parameter, which are, in general, hard to estimate. 
-<<simulations_gdsc_est1, fig.cap="Simulation results for Scenario 1 ($\\tau^2_d$ fixed): (a) estimated and true values for $\\alpha_{\\text{feat}}$ and, (b) estimated and true values for prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
-@
-	
+	consistently underestimated. This results in overestimation on the $\phi_{jd}$
+	scale as depicted in Figure \ref{fig:simulations_gdsc_est1}b. 
 	Model NIG$_{\text{f}}^-$ (that excludes the external covariates) gives a 
 	median $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
-	equal to the true mean of the $\phi_{jd}$, \Sexpr{round(true.phi, 2)}. 
-	$\lambda_{\text{feat}}$ is slightly underestimated with median estimate
-	\Sexpr{round(est.lambdaf[1], 2)} (the true value is one) and thus 
-	overestimates the 
-	prior $\gamma_{jd}^2$ variance. This is likely to compensate for the common
-	prior mean $\phi$, that is not able to capture part of the variation in the 
-	true feature specific $\phi_{jd}$. 
-
-	Table \ref{tab:simulations_gdsc_tab1} displays median estimation MSE 
-	(EMSE) and prediction MSE (PMSE) for simulation Scenario 1, calculated on an 
-	independent test data set. EMSE is further split into the contribution of the
-	bottom 90\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
-	top 10\% of the $\beta_{jd}$ in size. The table includes as a reference the 
-	null model, which is an empty model that only fits the means of the $\y_{d}$.
-	Estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
-	performance. Focussing on MSE, we see that the NIG$_{\text{f}}$ model, 
-	that includes the external covariates, performs best, both in terms of 
-	estimation and prediction. The lower MSEs confirm that the model that
-	includes the external data (NIG$_{\text{f}}$) learns the underlying structure 
-	in the data better than model NIG$_{\text{f}}^-$ that does not include the
-	external data. Furthermore, we see that estimation of the larger $\beta_{jd}$ 
-	is where ridge loses the most compared to the NIG and lasso models. 
-	The heavier tails of the NIG and lasso priors allow for larger $\beta_{jd}$
-	estimates and thus lower EMSE for these $\beta_{jd}$.
-<<simulations_gdsc_tab1>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 1, estimated on the test data (lowest in bold).", 
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
+	slightly higher than the true mean of the $\phi_{jd}$, 
+	\Sexpr{round(true.phi, 2)}. 
+<<simulations_gdsc_est1, fig.cap="Simulation results for Scenario 1 ($\\tau^2_d$ fixed): estimated and true values for (a) $\\alpha_{\\text{feat}}$ and (b) prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
 @
-
+	
 <<simulation_gdsc_res2>>=
 res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
@@ -833,55 +757,17 @@ rownames(res) <- temp
 true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
 est.chi <- median(1/res[rownames(res)=="alphad0", 1])
 est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
-tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
-             apply(res[rownames(res)=="emseh", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median))
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")      
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{d}}^-$",
-                            "NIG$_{\\text{d}}$")
 @	
-  Figure \ref{fig:simulations_gdsc_est2} shows the estimated
+  Figure \ref{fig:simulations_gdsc_est2}a shows the estimated
 	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG$_{\text{d}}$ 
-	in Scenario 2 of the simulation study (fixed $\gamma_{jd}^2$). They are
-	estimated without bias.
-	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is slightly 
-	overestimated compared to true value one. 
-	The median $\chi$ estimate in the NIG$_{\text{d}}^-$ model is 
-	\Sexpr{round(est.chi, 2)},  
-	which is almost equal to the true mean \Sexpr{round(true.chi, 2)}. 
-	Scale $\lambda_{\text{drug}}$ is underestimated with median estimate
-	\Sexpr{round(est.lambdad[1], 2)} compared to the true value one.
-	Median performance measures for simulation Scenario 2 are displayed in Table
-	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG$_{\text{d}}$ performs
-	best in terms of MSE. However, NIG$_{\text{d}}^-$ performance is the same 
-	here, indicating that the external covariates do not add much here.
-	Similarly as in Scenario 1, most of the estimation performance gain over ridge
-	is through the top 10\% of the $\beta_{jd}$.
-<<simulations_gdsc_est2, fig.cap="Simulation results for Scenario 2 ($\\gamma^2_{jd}$ fixed): (a) estimated and true values for $\\alpha_{\\text{feat}}$ and, (b) estimated and true values for prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
-@
-
-
-<<simulations_gdsc_tab2>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 2, estimated on the test data (lowest in bold).",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
+	in Scenario 2 of the simulation study (fixed $\gamma_{jd}^2$). The intercept
+	term ($\alpha_{\text{drug},0}$) is overestimated, while the deviations from 
+	the intercept term are approximately correct. The overestimated intercept term
+	results in underestimated $\chi_d$ (Figure \ref{fig:simulations_gdsc_est2}b).
+	The median $\chi$ estimate in the 
+	NIG$_{\text{d}}^-$ model is \Sexpr{round(est.chi, 2)},  
+	which underestimates the true mean \Sexpr{round(true.chi, 2)}. 
+<<simulations_gdsc_est2, fig.cap="Simulation results for Scenario 2 ($\\gamma^2_{jd}$ fixed): estimated and true values for (a) $\\alpha_{\\text{feat}}$ and (b) prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
 @
 
 <<simulation_gdsc_res3>>=
@@ -906,26 +792,6 @@ chi.ratio <- apply(apply(sapply(0:3, function(s) {
       res[rownames(res)=="alphad0", 2]/m}), 2, median)
 true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
                               t(unname(model.matrix(~ factor(1:4))))))
-
-tab <- cbind(apply(res[rownames(res)=="emsel", ], 2, median),
-             apply(res[rownames(res)=="emseh", ], 2, median),
-             apply(res[rownames(res)=="emse", ], 2, median),
-             apply(res[rownames(res)=="pmse", ], 2, median))
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <-
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <-
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <-
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <-
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}+\\text{d}}^-$",
-                            "NIG$_{\\text{f}+\\text{d}}$")
 @
   In Figure \ref{fig:simulations_gdsc_est3} the 
 	$\bm{\alpha}_{\text{feat}}$ and $\bm{\alpha}_{\text{drug}}$ estimated by 
@@ -937,36 +803,34 @@ rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}+\\text{d}}^-$",
 	$\phi_4$ and $\chi_1$ to $\chi_2$, $\chi_3$, 
 	$\chi_4$ are \Sexpr{round(phi.ratio, 2)[-1]} and 
 	\Sexpr{round(chi.ratio, 2)[-1]}, respectively, compared to their true values
-	\Sexpr{round(true.ratio, 2)[-1]}. So in a relative sense, the estimates are
-	correct. Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
-	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
-	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
-	value 1. The NIG$_{\text{f}+\text{d}}^-$ model is also consistently over- 
+	\Sexpr{round(true.ratio, 2)[-1]}. So in a relative sense, the 
+	$\bm{\alpha}_{\text{feat}}$ estimates are correct, while the 
+	$\bm{\alpha}_{\text{drug}}$ are somewhat higher than expected. 
+	The NIG$_{\text{f}+\text{d}}^-$ model is also consistently over- 
 	and underestimating $\phi$
-	and $\chi$ with estimates \Sexpr{round(est.phi, 2)} and 
+	and $\chi$ with median estimates \Sexpr{round(est.phi, 2)} and 
 	\Sexpr{round(est.chi, 2)}, respectively (compared to the true mean 
-	\Sexpr{round(true.chi, 2)}). NIG$_{\text{f}+\text{d}}^-$ also over- and
-	underestimates 
-	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
-	\Sexpr{round(est.lambdaf[1], 2)}
-	and \Sexpr{round(est.lambdad[1], 2)}, respectively. Table 
-	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
-	that NIG$_{\text{f}+\text{d}}$ outperforms the other models in terms of
-	prediction and estimation MSE, with again most of the edge over ridge in the
-	top 10\% of the $\beta_{jd}$.
-<<simulations_gdsc_est3, fig.cap="Simulation results for Scenario 3: (a) estimated and true values for $\\alpha_{\\text{feat}}$ and, (b) estimated and true values for prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1>>= 
+	\Sexpr{round(true.chi, 2)}). 
+<<simulations_gdsc_est3, fig.cap="Simulation results for Scenario 3: estimated and true values for (a) $\\alpha_{\\text{feat}}$, (b) prior means $\\phi_{jd}$, (c) $\\alpha_{\\text{drug}}$, and (d) prior means $\\chi_{d}$.", out.width="100%", fig.asp=1>>= 
 @
-
-<<simulations_gdsc_tab3>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 3, estimated on the test data (lowest in bold).",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
+  
+<<simulations_gdsc_est4, fig.cap="Simulation results for Scenario 3: estimated prior means (a) $\\phi_{jd}$, and (b) $\\chi_{d}$ for different levels of noise in the external covariates.", out.width="100%", fig.asp=1/2>>= 
 @
-
+  
+  \subsection{Discussion}
+  Underestimation of variance components is 
+	a common phenomenon in variational Bayes approximations, so the 
+	underestimation of the mean of the drug variance components $\chi_d$ in
+	Scenarios 2 and 3 is somewhat expected. In Scenario 3, this is compensated for
+	by the overestimation of the $\phi_{jd}$. We note that increasing the number
+	of cell lines $n$ and increasing the number of drugs $D$ improves estimation
+	of the $\chi_d$. However, this is not the most interesting situation since it
+	does not correspond to 
+	
+	In addition, 
+	$\lambda_{\text{feat}}$ is a higher level scale
+	parameter, which are, in general, hard to estimate. 
+	
 	\section{GDSC data}\label{sec:gdsc}
 	\subsection{Primary data}
 	The GDSC project's \cite[]{yang_genomics_2013} aim is ``to improve cancer 
@@ -1220,6 +1084,7 @@ kable(tabm,
   kable_styling(latex_options=c("HOLD_position"))
 @
   
+  \subsection{Discussion}
   Part of the differences in performance between
   NIG, lasso, and ridge may be explained with the different levels of 
   ``sparsity'' in the solution. Although NIG and ridge do not give exactly 
@@ -1242,7 +1107,7 @@ kable(tabm,
   through a variational Bayes approximation or with the Gibbs sampler from
   SM Section \ref{sm-sec:gibbssampler}. The full posterior gives direct access
   to the parameter uncertainties for a better interpretable model.
-  
+
 	\section{Discussion}\label{sec:discussion}
 <<time>>=
 # load("results/analysis_gdsc_fit1.Rdata")

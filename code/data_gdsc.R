@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 ### libraries
-library(gdata)
 library(biomaRt)
+library(gdata)
 
 ### biomart
 ensembl <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
