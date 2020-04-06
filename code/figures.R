@@ -115,7 +115,7 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-alphaf <- c(1, 1, 3, 7)*10
+alphaf <- c(1, 1, 3, 7)
 alphad <- c(1, 1, 3, 7)
 phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
 chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
@@ -167,49 +167,82 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-alphaf <- c(1, 1, 3, 7)
-alphad <- c(1, 1, 3, 7)
-phi <- 1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
-chi <- 1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3)))))
-est1 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphaf" ,s), 2]})
-est2 <- 1/(est1 %*% t(cbind(1, rbind(0, diag(3)))))
-est3 <- sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphad" ,s), 2]})
-est4 <- 1/(est3 %*% t(cbind(1, rbind(0, diag(3)))))
+fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
+phi <- lapply(fracs, function(q) {
+  cq <- paste0("frac", q, ".alphaf")
+  apply(1/(sapply(0:3, function(s) {
+    res[rownames(res)==paste0(cq, s), 2]}) %*% 
+      t(cbind(1, rbind(0, diag(3))))), 2, median)})
+chi <- lapply(fracs, function(q) {
+  cq <- paste0("frac", q, ".alphad")
+  apply(1/(sapply(0:3, function(s) {
+    res[rownames(res)==paste0(cq, s), 2]}) %*% 
+      t(cbind(1, rbind(0, diag(3))))), 2, median)})
 
-col <- bpy.colors(length(alphad), cutoff.tail=0.3)
-labels1 <- expression(alpha["feat,0"], alpha["feat,1"], alpha["feat,2"], 
-                      alpha["feat,3"])
-labels2 <- expression(phi["1"], phi["2"], phi["3"], phi["4"])
-labels3 <- expression(alpha["drug,0"], alpha["drug,1"], alpha["drug,2"], 
-                      alpha["drug,3"])
-labels4 <- expression(chi["1"], chi["2"], chi["3"], chi["4"])
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
 
-ylim1 <- range(c(unlist(boxplot(est1, plot=FALSE)[c("stats", "out")]), alphaf))
-ylim2 <- range(c(unlist(boxplot(est2, plot=FALSE)[c("stats", "out")]), phi))
-ylim3 <- range(c(unlist(boxplot(est3, plot=FALSE)[c("stats", "out")]), alphad))
-ylim4 <- range(c(unlist(boxplot(est4, plot=FALSE)[c("stats", "out")]), chi))
+phi <- c(list(apply(1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphaf", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3))))), 2, median)), phi)
+chi <- c(list(apply(1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphad", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3))))), 2, median)), chi)
+
+col <- bpy.colors(length(phi[[1]]), cutoff.tail=0.3)
+pch <- c(15:(15 + length(fracs)))
+labels1 <- expression(phi["1"], phi["2"], phi["3"], phi["4"])
+labels2 <- expression(chi["1"], chi["2"], chi["3"], chi["4"])
+
+ylim1 <- range(unlist(phi))
+ylim2 <- range(unlist(chi))
+
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
-              nrow=4, ncol=4, byrow=TRUE))
-boxplot(est1, ylim=ylim1, main="(a)", ylab=expression(hat(alpha)), 
-        names=labels1, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
-points(c(1:4), alphaf, pch=2, col=col[c(1:4)], cex=1.5, 
-       cex.lab=1.5, cex.axis=1.4)
-boxplot(est2, ylim=ylim2, main="(b)", ylab=expression(hat(phi)), 
-        names=labels2, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
-points(c(1:4), phi, pch=2, col=col[c(1:4)], cex=1.5, 
-       cex.lab=1.5, cex.axis=1.5)
-boxplot(est3, ylim=ylim3, main="(c)", ylab=expression(hat(alpha)), 
-        names=labels3, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
-points(c(1:4), alphad, pch=2, col=col[c(1:4)], cex=1.5, 
-       cex.lab=1.5, cex.axis=1.4)
-boxplot(est4, ylim=ylim4, main="(d)", ylab=expression(hat(chi)), 
-        names=labels4, col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5)
-points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5, 
-       cex.lab=1.5, cex.axis=1.5)
+layout(matrix(rep(rep(c(1:2), each=2), 2), nrow=2, ncol=4, byrow=TRUE))
+plot(phi[[1]], ylim=ylim1, main="(a)", ylab=expression(hat(phi)), xlab="",
+     col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5, pch=pch[1], xaxt="n")
+axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels1)
+for(q in 2:(length(fracs) + 1)) {
+  points(c(1:4), phi[[q]], pch=pch[q], col=col[c(1:4)], cex=1.5, 
+         cex.lab=1.5, cex.axis=1.4)
+}
+plot(chi[[1]], ylim=ylim2, main="(b)", ylab=expression(hat(alpha)), xlab="",
+     col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5, pch=pch[1], xaxt="n")
+axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels2)
+for(q in 2:(length(fracs) + 1)) {
+  points(c(1:4), chi[[q]], pch=pch[q], col=col[c(1:4)], cex=1.5, 
+         cex.lab=1.5, cex.axis=1.4)
+}
+legend("topright", pch=pch, title="Permuted rows",
+       legend=paste0(round(100*c(0, fracs), 0), "%"))
+par(opar)
+
+lty <- c(1:(1 + length(fracs)))
+col <- bpy.colors(1, cutoff.tail=0.3, 
+                  alpha=seq(1, 0.4, length.out=length(fracs) + 1))
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(rep(c(1:2), each=2), 2), nrow=2, ncol=4, byrow=TRUE))
+plot(phi[[1]], ylim=ylim1, main="(a)", ylab=expression(hat(phi)), xlab="", 
+     type="l", col=col[1], cex=1.5, cex.lab=1.5, cex.axis=1.5, lty=lty[1], 
+     xaxt="n")
+axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels1)
+for(q in 2:(length(fracs) + 1)) {
+  lines(phi[[q]], col=col[q], lty=lty[q], cex=1.5, cex.lab=1.5, cex.axis=1.4)
+}
+plot(chi[[1]], ylim=ylim2, main="(b)", ylab=expression(hat(chi)), xlab="", 
+     type="l", col=col[1], cex=1.5, cex.lab=1.5, cex.axis=1.5, lty=lty[1], 
+     xaxt="n")
+axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels2)
+for(q in 2:(length(fracs) + 1)) {
+  lines(chi[[q]], col=col[q], lty=lty[q], cex=1.5, cex.lab=1.5, cex.axis=1.4)
+}
+legend("topright", lty=lty, col=col, title="Permuted rows",
+       legend=paste0(round(100*c(0, fracs), 0), "%"))
 par(opar)
 
 # ---- analysis_gdsc_res1 ----
