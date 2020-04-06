@@ -14,7 +14,7 @@ nfolds <- 10
 
 # number of cores to use
 # ncores <- min(nfolds, 100)
-ncores <- 1
+ncores <- min(100, nfolds)
 
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
