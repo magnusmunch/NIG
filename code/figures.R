@@ -287,6 +287,18 @@ legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
 
 par(opar)
 
+# ---- analysis_gdsc_res2 ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+pmse <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+pmse <- aggregate(pmse, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+
+
+par(opar)
+
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 
 library(GeneralizedHyperbolic)

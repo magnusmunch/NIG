@@ -664,7 +664,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # semnig models
   cv.semnig1 <- semnig(x=xtrain, y=ytrain, 
-                       C=sapply(xtrain, function(s) {matrix(rep(1, ncol(s)))}), 
+                       C=lapply(xtrain, function(s) {matrix(rep(1, ncol(s)))}), 
                        Z=matrix(1, nrow=D), full.post=TRUE, 
                        control=control.semnig)
   cv.semnig2 <- semnig(x=xtrain, y=ytrain, C=C, Z=matrix(1, nrow=D),

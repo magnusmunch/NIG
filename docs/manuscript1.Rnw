@@ -946,64 +946,64 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	The null model that fits the means of the $\y_d$ is included as a reference.
 
 <<analysis_gdsc>>==
-# fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
-# temp <- fit[, 1]
-# fit <- as.matrix(fit[, -1])
-# rownames(fit) <- temp
-# 
-# res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
-# temp <- res[, 1]
-# res <- as.matrix(res[, -1])
-# rownames(res) <- temp
-# 
-# est1 <- cbind(fit[, 1], c(NA, 0, 0, NA, 0), fit[, 2])
-# est1 <- round(est1, 2)
-# est1[is.na(est1)] <- "-"
-# colnames(est1) <- c("intercept", "not in pathway", "in pathway")
-# est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0, NA), fit[, c(7:6)],
-#               c(NA, 0, NA, 0, NA))
-# est2 <- round(est2, 2)
-# est2[is.na(est2)] <- "-"
-# colnames(est2) <- c("intercept", "experimental", "development", "approved",
-#                     "unkown", "targeted", "cytotoxic")
-# 
-# rownames(est1)[c(1:4)] <- rownames(est2)[c(1:4)] <-
-#   c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
-#     "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
-# 
-# tab <- cbind(apply(res[rownames(res)=="pmse", ], 2, median))
-# tabm <- tab
-# tabm <- round(tabm, 3)
-# tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1] <-
-#   paste0("\\textbf{", tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1], "}")
-# colnames(tabm) <- c("$\\text{PMSE}_{\\text{test}}$")
-# rownames(tabm)[c(1:4)] <- rownames(est2)[c(1:4)] <-
-#   c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
-#     "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
-# 
-# library(glmnet)
-# kurtosis <- function(x) {
-#   n <- length(x)
-#   kurt <- (n + 1)*n*sum((x - mean(x))^4)/((n - 1)*(n - 2)*(n - 3)*var(x)^2) -
-#     3*(n - 1)^2/((n - 2)*(n - 3))
-#   replace(kurt, !is.finite(kurt), NA)
-# }
-# load("results/analysis_gdsc_fit1.Rdata")
-# best2.semnig <- fit2.semnig$vb$mu
-# best1.lasso <- lapply(fit1.lasso, function(s) {
-#   unname(coef(s, "lambda.min")[-1, ])})
-# best1.ridge <- lapply(fit1.ridge, function(s) {
-#   unname(coef(s, "lambda.min")[-1, ])})
-# best1.bSEM <- lapply(fit1.bSEM$vb$beta, function(s) {s[, 2]})
-# kurts <- c(mean(sapply(best2.semnig, kurtosis), na.rm=TRUE),
-#            mean(sapply(best1.lasso, kurtosis), na.rm=TRUE),
-#            mean(sapply(best1.ridge, kurtosis), na.rm=TRUE),
-#            mean(sapply(best1.bSEM, kurtosis), na.rm=TRUE))
-# ranges <- rbind(range(unlist(lapply(1:length(
-#   fit2.semnig$eb$mpriord), function(d) {
-#     fit2.semnig$eb$mpriord[d]*fit2.semnig$eb$mpriorf[[d]]}))),
-#   fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), ]/
-#     (fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), ] - 1))
+fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
+
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+est1 <- cbind(fit[, 1], c(NA, 0, 0, NA, 0), fit[, 2])
+est1 <- round(est1, 2)
+est1[is.na(est1)] <- "-"
+colnames(est1) <- c("intercept", "not in pathway", "in pathway")
+est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0, NA), fit[, c(7:6)],
+              c(NA, 0, NA, 0, NA))
+est2 <- round(est2, 2)
+est2[is.na(est2)] <- "-"
+colnames(est2) <- c("intercept", "experimental", "development", "approved",
+                    "unkown", "targeted", "cytotoxic")
+
+rownames(est1)[c(1:4)] <- rownames(est2)[c(1:4)] <-
+  c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
+    "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
+
+tab <- cbind(apply(res[rownames(res)=="pmse", ], 2, median))
+tabm <- tab
+tabm <- round(tabm, 3)
+tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1] <-
+  paste0("\\textbf{", tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1], "}")
+colnames(tabm) <- c("$\\text{PMSE}_{\\text{test}}$")
+rownames(tabm)[c(1:4)] <- rownames(est2)[c(1:4)] <-
+  c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
+    "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
+
+library(glmnet)
+kurtosis <- function(x) {
+  n <- length(x)
+  kurt <- (n + 1)*n*sum((x - mean(x))^4)/((n - 1)*(n - 2)*(n - 3)*var(x)^2) -
+    3*(n - 1)^2/((n - 2)*(n - 3))
+  replace(kurt, !is.finite(kurt), NA)
+}
+load("results/analysis_gdsc_fit1.Rdata")
+best2.semnig <- fit2.semnig$vb$mu
+best1.lasso <- lapply(fit1.lasso, function(s) {
+  unname(coef(s, "lambda.min")[-1, ])})
+best1.ridge <- lapply(fit1.ridge, function(s) {
+  unname(coef(s, "lambda.min")[-1, ])})
+best1.bSEM <- lapply(fit1.bSEM$vb$beta, function(s) {s[, 2]})
+kurts <- c(mean(sapply(best2.semnig, kurtosis), na.rm=TRUE),
+           mean(sapply(best1.lasso, kurtosis), na.rm=TRUE),
+           mean(sapply(best1.ridge, kurtosis), na.rm=TRUE),
+           mean(sapply(best1.bSEM, kurtosis), na.rm=TRUE))
+ranges <- rbind(range(unlist(lapply(1:length(
+  fit2.semnig$eb$mpriord), function(d) {
+    fit2.semnig$eb$mpriord[d]*fit2.semnig$eb$mpriorf[[d]]}))),
+  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), ]/
+    (fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), ] - 1))
 ranges <- matrix(1, nrow=10, ncol=10)
 tab <- matrix(1, nrow=10, ncol=10)
 tabm <- matrix(1, nrow=10, ncol=10)
