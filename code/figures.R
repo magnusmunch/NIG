@@ -160,6 +160,40 @@ points(c(1:4), chi, pch=2, col=col[c(1:4)], cex=1.5,
        cex.lab=1.5, cex.axis=1.5)
 par(opar)
 
+# ---- simulations_gdsc_var ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+est.phi <- 1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphaf", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))))
+est.chi <- 1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphad", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))))
+x <- as.numeric(outer(1/(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
+                      1/(alphad %*% t(cbind(1, rbind(0, diag(3)))))))
+y <- apply(sapply(1:nrow(est1), function(s) {
+  as.numeric(outer(est.phi[s, ], est.chi[s, ]))}), 1, median)
+
+col <- bpy.colors(1, cutoff.tail=0.5)
+lty <- 3
+pch <- 1
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+plot(x, y, xlab=expression(V(beta)), 
+     ylab=expression(hat(V)(beta)),
+     xlim=range(c(x, y)), ylim=range(c(x, y)), col=col[1], pch=pch[1],
+     cex=1.5, cex.lab=1.5, cex.axis=1.5, lwd=2)
+abline(a=0, b=1, col=col[1], lty=lty[1], cex=1.5, cex.lab=1.5, cex.axis=1.5,
+       lwd=2)
+par(opar)
+
 # ---- simulations_gdsc_est4 ----
 suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
@@ -192,7 +226,9 @@ chi <- c(list(apply(1/(sapply(0:3, function(s) {
   res[rownames(res)==paste0("alphad", s), 2]}) %*% 
     t(cbind(1, rbind(0, diag(3))))), 2, median)), chi)
 
-col <- bpy.colors(length(phi[[1]]), cutoff.tail=0.3)
+lty <- c(1:(1 + length(fracs)))
+col <- bpy.colors(1, cutoff.tail=0.3, 
+                  alpha=seq(1, 0.4, length.out=length(fracs) + 1))
 pch <- c(15:(15 + length(fracs)))
 labels1 <- expression(phi["1"], phi["2"], phi["3"], phi["4"])
 labels2 <- expression(chi["1"], chi["2"], chi["3"], chi["4"])
@@ -200,30 +236,6 @@ labels2 <- expression(chi["1"], chi["2"], chi["3"], chi["4"])
 ylim1 <- range(unlist(phi))
 ylim2 <- range(unlist(chi))
 
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(rep(rep(c(1:2), each=2), 2), nrow=2, ncol=4, byrow=TRUE))
-plot(phi[[1]], ylim=ylim1, main="(a)", ylab=expression(hat(phi)), xlab="",
-     col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5, pch=pch[1], xaxt="n")
-axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels1)
-for(q in 2:(length(fracs) + 1)) {
-  points(c(1:4), phi[[q]], pch=pch[q], col=col[c(1:4)], cex=1.5, 
-         cex.lab=1.5, cex.axis=1.4)
-}
-plot(chi[[1]], ylim=ylim2, main="(b)", ylab=expression(hat(alpha)), xlab="",
-     col=col[c(1:4)], cex=1.5, cex.lab=1.5, cex.axis=1.5, pch=pch[1], xaxt="n")
-axis(1, at=c(1:4), cex=1.5, cex.lab=1.5, cex.axis=1.5, labels=labels2)
-for(q in 2:(length(fracs) + 1)) {
-  points(c(1:4), chi[[q]], pch=pch[q], col=col[c(1:4)], cex=1.5, 
-         cex.lab=1.5, cex.axis=1.4)
-}
-legend("topright", pch=pch, title="Permuted rows",
-       legend=paste0(round(100*c(0, fracs), 0), "%"))
-par(opar)
-
-lty <- c(1:(1 + length(fracs)))
-col <- bpy.colors(1, cutoff.tail=0.3, 
-                  alpha=seq(1, 0.4, length.out=length(fracs) + 1))
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
 layout(matrix(rep(rep(c(1:2), each=2), 2), nrow=2, ncol=4, byrow=TRUE))
@@ -287,17 +299,6 @@ legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
 
 par(opar)
 
-# ---- analysis_gdsc_res2 ----
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-pmse <- res[substr(rownames(res), 1, 5)=="pmse.", ]
-pmse <- aggregate(pmse, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-
-
-par(opar)
 
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 

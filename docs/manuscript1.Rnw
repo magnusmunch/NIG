@@ -5,6 +5,7 @@ opts_chunk$set(fig.align='center', fig.path="../figs/",
                echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
 knit_hooks$set(document=function(x) {
   sub('\\usepackage[]{color}', '\\usepackage{xcolor}', x, fixed=TRUE)})
+options(knitr.kable.NA="")
 @
 
 % read figure code
@@ -293,7 +294,6 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   implies full shrinkage towards zero. Figure 
   \ref{fig:dens_kappa} depicts the prior on $\kappa_{jd}$ implied by 
   several choices of $\beta_{jd}$ prior.
-  
 <<dens_kappa, fig.cap="Implied prior densities $\\pi(\\kappa_{jd})$ for the (a) NIG, (b) Student's $t$, and (c) lasso priors. Different line types correspond to different hyperparameter settings. The hyperparameter settings (given in Section \\ref{sm-sec:hyperparameters} of the SM) were chosen to show some possible, distinct shapes that each of the priors can take.", out.width="100%", fig.asp=1/3>>=
 @
   
@@ -713,15 +713,20 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	prior means $\phi$ and/or $\chi$, instead of regression estimates for the
 	$\phi_{jd}$ and/or $\chi_d$ as in the 
 	NIG$_{\text{f}}$, NIG$_{\text{d}}$, and NIG$_{\text{f}+\text{d}}$ models.
-	All models are fit on 100 randomly selected cell lines. We repeat every
-	simulation Scenario 100 times.
+	In the language of \cite{bernardo_shrink_2011} as introduced in 
+	Section \ref{sec:introduction}, models NIG$_{\text{f}}$ and NIG$_{\text{d}}$
+	may be described as local and global shrinkage rules, respectively, as 
+	opposed to the global-local shrinkage models NIG$_{\text{f}+\text{d}}$ and
+	NIG$_{\text{f}+\text{d}}^-$. All models are fit on 100 randomly selected cell
+	lines. We repeat every simulation Scenario 100 times. 
 	
-	SM Section \ref{sm-sec:simulations} contains additional simulation results for
+	SM Section \ref{sm-sec:simulations} contains
+	additional simulation results for
 	the NIG model, plus results for 
 	four alternative methods: frequentist (i) lasso and (ii) ridge models, 
 	and two EB versions of the ridge model: (iii) \texttt{xtune} 
 	\cite[]{ni_bayesian_2019} and (iv) its
-	multivariate Bayesian extension as introduced in MD Section 
+	multivariate Bayesian extension as introduced in SM Section 
 	\ref{sm-sec:altprior}.
 	
 	\subsection{Results}
@@ -740,8 +745,8 @@ est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
 	in Scenario 1 of the simulation study (fixed $\tau_d^2$). Figure 
 	\ref{fig:simulations_gdsc_est1}a shows that 
 	$\bm{\alpha}_{\text{feat}}$ is slightly but 
-	consistently underestimated. This results in overestimation on the $\phi_{jd}$
-	scale as depicted in Figure \ref{fig:simulations_gdsc_est1}b. 
+	consistently underestimated. This results in slight overestimation on the
+	$\phi_{jd}$ scale as depicted in Figure \ref{fig:simulations_gdsc_est1}b. 
 	Model NIG$_{\text{f}}^-$ (that excludes the external covariates) gives a 
 	median $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
 	slightly higher than the true mean of the $\phi_{jd}$, 
@@ -814,22 +819,33 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 <<simulations_gdsc_est3, fig.cap="Simulation results for Scenario 3: estimated and true values for (a) $\\alpha_{\\text{feat}}$, (b) prior means $\\phi_{jd}$, (c) $\\alpha_{\\text{drug}}$, and (d) prior means $\\chi_{d}$.", out.width="100%", fig.asp=1>>= 
 @
   
+  Figure \ref{fig:simulations_gdsc_est4} displays the median $\phi_{jd}$ and 
+  $\chi_d$ estimates for different noise levels in simulation Scenario 4. 
+  The simulation shows that with increasing noise level, the estimated 
+  prior means $\phi_{jd}$ and $\chi_d$ for the four groups of external 
+  covariates become more and more alike. In other words, noise in the external
+  covariates impedes estimation of $\bm{\alpha}_{\text{feat}}$ and
+  $\bm{\alpha}_{\text{drug}}$, as expected.
 <<simulations_gdsc_est4, fig.cap="Simulation results for Scenario 3: estimated prior means (a) $\\phi_{jd}$, and (b) $\\chi_{d}$ for different levels of noise in the external covariates.", out.width="100%", fig.asp=1/2>>= 
 @
-  
-  \subsection{Discussion}
-  Underestimation of variance components is 
-	a common phenomenon in variational Bayes approximations, so the 
-	underestimation of the mean of the drug variance components $\chi_d$ in
-	Scenarios 2 and 3 is somewhat expected. In Scenario 3, this is compensated for
-	by the overestimation of the $\phi_{jd}$. We note that increasing the number
-	of cell lines $n$ and increasing the number of drugs $D$ improves estimation
-	of the $\chi_d$. However, this is not the most interesting situation since it
-	does not correspond to 
-	
-	In addition, 
-	$\lambda_{\text{feat}}$ is a higher level scale
-	parameter, which are, in general, hard to estimate. 
+
+  Estimation of only $\bm{\alpha}_{\text{feat}}$ is relatively unbiased, as
+  evident from simulation Scenario 1. In contrast,
+  $\bm{\alpha}_{\text{drug}}$ are underestimated (Scenarios 2 and 3).
+  $\bm{\alpha}_{\text{drug}}$ is inversely related to the prior $\bm{\beta}$
+  variance. Underestimation of variance components in regression is 
+	a common phenomenon in variational Bayes approximations and a possible
+	explanation of the estimation bias in Scenarios 2 and 3. 
+	In Scenario 3, this is compensated for
+	by the overestimation of the $\phi_{jd}$, such that the estimated median 
+	variance $\V(\beta_{jd})$ are stil biased, but only slightly underestimated
+	(Figure \ref{fig:simulations_gdsc_var}). We note that an increase in cell 
+	lines $n$ and/or the number of drugs $D$ improves estimation
+	of the $\chi_d$. However, we choose to highlight the high-dimensional 
+	(more parameters than samples) situation here, because it is the most common
+	in practice.
+<<simulations_gdsc_var, fig.cap="Simulation results for Scenario 3: estimated prior variances $\\V(\\beta_{jd})$ versus true values, with line of identity (dotted).", out.width="50%", fig.asp=1>>= 
+@
 	
 	\section{GDSC data}\label{sec:gdsc}
 	\subsection{Primary data}
@@ -846,7 +862,8 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	copy numbers, methylation profiles, and gene expression). We will attempt to 
 	predict drug sensitivities of the cell lines, as quantified by half maximal
 	inhibitory concentration (IC50), using the
-	gene expression data. Other choices of sensitivity measures than IC50 are 
+	gene expression and gene mutation data. Other choices of sensitivity measures
+	than IC50 are 
 	possible, but a discussion on the pros and cons of different sensitivity
 	measures is beyond the aim of this paper. We have used the version of the 
 	data that is presented in \cite{iorio_landscape_2016}.
@@ -855,7 +872,9 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	to the log-transformed values. 
 	After iteratively removing the cell line or drug with the highest proportion 
 	of missings until no more missing values remain, we end up with IC50 
-	estimates for 482 cell lines on 168 drugs. 
+	estimates for between 388 and 1043 cell lines on 251 drugs. The number
+	of cell lines differs between drugs, because not all drug and cell line 
+	combinations are available.
 	
 	A comprehensive penalized regression
 	approach such as in 
@@ -872,63 +891,74 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	Two ternary drug covariates are available: the developmental stage
 	(experimental, in clinical development, or clinically approved) of the
 	drugs and the action (unkown, cytotoxic, or targeted) of the drugs. 
-	Furthermore, we have a binary feature covariate available that indicates
-	whether a gene belongs to the drug target pathway. The drug covariates are 
-	taken
-	directly from the GDSC database's annotation file. The feature covariate
-	was created by comparing the target pathways in the GDSC annotation to
-	the KEGG \cite[]{kanehisa_kegg:_2000} and reactome 
-	\cite[]{fabregat_reactome_2018} repositories. The external covariates are 
-	dummy-coded with
-	reference categories clinically approved drugs, cytotoxic drugs, and 
-	features that are not in the target pathway.
-	
+	These drug covariates are taken 
+	directly from the GDSC database's annotation file and dummy-coded
+	with reference categories clinically approved drugs and cytotoxic drugs. 
 	We expect that drugs that have been clinically approved are easiest to 
 	predict and hence yield the largest prior $\beta_{jd}$ variances, followed by
 	the drugs in clinical development, and the experimental drugs. Likewise we 
 	expect the targeted drugs to yield the largest prior $\beta_{jd}$ variances, 
-	followed by the cytotoxic drugs, and the unkown target drugs. For the
-	feature covariate, we expect that genes that are in the pathway of the drug
-	are more predictive than genes that are not, i.e., 
-	they have larger prior $\beta_{jd}$ variances than drugs that are not in 
-	the pathway. Note that large $\beta_{jd}$ variances translate to large
+	followed by the cytotoxic drugs, and the unkown target drugs. Note that large
+	$\beta_{jd}$ variances translate to large
 	prior $\gamma_{jd}^2$ and $\tau_d^2$ means.
 	
-	\subsection{Results}
-	A preliminary step selects, for each
-	drug separately, 50 features that are not in the pathway of the drug with
-	maximum variance over the cell lines and 50 features that are in the pathway 
-	of the drug with maximum variance over the cell lines. If less than 50 
-	features in the pathway are available,
-	we select all available features in the pathway. This strategy ensures
-	that the features are somewhat balanced with respect to the external feature
-	covariate, i.e., pathway membership. 
+	Furthermore, we have a binary feature covariate available that indicates
+	whether a gene belongs to the drug target pathway. The feature covariate
+	was created by comparing the target pathways in the GDSC annotation to
+	the KEGG \cite[]{kanehisa_kegg:_2000} and reactome 
+	\cite[]{fabregat_reactome_2018} repositories. The reference category here is
+	features that are not in the target pathway. For this external covariate,
+	we expect that genes that are in the pathway of the drug
+	are more predictive than genes that are not, i.e., 
+	they have larger prior $\beta_{jd}$ variances than drugs that are not in 
+	the pathway. 
 	
-	To compute performance measures, we randomly split the data into training and
-	test sets, containing 
-	241 cell lines each, estimate the models on the training data and compute 
-	performance measures on the test data. We repeated this procedure 50 times
-	and average performance measures over the splits.
-	The estimated 
-	models are: four models like in (\ref{eq:prior}) but with different external 
-	variables, named NIG$_{\text{f}+\text{d}}^-$, NIG$_{\text{f}+\text{d}}$,
-	NIG$_{\text{f}}$, and NIG$_{\text{d}}$ in the following. The nomenclature is
-	the same as in Section \ref{sec:simulations}, i.e., 
-	NIG$_{\text{f}+\text{d}}^-$ excludes the external covariates and estimates
-	one overall $\phi$ and one overall $\chi$, while NIG$_{\text{f}+\text{d}}$ 
-	uses the external covariates to estimate both $\bm{\alpha}_{\text{feat}}$ and
-	$\bm{\alpha}_{\text{drug}}$. NIG$_{\text{f}}$ and NIG$_{\text{d}}$ estimate 
-	only $\bm{\alpha}_{\text{feat}}$ or $\bm{\alpha}_{\text{drug}}$, respectively,
-	keeping either $\forall d: \tau_d^2=1$ or $\forall j,d: \gamma_{jd}^2=1$
-	fixed. In the language of \cite{bernardo_shrink_2011} as introduced in 
-	Section \ref{sec:introduction}, models NIG$_{\text{f}}$ and NIG$_{\text{d}}$
-	may be described as local and global shrinkage rules, respectively, as 
-	opposed to the global-local shrinkage models NIG$_{\text{f}+\text{d}}$ and
-	NIG$_{\text{f}+\text{d}}^-$.
+	The type of molecular marker may be included as external 
+	covariate, i.e., whether the feature is a gene expression or gene mutation.
+	As an alternative to direct inclusion of the mutation data, we use $p$-values
+	from the mutations, obtained from a $t$-test comparing IC50 values of 
+	mutated cell lines to unmutated genes. We expect that lower mutation 
+	$p$-values result in a larger prior $\beta_{jd}$ variances.
 	
-	In addition, we estimate regular lasso and ridge models, and a
-	bSEM model \cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The bSEM model 
-	is similar to the NIG model in that it
+	Lastly, $p$-values from an analysis of the CCLE data 
+	\cite[]{li_landscape_2019}, a database similar to the GDSC, are included as
+	external covariate. These $p$-values are obtained from a simple correlation 
+	between the IC50 values and the gene expressions from the CCLE data. 
+	The harmonic mean per gene is then used as external covariate for the GDSC
+	data analysis. Again, we expect a positive relation between these external
+	$p$-values and the larger prior $\beta_{jd}$ variances.
+	
+	\subsection{Analyses}
+	Four analyses were conducted: 
+	\begin{itemize}
+	  \item{Analysis 1 includes gene expressions as predictors and $p$-values from
+	    the gene mutation data as external covariate. A pre-processing step 
+	    selects between 221 and 280 genes per drug for which a mutation $p$-value
+	    is available.}
+	  \item{Analysis 2 includes both gene  expressions and mutations as predictors
+	    with the feature type as external covariate, i.e., wether the feature
+	    is a expression or mutation. For this analysis, we pre-select 300 gene 
+	    expressions with maximum 
+	    variance and 295 gene mutations for which there are mutated as well as 
+	    unmutated cell lines available.}
+	  \item{Analysis 3 uses 500 gene expressions as features, selected based on
+	    maximum varaince. The CCLE $p$-values are included as external 
+	    covariates.}
+	  \item{Analysis 4 includes the gene expressions as features and both the
+	    annoted drug variables and pathway status of the genes as external 
+	    covariates. We pre-select 500 genes expressions based on maximum 
+	    variance.}
+	\end{itemize}
+	
+	In all analyses we estimated the same models as in the simulations (Section 
+	\ref{sec:simulations} and SM Section \ref{sm-sec:simulations}):
+	(i) NIG$_{\text{f}+\text{d}}^-$, (ii) NIG$_{\text{f}+\text{d}}$, 
+	frequentist (iii) lasso and (iv) ridge models, (v) \texttt{xtune}, and
+	(vi) its multivariate Bayesian extension (see SM Section 
+	\ref{sm-sec:altprior}), named EBridge. In addition, in Analyses 2 and 
+	4, we fit a (vii) bSEM model 
+	\cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The
+	bSEM model is similar to the NIG model in that it
 	draws the $\beta_{jd}$ from a conditionally normal distribution, but
 	fixes $\tau_d^2=1$ and draws
 	$\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
@@ -942,75 +972,66 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	\tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
 	1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
 	$\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
-	estimated in a similar fashion as in Section \ref{sec:estimation}.
-	The null model that fits the means of the $\y_d$ is included as a reference.
-
+	estimated in a similar fashion as in Section \ref{sec:estimation}. 
+	
+	In all analyses we use all cell lines to estimate the hyperparameters 
+	presented in Section \ref{sec:results}. Prediction PMSE,
+	$\text{PMSE} = D^{-1} n^{-1} \sum_{d=1}^D 
+  \sum_{i=1}^n (\mathbf{y}_d - \mathbf{x}_i \tr \hat{\bm{\beta}_d})^2$, is
+  estimated by 10-fold cross validation. In the NIG and bSEM models that provide
+  the full posteriors, the posterior mean 
+  $\E(\bm{\beta}_d | \mathbf{y}_d)$ is used point estimate.
+	
+	\subsection{Results}\label{sec:results}
 <<analysis_gdsc>>==
-fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
-temp <- fit[, 1]
-fit <- as.matrix(fit[, -1])
-rownames(fit) <- temp
+fit1 <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
+temp <- fit1[, 1]
+fit1 <- as.matrix(fit1[, -1])
+rownames(fit1) <- temp
 
-res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
+res1 <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
+temp <- res1[, 1]
+res1 <- as.matrix(res1[, -1])
+rownames(res1) <- temp
 
-est1 <- cbind(fit[, 1], c(NA, 0, 0, NA, 0), fit[, 2])
-est1 <- round(est1, 2)
-est1[is.na(est1)] <- "-"
-colnames(est1) <- c("intercept", "not in pathway", "in pathway")
-est2 <- cbind(fit[, 3:5], c(NA, 0, NA, 0, NA), fit[, c(7:6)],
-              c(NA, 0, NA, 0, NA))
-est2 <- round(est2, 2)
-est2[is.na(est2)] <- "-"
-colnames(est2) <- c("intercept", "experimental", "development", "approved",
-                    "unkown", "targeted", "cytotoxic")
+pmse1 <- res1[substr(rownames(res1), 1, 5)=="pmse.", ]
+pmse1 <- aggregate(pmse1, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse1 <- apply(pmse1, 2, median)
 
-rownames(est1)[c(1:4)] <- rownames(est2)[c(1:4)] <-
-  c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
-    "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
+fit2 <- read.table("results/analysis_gdsc_fit2.txt", row.names=NULL)
+temp <- fit2[, 1]
+fit2 <- as.matrix(fit2[, -1])
+rownames(fit2) <- temp
 
-tab <- cbind(apply(res[rownames(res)=="pmse", ], 2, median))
-tabm <- tab
-tabm <- round(tabm, 3)
-tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1] <-
-  paste0("\\textbf{", tabm[which(tabm[, 1]==min(tabm[, 1], na.rm=TRUE)), 1], "}")
-colnames(tabm) <- c("$\\text{PMSE}_{\\text{test}}$")
-rownames(tabm)[c(1:4)] <- rownames(est2)[c(1:4)] <-
-  c("NIG$_{\\text{f}+\\text{d}}^-$", "NIG$_{\\text{f}+\\text{d}}$",
-    "NIG$_{\\text{f}}$", "NIG$_{\\text{d}}$")
+res2 <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res2[, 1]
+res2 <- as.matrix(res2[, -1])
+rownames(res2) <- temp
 
-library(glmnet)
-kurtosis <- function(x) {
-  n <- length(x)
-  kurt <- (n + 1)*n*sum((x - mean(x))^4)/((n - 1)*(n - 2)*(n - 3)*var(x)^2) -
-    3*(n - 1)^2/((n - 2)*(n - 3))
-  replace(kurt, !is.finite(kurt), NA)
-}
-load("results/analysis_gdsc_fit1.Rdata")
-best2.semnig <- fit2.semnig$vb$mu
-best1.lasso <- lapply(fit1.lasso, function(s) {
-  unname(coef(s, "lambda.min")[-1, ])})
-best1.ridge <- lapply(fit1.ridge, function(s) {
-  unname(coef(s, "lambda.min")[-1, ])})
-best1.bSEM <- lapply(fit1.bSEM$vb$beta, function(s) {s[, 2]})
-kurts <- c(mean(sapply(best2.semnig, kurtosis), na.rm=TRUE),
-           mean(sapply(best1.lasso, kurtosis), na.rm=TRUE),
-           mean(sapply(best1.ridge, kurtosis), na.rm=TRUE),
-           mean(sapply(best1.bSEM, kurtosis), na.rm=TRUE))
-ranges <- rbind(range(unlist(lapply(1:length(
-  fit2.semnig$eb$mpriord), function(d) {
-    fit2.semnig$eb$mpriord[d]*fit2.semnig$eb$mpriorf[[d]]}))),
-  fit1.bSEM$eb$b[nrow(fit1.bSEM$eb$b), ]/
-    (fit1.bSEM$eb$a[nrow(fit1.bSEM$eb$a), ] - 1))
-ranges <- matrix(1, nrow=10, ncol=10)
-tab <- matrix(1, nrow=10, ncol=10)
-tabm <- matrix(1, nrow=10, ncol=10)
-kurts <- matrix(1, nrow=10, ncol=10)
+pmse2 <- res2[substr(rownames(res2), 1, 5)=="pmse.", ]
+pmse2 <- aggregate(pmse2, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse2 <- apply(pmse2, 2, median)
+
+tab1 <- t(fit1)[c(1, 2), c(1:3)]
+rownames(tab1) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$")
+colnames(tab1) <- c("feature intercept", "$p$-value", "drug intercept")
+
+
+tab2 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
+              mpmse2)[, 1:7]
+rownames(tab2) <- paste0("model ", 1:nrow(tab2))
+colnames(tab2) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$", "ridge", "lasso", 
+                    "xtune", "EB ridge", "bSEM")
+tab2 <- round(tab2, 3)
+tab2 <- t(apply(tab2, 1, function(r) {
+  id <- which(r==min(r, na.rm=TRUE))
+  r[id] <- paste0("\\textbf{", r[which(r==min(r, na.rm=TRUE))], "}")
+  r}))
 @
-  The non-zero $\bm{\alpha}$ estimates in Tables 
-  \ref{tab:analysis_gdsc_est1_feat} and \ref{tab:analysis_gdsc_est1_drug} show 
+
+  The non-zero $\bm{\alpha}$ estimates in Tables ? and ? show 
   that there is an effect of the
   external covariates. Models NIG$_{\text{f}+\text{d}}$, NIG$_{\text{f}}$, and
   bSEM estimate a negative effect for
@@ -1041,58 +1062,52 @@ kurts <- matrix(1, nrow=10, ncol=10)
   To see the total effect of the external covariates on the $\bm{\beta}_d$ 
   prior, we calculated the range of the expected prior variances 
   (up to a multiplicative error variance) as 
-  $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ \Sexpr{ranges[1, ]}\]$ and
-  $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ \Sexpr{ranges[2, ]}\]$ for
+  $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ ... \]$ and
+  $\hat{E}(\gamma_{jd}^2 \cdot \tau_d^2) \in \[ ... \]$ for
   NIG$_{\text{f}+\text{d}}$ and bSEM, respectively. This confirms that the
   estimated prior 
   $\bm{\beta}_d$ variance components are in the same order of magnitude and that
   the external covariates have a detectable effect on the prior.
-<<analysis_gdsc_est1_feat>>=
-options(knitr.kable.NA="", digits=3)
-kable(est1,
-      col.names=colnames(est1), align="r",
-      caption="$\\bm{\\alpha}_{\\text{feat}}$ estimates from GDSC data.",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
-@
 
-<<analysis_gdsc_est1_drug>>=
-kable(est2,
-      col.names=colnames(est2), align="r",
-      caption="$\\bm{\\alpha}_{\\text{drug}}$ estimates from GDSC data.",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
+<<analysis_gdsc_fit1>>=
+kableExtra::kable_styling(knitr::kable(
+  tab1, align="r", digits=2,
+  caption="$\\bm{\\alpha}$ estimates from model 1. Empty cells correspond to fixed zero parameters",
+  format="latex", booktabs=TRUE, escape=FALSE),
+  latex_options=c("HOLD_position"))
 @
-  The median PMSEs and ELBOs, calculated on the test data
-  are displayed in Table \ref{tab:analysis_gdsc_tab1}. In terms of prediction 
+  
+  The median prediction mean squared error (PMSE), calculated on the 
+  test data is displayed in Table \ref{tab:analysis_gdsc_pmse1}. 
+  Note that due to standardisation, the empty reference model has a PMSE of one.
+  In terms of prediction 
   error, ridge outperforms the other models 
-  (PMSE of \Sexpr{round(tab[6, 1], 3)}), while bSEM 
-  (PMSE of \Sexpr{round(tab[7, 1], 3)}) performs worse than 
-  the null model (PMSE of \Sexpr{round(tab[8, 1], 3)}). Second and third best
+  (PMSE of ? ), while bSEM 
+  (PMSE of ? ) performs worse than 
+  the null model (PMSE of ? ). Second and third best
   performing models are NIG$_{\text{f}+\text{d}}^-$ and 
-  NIG$_{\text{f}+\text{d}}$ (PMSEs of \Sexpr{round(tab[1, 1], 3)} and
-  \Sexpr{round(tab[2, 1], 3)}, respectively), both outperforming the lasso
-  with a PMSE of \Sexpr{round(tab[5, 1], 3)}. The underperformance of the 
+  NIG$_{\text{f}+\text{d}}$ (PMSEs of ? and
+  ?, respectively), both outperforming the lasso
+  with a PMSE of ?. The underperformance of the 
   NIG$_{\text{f}}$ and NIG$_{\text{d}}$ models shows the usefulness of a
   global-local shrinkage prior as opposed to only global or local shrinkage as 
   as in models NIG$_{\text{f}}$ and NIG$_{\text{d}}$.
-<<analysis_gdsc_tab1>>=
-kable(tabm,
-      col.names=colnames(tabm), align="r",
-      caption="Performance measures calculated on GDSC data (best performing model in bold).",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
+<<analysis_gdsc_pmse1>>=  
+kableExtra::kable_styling(knitr::kable(
+  tab2, align="r",
+  caption="Cross-validated PMSE for GDSC data (best performing model in bold).",
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
 @
   
-  \subsection{Discussion}
   Part of the differences in performance between
   NIG, lasso, and ridge may be explained with the different levels of 
   ``sparsity'' in the solution. Although NIG and ridge do not give exactly 
   sparse solutions (none of the $\bm{\beta}_d$ coefficients are set to zero), we
   may use the ``heavy-tailedness'' of the distribution of the estimated 
   $\bm{\beta}_d$ as a proxy for sparsity. A common measure of heavy-tailedness
-  is excess kurtosis, calculated as \Sexpr{round(kurts[1], 3)}, 
-  \Sexpr{round(kurts[2], 3)}, and \Sexpr{round(kurts[3], 3)} for the 
+  is excess kurtosis, calculated as ?, 
+  ?, and ? for the 
   NIG$_{\text{f}+\text{d}}$, 
   lasso, and ridge estimates, respectively. Evidently, lasso gives the 
   ``sparsest'' solution, followed by NIG and ridge. In some sense, this
