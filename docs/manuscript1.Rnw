@@ -867,14 +867,14 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	possible, but a discussion on the pros and cons of different sensitivity
 	measures is beyond the aim of this paper. We have used the version of the 
 	data that is presented in \cite{iorio_landscape_2016}.
-	We average repeated measures over cell line-drug combinations and model the
+	We averaged repeated measures over cell line-drug combinations and model the
 	logarithm of the IC50 values. In the following, IC50 refers 
-	to the log-transformed values. 
-	After iteratively removing the cell line or drug with the highest proportion 
-	of missings until no more missing values remain, we end up with IC50 
-	estimates for between 388 and 1043 cell lines on 251 drugs. The number
-	of cell lines differs between drugs, because not all drug and cell line 
-	combinations are available.
+	to these log-transformed values. 
+	After removing all cell lines with missing values, we end up with 388 to 1043
+	IC50 estimates for for 251 drugs. Differences in the number of cell lines
+	between drugs occur, because not all drug and cell line combinations are 
+	available. The pre-processed expression and mutation data consist of
+	17737 and 300 genes, respectively.
 	
 	A comprehensive penalized regression
 	approach such as in 
@@ -916,9 +916,9 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	The type of molecular marker may be included as external 
 	covariate, i.e., whether the feature is a gene expression or gene mutation.
 	As an alternative to direct inclusion of the mutation data, we use $p$-values
-	from the mutations, obtained from a $t$-test comparing IC50 values of 
-	mutated cell lines to unmutated genes. We expect that lower mutation 
-	$p$-values result in a larger prior $\beta_{jd}$ variances.
+	from the mutations as external covariate. These were obtained from a $t$-test 
+	comparing IC50 values of mutated and unmutated genes. We expect that lower 
+	mutation $p$-values result in a larger prior $\beta_{jd}$ variances.
 	
 	Lastly, $p$-values from an analysis of the CCLE data 
 	\cite[]{li_landscape_2019}, a database similar to the GDSC, are included as
@@ -984,53 +984,104 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	
 	\subsection{Results}\label{sec:results}
 <<analysis_gdsc>>==
-fit1 <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
-temp <- fit1[, 1]
-fit1 <- as.matrix(fit1[, -1])
-rownames(fit1) <- temp
+# estimates tables
+fit <- read.table("results/analysis_gdsc_fit1.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
 
-res1 <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
-temp <- res1[, 1]
-res1 <- as.matrix(res1[, -1])
-rownames(res1) <- temp
-
-pmse1 <- res1[substr(rownames(res1), 1, 5)=="pmse.", ]
-pmse1 <- aggregate(pmse1, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse1 <- apply(pmse1, 2, median)
-
-fit2 <- read.table("results/analysis_gdsc_fit2.txt", row.names=NULL)
-temp <- fit2[, 1]
-fit2 <- as.matrix(fit2[, -1])
-rownames(fit2) <- temp
-
-res2 <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
-temp <- res2[, 1]
-res2 <- as.matrix(res2[, -1])
-rownames(res2) <- temp
-
-pmse2 <- res2[substr(rownames(res2), 1, 5)=="pmse.", ]
-pmse2 <- aggregate(pmse2, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse2 <- apply(pmse2, 2, median)
-
-tab1 <- t(fit1)[c(1, 2), c(1:3)]
+tab1 <- t(fit)[c(1, 2), c(1:3)]
 rownames(tab1) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
                     "NIG$_{\\text{f}+\\text{d}}$")
 colnames(tab1) <- c("feature intercept", "$p$-value", "drug intercept")
 
+fit <- read.table("results/analysis_gdsc_fit2.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
 
-tab2 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
-              mpmse2)[, 1:7]
-rownames(tab2) <- paste0("model ", 1:nrow(tab2))
-colnames(tab2) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+tab2 <- t(fit)[c(1, 2), c(1:3)]
+rownames(tab2) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$")
+colnames(tab2) <- c("feature intercept", "mutation", "drug intercept")
+
+fit <- read.table("results/analysis_gdsc_fit3.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
+
+tab3 <- t(fit)[c(1, 2), c(1:3)]
+rownames(tab3) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$")
+colnames(tab3) <- c("feature intercept", "$p$-value", "drug intercept")
+
+fit <- read.table("results/analysis_gdsc_fit4.txt", row.names=NULL)
+temp <- fit[, 1]
+fit <- as.matrix(fit[, -1])
+rownames(fit) <- temp
+
+tab4.1 <- t(fit)[c(1, 2), c(1:2)]
+rownames(tab4.1) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$")
+colnames(tab4.1) <- c("feature intercept", "pathway")
+tab4.2 <- t(fit)[c(1, 2), c(3:7)]
+rownames(tab4.2) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
+                    "NIG$_{\\text{f}+\\text{d}}$")
+colnames(tab4.2) <- c("drug intercept", 
+                    "experimental", "development", "targeted", "unknown")
+
+# pmse table
+res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+pmse1 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+pmse1 <- aggregate(pmse1, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse1 <- apply(pmse1, 2, median)
+
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+pmse2 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+pmse2 <- aggregate(pmse2, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse2 <- apply(pmse2, 2, median)
+
+# res <- read.table("results/analysis_gdsc_res3.txt", row.names=NULL)
+# temp <- res[, 1]
+# res <- as.matrix(res[, -1])
+# rownames(res) <- temp
+res <- matrix(1, nrow=2510, ncol=13); rownames(res) <- paste0("pmse.", 1:nrow(res))
+
+pmse3 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+pmse3 <- aggregate(pmse3, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse3 <- apply(pmse3, 2, median)
+
+# res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+# temp <- res[, 1]
+# res <- as.matrix(res[, -1])
+# rownames(res) <- temp
+res <- matrix(1, nrow=2510, ncol=17); rownames(res) <- paste0("pmse.", 1:nrow(res))
+
+pmse4 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
+pmse4 <- aggregate(pmse4, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+mpmse4 <- apply(pmse4, 2, median)
+
+tab5 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
+              mpmse2, c(mpmse3[1:6], NA, mpmse3[7:length(mpmse3)], rep(NA, 3)),
+              mpmse4)[, 1:7]
+rownames(tab5) <- paste0("analysis ", 1:nrow(tab5))
+colnames(tab5) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
                     "NIG$_{\\text{f}+\\text{d}}$", "ridge", "lasso", 
                     "xtune", "EB ridge", "bSEM")
-tab2 <- round(tab2, 3)
-tab2 <- t(apply(tab2, 1, function(r) {
+tab5 <- round(tab5, 3)
+tab5 <- t(apply(tab5, 1, function(r) {
   id <- which(r==min(r, na.rm=TRUE))
   r[id] <- paste0("\\textbf{", r[which(r==min(r, na.rm=TRUE))], "}")
   r}))
 @
-
   The non-zero $\bm{\alpha}$ estimates in Tables ? and ? show 
   that there is an effect of the
   external covariates. Models NIG$_{\text{f}+\text{d}}$, NIG$_{\text{f}}$, and
@@ -1072,11 +1123,48 @@ tab2 <- t(apply(tab2, 1, function(r) {
 <<analysis_gdsc_fit1>>=
 kableExtra::kable_styling(knitr::kable(
   tab1, align="r", digits=2,
-  caption="$\\bm{\\alpha}$ estimates from model 1. Empty cells correspond to fixed zero parameters",
+  caption="$\\bm{\\alpha}$ estimates from analysis 1. Empty cells correspond to fixed zero parameters.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
 @
-  
+
+<<analysis_gdsc_fit2>>=
+kableExtra::kable_styling(knitr::kable(
+  tab2, align="r", digits=2,
+  caption="$\\bm{\\alpha}$ estimates from analysis 2. Empty cells correspond to fixed zero parameters.",
+  format="latex", booktabs=TRUE, escape=FALSE),
+  latex_options=c("HOLD_position"))
+@
+
+<<analysis_gdsc_fit3>>=
+kableExtra::kable_styling(knitr::kable(
+  tab3, align="r", digits=2,
+  caption="$\\bm{\\alpha}$ estimates from analysis 3. Empty cells correspond to fixed zero parameters.",
+  format="latex", booktabs=TRUE, escape=FALSE),
+  latex_options=c("HOLD_position"))
+@
+
+  \begin{table}[h!]\label{tab:analysis_gdsc_fit4}
+    \begin{minipage}{1\textwidth}
+<<analysis_gdsc_fit4.1>>=
+kableExtra::kable_styling(knitr::kable(
+  tab4.1, align="r", digits=2,
+  caption="$\\bm{\\alpha}$ estimates from analysis 4. Empty cells correspond to fixed zero parameters.",
+  format="latex", booktabs=TRUE, escape=FALSE),
+  latex_options=c("HOLD_position"))
+@
+    \end{minipage}
+    \begin{minipage}{1\textwidth}
+<<analysis_gdsc_fit4.2>>=
+kableExtra::kable_styling(knitr::kable(
+  tab4.2, align="r", digits=2,
+  caption="$\\bm{\\alpha}$ estimates from analysis 4. Empty cells correspond to fixed zero parameters \\textit{(continued)}.",
+  format="latex", booktabs=TRUE, escape=FALSE),
+  latex_options=c("HOLD_position"))
+@
+    \end{minipage}
+  \end{table}
+
   The median prediction mean squared error (PMSE), calculated on the 
   test data is displayed in Table \ref{tab:analysis_gdsc_pmse1}. 
   Note that due to standardisation, the empty reference model has a PMSE of one.
@@ -1094,8 +1182,8 @@ kableExtra::kable_styling(knitr::kable(
   as in models NIG$_{\text{f}}$ and NIG$_{\text{d}}$.
 <<analysis_gdsc_pmse1>>=  
 kableExtra::kable_styling(knitr::kable(
-  tab2, align="r",
-  caption="Cross-validated PMSE for GDSC data (best performing model in bold).",
+  tab5, align="r",
+  caption="Cross-validated PMSE for GDSC data (best performing model in bold). In analyses 1 and 3, bSEM could not be estimated due to non-binary external covariates.",
   format="latex", booktabs=TRUE, escape=FALSE), 
   latex_options=c("HOLD_position"))
 @

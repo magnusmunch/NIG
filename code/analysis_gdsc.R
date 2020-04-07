@@ -824,7 +824,7 @@ fit.xtune1 <- lapply(1:D, function(d) {
         control=list(intercept=FALSE))})
 
 # fit ebridge model
-fit.ebridge1 <- ebridge(x, y, lapply(C, function(s) {matrix(s[, -1])}), NULL,
+fit.ebridge1 <- ebridge(x, y, lapply(C, function(s) {matrix(s[, -1])}), Z[, -1],
                         foldid=foldid,
                         hyper=list(lambda=1/sqrt(n*sapply(
                           fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
@@ -838,24 +838,179 @@ fit.bSEM1 <- bSEM(x, y, lapply(C, function(s) {s[, -1] + 1}),
 save(fit.semnig1, fit.semnig2, fit.lasso1, fit.ridge1, fit.xtune1, fit.ebridge1, 
      fit.bSEM1, file="results/analysis_gdsc_fit4.Rdata")
 
-est <- cbind(c(fit.semnig1$eb$alphaf, NA, fit.semnig1$eb$alphad, 
+est <- cbind(c(fit.semnig1$eb$alphaf, NA, fit.semnig1$eb$alphad, rep(NA, 4),
                fit.semnig1$eb$lambdaf, fit.semnig1$eb$lambdad),
              c(fit.semnig2$eb$alphaf, fit.semnig2$eb$alphad, 
                fit.semnig2$eb$lambdaf, fit.semnig2$eb$lambdad),
-             rep(NA, 5), rep(NA, 5),
+             rep(NA, 9), rep(NA, 9),
              c(colMeans(-t(sapply(fit.xtune1, "[[", "alpha.est"))), 
-               rep(NA, 3)),
+               rep(NA, 7)),
              c(NA, fit.ebridge1$alphaf, NA, fit.ebridge1$alphad, rep(NA, 2)),
              c(fit.bSEM1$eb$a[nrow(fit.bSEM1$eb$a), 1]/
                  fit.bSEM1$eb$b[nrow(fit.bSEM1$eb$b), 1],
                fit.bSEM1$eb$a[nrow(fit.bSEM1$eb$a), 2]/
                  fit.bSEM1$eb$b[nrow(fit.bSEM1$eb$b), 2] -
                  fit.bSEM1$eb$a[nrow(fit.bSEM1$eb$a), 1]/
-                 fit.bSEM1$eb$b[nrow(fit.bSEM1$eb$b), 1], rep(NA, 3)))
-rownames(est) <- c("interceptf", "mutation", "interceptd", "lambdaf", "lambdad")
+                 fit.bSEM1$eb$b[nrow(fit.bSEM1$eb$b), 1], rep(NA, 7)))
+rownames(est) <- c("interceptf", "inpathway", "interceptd", "experimental", 
+                   "in clinical development", "targeted", "unknown", "lambdaf", 
+                   "lambdad")
 colnames(est) <- c("semnig1", "semnig2", "ridge1", "lasso1", "xtune1", 
                    "ebridge1", "bSEM1")
 write.table(est, file="results/analysis_gdsc_fit4.txt")
+
+# predictions and mse
+### predictions and mse
+# settings
+psel.dss <- 10
+control.semnig <- list(conv.post=FALSE, trace=FALSE, epsilon.eb=1e-3, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                       maxit.post=100, maxit.block=0)
+control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
+                       trace=FALSE, glmnet.fit2=FALSE, beta2=TRUE)
+
+set.seed(2020)
+foldid <- lapply(1:D, function(d) {
+  sample(c(rep(1:nfolds, each=n[[d]] %/% nfolds),
+           rep(1:(n[[d]] %% nfolds), (n[[d]] %% nfolds)!=0)))})
+
+# setup cluster
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(ncores, type="PSOCK")
+} else {
+  cl <- makeCluster(ncores, type="FORK")
+}
+if(ncores > 1) {
+  registerDoParallel(cl)
+} else {
+  registerDoSEQ()
+}
+res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
+  cat("\r", "fold", r)
+  set.seed(2020 + r)
+  
+  ### pmse
+  xtrain <- lapply(1:D, function(d) {
+    scale(expr.sel[idsel[[d]], ][foldid[[d]]!=r, ])})
+  xtest <- lapply(1:D, function(d) {
+    scale(expr.sel[idsel[[d]], ][foldid[[d]]==r, ])})
+  
+  ytrain <- lapply(1:D, function(d) {scale(resp.sel[[d]][foldid[[d]]!=r])[, 1]})
+  ytest <- lapply(1:D, function(d) {scale(resp.sel[[d]][foldid[[d]]==r])[, 1]})
+  
+  ntrain <- sapply(foldid, function(s) {sum(s!=r)})
+  foldid2 <- lapply(1:D, function(d) {
+    sample(c(rep(1:nfolds, each=ntrain[d] %/% nfolds),
+             rep(1:(ntrain[d] %% nfolds), (ntrain[d] %% nfolds)!=0)))})
+  
+  # semnig models
+  cv.semnig1 <- semnig(x=xtrain, y=ytrain, 
+                       C=lapply(xtrain, function(s) {matrix(rep(1, ncol(s)))}), 
+                       Z=matrix(1, nrow=D), full.post=TRUE, 
+                       control=control.semnig)
+  cv.semnig2 <- semnig(x=xtrain, y=ytrain, C=C, Z=Z,
+                       full.post=TRUE, control=control.semnig)
+  
+  # penalized regression models
+  cv.ridge1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[[d]], alpha=0, foldid=foldid2[[d]], 
+              intercept=FALSE)})
+  cv.lasso1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], ytrain[[d]], foldid=foldid2[[d]], intercept=FALSE)})
+  
+  # fit xtune
+  cv.xtune1 <- lapply(1:D, function(d) {
+    xtune(xtrain[[d]], ytrain[[d]], C[[d]][, -1], family="linear", 
+          method="ridge", message=FALSE, control=list(intercept=FALSE))})
+  
+  # fit ebridge model
+  cv.ebridge1 <- ebridge(xtrain, ytrain,
+                         lapply(C, function(s) {matrix(s[, -1])}), Z[, -1],
+                         foldid=foldid2,
+                         hyper=list(lambda=1/sqrt(n*sapply(
+                           cv.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
+                         control=control.ebridge)
+  
+  # bSEM model
+  cv.bSEM1 <- bSEM(xtrain, ytrain, lapply(C, function(s) {s[, -1] + 1}),
+                   control=list(maxit=500, trace=FALSE, epsilon=1e-3))
+  
+  # post selection
+  cv.dss.semnig1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
+              penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
+  cv.dss.ridge1 <- lapply(1:D, function(d) {
+    b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
+              penalty.factor=0.5/abs(b), intercept=FALSE)})
+  cv.dss.bSEM1 <- lapply(1:D, function(d) {
+    b <- cv.bSEM1$vb$beta[[d]][, "mu"]
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
+              penalty.factor=0.5/abs(b), intercept=FALSE)})
+  
+  # estimates
+  best <- list(semnig1=cv.semnig1$vb$mpost$beta, 
+               semnig2=cv.semnig2$vb$mpost$beta,
+               ridge1=lapply(cv.ridge1, function(s) {
+                 coef(s, s="lambda.min")[-1, 1]}),
+               lasso1=lapply(cv.lasso1, function(s) {
+                 coef(s, s="lambda.min")[-1, 1]}),
+               xtune1=lapply(cv.xtune1, function(s) {
+                 unname(s$beta.est[-1, ])}),
+               ebridge1=cv.ebridge1$beta1,
+               bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]}))
+  best$dss.semnig1 <- lapply(cv.dss.semnig1, function(s) {
+    coef(s, s="lambda.min")[-1, 1]})
+  best$dss.semnig2 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.semnig1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
+  best$dss.semnig3 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.semnig1[[d]], psel=psel.dss)[-1, ]})
+  best$dss.lasso1 <- lapply(1:D, function(d) {
+    coef.dss(cv.lasso1[[d]], psel=psel.dss)[-1, ]})
+  best$dss.ridge1 <- lapply(cv.dss.ridge1, function(s) {
+    coef(s, s="lambda.min")[-1, 1]})
+  best$dss.ridge2 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.ridge1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
+  best$dss.ridge3 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.ridge1[[d]], psel=psel.dss)[-1, ]})
+  best$dss.bSEM1 <- lapply(cv.dss.bSEM1, function(s) {
+    coef(s, s="lambda.min")[-1, 1]})
+  best$dss.bSEM2 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.bSEM1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
+  best$dss.bSEM3 <- lapply(1:D, function(d) {
+    coef.dss(cv.dss.bSEM1[[d]], psel=psel.dss)[-1, ]})
+  
+  # add duplicated variables
+  best <- lapply(best, function(b) {
+    lapply(1:D, function(d) {
+      if(length(duptrain[[d]])==0) {
+        b[[d]]
+      } else {
+        replace(rep(0, ncol(feat)), -duptrain[[d]], b[[d]])  
+      }})})
+  
+  pred <- lapply(best, function(b) {
+    sapply(1:D, function(d) {as.numeric(xtest[[d]] %*% b[[d]])})})
+  pmse <- sapply(pred, function(s) {
+    sapply(1:D, function(d) {mean((s[[d]] - ytest[[d]])^2)})})
+  psel <- sapply(best, function(b) {
+    sapply(b, function(s) {sum(s!=0)})})
+  
+  rownames(pmse) <- paste0("drug", 1:D)
+  rownames(psel) <- paste0("drug", 1:D)
+  list(pmse=pmse, psel=psel)
+}
+stopCluster(cl=cl)
+
+pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
+rownames(pmse) <- paste0("pmse.", rownames(pmse))
+psel <- Reduce("rbind", lapply(res, "[[", "psel"))
+rownames(psel) <- paste0("psel.", rownames(psel))
+
+res <- rbind(pmse, psel)
+write.table(res, file="results/analysis_gdsc_res4.txt")
+
+
 
 
 
