@@ -363,10 +363,11 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
 control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
+                       epsilon.vb=1e-3, maxit.eb=1, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
+control.stan <- list(verbose=FALSE, show_messages=FALSE)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -413,6 +414,38 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                         control=control.semnig)
   fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=Z, 
                         full.post=TRUE, control=control.semnig)
+  fit.mcmc1 <- lapply(D/H*(c(1:H) - 1) + 1, function(d) {
+    sampling(stanmodels$nig , 
+             data=list(p=p, n=n, x=xtrain, y=ytrain[[d]], 
+                       phi=1/as.numeric(C[[d]] %*% fit.semnig2$eb$alphaf),
+                       chi=1/as.numeric(Z[d, ] %*% fit.semnig2$eb$alphad),
+                       lambdaf=fit.semnig2$eb$lambdaf, 
+                       lambdad=fit.semnig2$eb$lambdad), 
+             verbose=control.stan$verbose, 
+             show_messages=control.stan$show_messages)})
+  
+  
+  test <- lapply(fit.mcmc1, extract, 
+                 pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
+  opar <- par(no.readonly=TRUE)
+  par(mar=opar$mar*c(1, 1.3, 1, 1))
+  layout(matrix(c(1:(G*H)), nrow=H, ncol=G, byrow=TRUE))
+  for(h in 1:H) {
+    for(g in 1:G) {
+      hist(test[[h]][[g]], freq=FALSE, breaks=40)
+      curve(dnorm(x, fit.semnig2$vb$mu[[(D/H*(c(1:H) - 1) + 1)[h]]][
+        (p/G*(c(1:G) - 1) + 1)[g]], 
+        sqrt(diag(fit.semnig2$vb$Sigma[[(D/H*(c(1:H) - 1) + 1)[h]]])[
+          (p/G*(c(1:G) - 1) + 1)[g]])), add=TRUE, col=2)
+    }
+  }
+  par(opar)
+
+  stan_rhat(object, pars, ...)
+  stan_ess(object, pars, ...)
+  stan_mcse(object, pars, ...)
+  
+  
   
   # standard penalized methods
   fit.lasso1 <- lapply(1:D, function(d) {
@@ -705,3 +738,5 @@ rownames(res2) <-
            rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                  "lambdaf", "lambdad"), times=nreps)))
 write.table(res2, file="results/simulations_gdsc_res4.txt")
+
+

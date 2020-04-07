@@ -863,11 +863,11 @@ write.table(est, file="results/analysis_gdsc_fit4.txt")
 ### predictions and mse
 # settings
 psel.dss <- 10
-control.semnig <- list(conv.post=FALSE, trace=FALSE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+control.semnig <- list(conv.post=FALSE, trace=TRUE, epsilon.eb=1e-3, 
+                       epsilon.vb=1e-3, maxit.eb=1, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=TRUE)
+control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=1, 
+                       trace=TRUE, glmnet.fit2=FALSE, beta2=TRUE)
 
 set.seed(2020)
 foldid <- lapply(1:D, function(d) {
@@ -912,14 +912,14 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                        full.post=TRUE, control=control.semnig)
   
   # penalized regression models
-  cv.ridge1 <- lapply(1:D, function(d) {
+  cv.ridge1 <- lapply(c(1:D), function(d) {
     cv.glmnet(xtrain[[d]], ytrain[[d]], alpha=0, foldid=foldid2[[d]], 
               intercept=FALSE)})
-  cv.lasso1 <- lapply(1:D, function(d) {
+  cv.lasso1 <- lapply(c(1:D), function(d) {
     cv.glmnet(xtrain[[d]], ytrain[[d]], foldid=foldid2[[d]], intercept=FALSE)})
   
   # fit xtune
-  cv.xtune1 <- lapply(1:D, function(d) {
+  cv.xtune1 <- lapply(c(1:D), function(d) {
     xtune(xtrain[[d]], ytrain[[d]], C[[d]][, -1], family="linear", 
           method="ridge", message=FALSE, control=list(intercept=FALSE))})
   
@@ -936,14 +936,14 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                    control=list(maxit=500, trace=FALSE, epsilon=1e-3))
   
   # post selection
-  cv.dss.semnig1 <- lapply(1:D, function(d) {
+  cv.dss.semnig1 <- lapply(c(1:D), function(d) {
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
               penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
-  cv.dss.ridge1 <- lapply(1:D, function(d) {
+  cv.dss.ridge1 <- lapply(c(1:D), function(d) {
     b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
               penalty.factor=0.5/abs(b), intercept=FALSE)})
-  cv.dss.bSEM1 <- lapply(1:D, function(d) {
+  cv.dss.bSEM1 <- lapply(c(1:D), function(d) {
     b <- cv.bSEM1$vb$beta[[d]][, "mu"]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
               penalty.factor=0.5/abs(b), intercept=FALSE)})
@@ -961,7 +961,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
                bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]}))
   best$dss.semnig1 <- lapply(cv.dss.semnig1, function(s) {
     coef(s, s="lambda.min")[-1, 1]})
-  best$dss.semnig2 <- lapply(1:D, function(d) {
+  best$dss.semnig2 <- lapply(c(1:D), function(d) {
     coef.dss(cv.dss.semnig1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
   best$dss.semnig3 <- lapply(1:D, function(d) {
     coef.dss(cv.dss.semnig1[[d]], psel=psel.dss)[-1, ]})
@@ -979,15 +979,6 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
     coef.dss(cv.dss.bSEM1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
   best$dss.bSEM3 <- lapply(1:D, function(d) {
     coef.dss(cv.dss.bSEM1[[d]], psel=psel.dss)[-1, ]})
-  
-  # add duplicated variables
-  best <- lapply(best, function(b) {
-    lapply(1:D, function(d) {
-      if(length(duptrain[[d]])==0) {
-        b[[d]]
-      } else {
-        replace(rep(0, ncol(feat)), -duptrain[[d]], b[[d]])  
-      }})})
   
   pred <- lapply(best, function(b) {
     sapply(1:D, function(d) {as.numeric(xtest[[d]] %*% b[[d]])})})
