@@ -861,6 +861,13 @@ write.table(est, file="results/analysis_gdsc_fit4.txt")
 
 
 
+
+
+
+
+
+
+
 ################################## analysis 2 ##################################
 ### data preparation
 # only retain the cell lines that are available in both response and expression
