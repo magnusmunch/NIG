@@ -371,8 +371,6 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \tikz{ %
       % Y
       \node[obs] (y) {$y_{id}$}; %
-      \factor[right=of y, yshift=1.5cm, xshift=-0.1cm] {y-f} 
-      {above:$\mathcal{N}$} {} {} ; %
       
       % X
       \node[det, above=of y, yshift=1cm] (x) {$x_{ij}$}; %
@@ -382,16 +380,12 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       
       % beta
       \node[latent, right=of x] (beta) {$\beta_{jd}$}; %
-      \factor[right=of beta, yshift=-1.4cm, xshift=-0.1cm] {beta-f} 
-      {above:$\mathcal{N}$} {} {} ; %
       
       % gamma2
       \node[latent, right=of beta] (gamma2) {$\gamma_{jd}^2$}; %
       \node[const, right=of gamma2, yshift=0.5cm] (phi) {$\phi_{jd}$}; %
       \node[const, right=of gamma2, yshift=-0.5cm] (lambdaf) 
       {$\lambda_{\text{feat}}$}; %
-      \factor[right=of gamma2] {gamma2-f} {above:$\mathcal{IG}$} {phi,lambdaf} 
-      {gamma2} ; %
       \node[det, right=of gamma2, xshift=2cm, yshift=0.5cm] (c) {$c_{jdg}$}; %
       
       % tau2
@@ -399,13 +393,19 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       \node[const, right=of tau2, yshift=0.5cm] (chi) {$\chi_{d}$}; %
       \node[const, right=of tau2, yshift=-0.5cm] (lambdad) 
       {$\lambda_{\text{drug}}$}; %
-      \factor[right=of tau2] {tau2-f} {above:$\mathcal{IG}$} {chi,lambdad} 
-      {tau2} ; %
       \node[det, right=of tau2, xshift=2cm, yshift=0.5cm] (z) {$z_{dh}$}; %
       
       % edges
-      \factoredge {x,beta,sigma2} {y-f} {y} ; %
-      \factoredge {sigma2,gamma2,tau2} {beta-f} {beta} ; %
+      \edge {x} {y};%
+      \edge {sigma2} {y};%
+      \edge {beta} {y};%
+      \edge {sigma2} {beta};%
+      \edge {gamma2} {beta};%
+      \edge {tau2} {beta};%
+      \edge {phi} {gamma2};%
+      \edge {lambdaf} {gamma2};%
+      \edge {chi} {tau2};%
+      \edge {lambdad} {tau2};%
       \edge {c} {phi}; %
       \edge {z} {chi}; %
       
@@ -423,8 +423,8 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \caption{Hierarchical representation of the drug sensitivity prediction 
     model. Grey circles 
     represent observed variables, white circles represent unobserved variables,
-    squares represent fixed data, and unenclosed letters are parameters to be
-    estimated. Cell lines are indexed by $i$, features
+    tilted squares represent fixed data, and unenclosed letters are parameters 
+    to be estimated. Cell lines are indexed by $i$, features
     by $j$, drugs by $d$, drug covariates by $h$, and feature covariates by 
     $g$. The $y_{id}$ are the drug sensitivities, $x_{ij}$ the 
     molecular features, 
@@ -731,10 +731,10 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	additional simulation results for
 	the NIG model, plus results for 
 	four alternative methods: frequentist (i) lasso and (ii) ridge models, 
-	and two EB versions of the ridge model: (iii) \texttt{xtune} 
-	\cite[]{ni_bayesian_2019} and (iv) its
-	multivariate Bayesian extension as introduced in SM Section 
-	\ref{sm-sec:altprior}.
+	and and EB version of the ridge model: (iii) a
+	multivariate Bayesian extension of \texttt{xtune} 
+	\cite[]{ni_bayesian_2019} named mxtune, as introduced in SM Section 
+	\ref{sm-sec:mxtune}.
 	
 	\subsection{Results}
 <<simulation_gdsc_res1>>=
@@ -744,8 +744,8 @@ res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
-est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
+est.phi <- mean(1/res[rownames(res)=="alphaf0", 1])
+est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, mean)
 @	
   Figure \ref{fig:simulations_gdsc_est1} shows the estimated
 	$\bm{\alpha}_{\text{feat}}$ together with its true value for NIG$_{\text{f}}$ 
@@ -755,7 +755,7 @@ est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
 	consistently underestimated. This results in slight overestimation on the
 	$\phi_{jd}$ scale as depicted in Figure \ref{fig:simulations_gdsc_est1}b. 
 	Model NIG$_{\text{f}}^-$ (that excludes the external covariates) gives a 
-	median $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
+	mean $\phi$ estimate of \Sexpr{round(est.phi, 2)},  
 	slightly higher than the true mean of the $\phi_{jd}$, 
 	\Sexpr{round(true.phi, 2)}. 
 <<simulations_gdsc_est1, fig.cap="Simulation results for Scenario 1 ($\\tau^2_d$ fixed): estimated and true values for (a) $\\alpha_{\\text{feat}}$ and (b) prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
@@ -767,8 +767,8 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.chi <- median(1/res[rownames(res)=="alphad0", 1])
-est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
+est.chi <- mean(1/res[rownames(res)=="alphad0", 1])
+est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, mean)
 @	
   Figure \ref{fig:simulations_gdsc_est2}a shows the estimated
 	$\bm{\alpha}_{\text{drug}}$ together with its true value for NIG$_{\text{d}}$ 
@@ -776,7 +776,7 @@ est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
 	term ($\alpha_{\text{drug},0}$) is overestimated, while the deviations from 
 	the intercept term are approximately correct. The overestimated intercept term
 	results in underestimated $\chi_d$ (Figure \ref{fig:simulations_gdsc_est2}b).
-	The median $\chi$ estimate in the 
+	The mean $\chi$ estimate in the 
 	NIG$_{\text{d}}^-$ model is \Sexpr{round(est.chi, 2)},  
 	which underestimates the true mean \Sexpr{round(true.chi, 2)}. 
 <<simulations_gdsc_est2, fig.cap="Simulation results for Scenario 2 ($\\gamma^2_{jd}$ fixed): estimated and true values for (a) $\\alpha_{\\text{feat}}$ and (b) prior means $\\phi_{jd}$.", out.width="100%", fig.asp=1/2>>= 
@@ -788,20 +788,20 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.chi <- median(1/res[rownames(res)=="alphad0", 1])
-est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
+est.chi <- mean(1/res[rownames(res)=="alphad0", 1])
+est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, mean)
 true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
-est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
+est.phi <- mean(1/res[rownames(res)=="alphaf0", 1])
+est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, mean)
 
 phi.ratio <- apply(apply(sapply(0:3, function(s) {
   res[rownames(res)==paste0("alphaf" ,s), 2]}) %*%
     t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphaf0", 2]/m}), 2, median)
+      res[rownames(res)=="alphaf0", 2]/m}), 2, mean)
 chi.ratio <- apply(apply(sapply(0:3, function(s) {
   res[rownames(res)==paste0("alphad" ,s), 2]}) %*%
     t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphad0", 2]/m}), 2, median)
+      res[rownames(res)=="alphad0", 2]/m}), 2, mean)
 true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
                               t(unname(model.matrix(~ factor(1:4))))))
 @
@@ -811,7 +811,7 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	are displayed together with their true values for
 	simulation Scenario 3. $\bm{\alpha}_{\text{feat}}$ are underestimated, while 
 	$\bm{\alpha}_{\text{drug}}$ are overestimated. These biases seem to 
-	be consistent though. The median ratios $\phi_1$ to $\phi_2$, $\phi_3$, 
+	be consistent though. The mean ratios $\phi_1$ to $\phi_2$, $\phi_3$, 
 	$\phi_4$ and $\chi_1$ to $\chi_2$, $\chi_3$, 
 	$\chi_4$ are \Sexpr{round(phi.ratio, 2)[-1]} and 
 	\Sexpr{round(chi.ratio, 2)[-1]}, respectively, compared to their true values
@@ -820,20 +820,20 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	$\bm{\alpha}_{\text{drug}}$ are somewhat higher than expected. 
 	The NIG$_{\text{f}+\text{d}}^-$ model is also consistently over- 
 	and underestimating $\phi$
-	and $\chi$ with median estimates \Sexpr{round(est.phi, 2)} and 
+	and $\chi$ with mean estimates \Sexpr{round(est.phi, 2)} and 
 	\Sexpr{round(est.chi, 2)}, respectively (compared to the true mean 
 	\Sexpr{round(true.chi, 2)}). 
 <<simulations_gdsc_est3, fig.cap="Simulation results for Scenario 3: estimated and true values for (a) $\\alpha_{\\text{feat}}$, (b) prior means $\\phi_{jd}$, (c) $\\alpha_{\\text{drug}}$, and (d) prior means $\\chi_{d}$.", out.width="100%", fig.asp=1>>= 
 @
   
-  Figure \ref{fig:simulations_gdsc_est4} displays the median $\phi_{jd}$ and 
+  Figure \ref{fig:simulations_gdsc_est4} displays the mean $\phi_{jd}$ and 
   $\chi_d$ estimates for different noise levels in simulation Scenario 4. 
   The simulation shows that with increasing noise level, the estimated 
   prior means $\phi_{jd}$ and $\chi_d$ for the four groups of external 
   covariates become more and more alike. In other words, noise in the external
   covariates impedes estimation of $\bm{\alpha}_{\text{feat}}$ and
   $\bm{\alpha}_{\text{drug}}$, as expected.
-<<simulations_gdsc_est4, fig.cap="Simulation results for Scenario 3: estimated prior means (a) $\\phi_{jd}$, and (b) $\\chi_{d}$ for different levels of noise in the external covariates.", out.width="100%", fig.asp=1/2>>= 
+<<simulations_gdsc_est4, fig.cap="Simulation results for Scenario 3: mean estimated prior means (a) $\\phi_{jd}$, and (b) $\\chi_{d}$ for different levels of noise in the external covariates.", out.width="100%", fig.asp=1/2>>= 
 @
 
   Estimation of only $\bm{\alpha}_{\text{feat}}$ is relatively unbiased, as
@@ -844,14 +844,14 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	a common phenomenon in variational Bayes approximations and a possible
 	explanation of the estimation bias in Scenarios 2 and 3. 
 	In Scenario 3, this is compensated for
-	by the overestimation of the $\phi_{jd}$, such that the estimated median 
+	by the overestimation of the $\phi_{jd}$, such that the estimated mean 
 	variance $\V(\beta_{jd})$ are stil biased, but only slightly underestimated
 	(Figure \ref{fig:simulations_gdsc_var}). We note that an increase in cell 
 	lines $n$ and/or the number of drugs $D$ improves estimation
 	of the $\chi_d$. However, we choose to highlight the high-dimensional 
 	(more parameters than samples) situation here, because it is the most common
 	in practice.
-<<simulations_gdsc_var, fig.cap="Simulation results for Scenario 3: estimated prior variances $\\V(\\beta_{jd})$ versus true values, with line of identity (dotted).", out.width="50%", fig.asp=1>>= 
+<<simulations_gdsc_var, fig.cap="Simulation results for Scenario 3: mean estimated prior variances $\\V(\\beta_{jd})$ versus true values, with line of identity (dotted).", out.width="50%", fig.asp=1>>= 
 @
 	
 	\section{GDSC data}\label{sec:gdsc}
@@ -961,33 +961,34 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	In all analyses we estimated the same models as in the simulations (Section 
 	\ref{sec:simulations} and SM Section \ref{sm-sec:simulations}):
 	(i) NIG$_{\text{f}+\text{d}}^-$, (ii) NIG$_{\text{f}+\text{d}}$, 
-	frequentist (iii) lasso and (iv) ridge models, (v) \texttt{xtune}, and
-	(vi) its multivariate Bayesian extension (see SM Section 
-	\ref{sm-sec:altprior}), named EBridge. In addition, in Analyses 2 and 
-	4, we fit a (vii) bSEM model 
-	\cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The
-	bSEM model is similar to the NIG model in that it
-	draws the $\beta_{jd}$ from a conditionally normal distribution, but
-	fixes $\tau_d^2=1$ and draws
-	$\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
-	$\gamma_{jd}^2 \sim \mathcal{IG} (\phi_{jd}, \lambda_{jd})$, where 
-	$\Gamma^{-1} (\phi, \lambda)$ denotes the inverse gamma distribution with 
-	shape $\phi$ and scale $\lambda$. Additionally, the bSEM model can
-	only incorporate one binary external covariate that divides the features into
-	two groups, i.e., $\bm{\alpha}_{\text{feat}} = \begin{bmatrix} \alpha_0 &
-	\alpha_1
-	\end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix}
-	\tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
-	1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
-	$\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
-	estimated in a similar fashion as in Section \ref{sec:estimation}. 
+	frequentist (iii) lasso and (iv) ridge models, and (v) mxtune 
+	(see SM Section \ref{sm-sec:mxtune}). 
+	% In addition, in Analyses 2 and 
+	% 4, we fit a (vi) bSEM model 
+	% \cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The
+	% bSEM model is similar to the NIG model in that it
+	% draws the $\beta_{jd}$ from a conditionally normal distribution, but
+	% fixes $\tau_d^2=1$ and draws
+	% $\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
+	% $\gamma_{jd}^2 \sim \mathcal{IG} (\phi_{jd}, \lambda_{jd})$, where 
+	% $\Gamma^{-1} (\phi, \lambda)$ denotes the inverse gamma distribution with 
+	% shape $\phi$ and scale $\lambda$. Additionally, the bSEM model can
+	% only incorporate one binary external covariate that divides the features into
+	% two groups, i.e., $\bm{\alpha}_{\text{feat}} = \begin{bmatrix} \alpha_0 &
+	% \alpha_1
+	% \end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+	% \tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
+	% 1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
+	% $\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
+	% estimated in a similar fashion as in Section \ref{sec:estimation}. 
 	
 	In all analyses we use all cell lines to estimate the hyperparameters 
-	presented in Section \ref{sec:results}. Prediction PMSE,
+	presented in Section \ref{sec:results}. Mean prediction PMSE,
 	$\text{PMSE} = D^{-1} n^{-1} \sum_{d=1}^D 
-  \sum_{i=1}^n (\mathbf{y}_d - \mathbf{x}_i \tr \hat{\bm{\beta}_d})^2$, is
-  estimated by 10-fold cross validation. In the NIG and bSEM models that provide
-  the full posteriors, the posterior mean 
+  \sum_{i=1}^n (\mathbf{y}_d - \mathbf{x}_i \tr \hat{\bm{\beta}_d})^2$, with
+  $\hat{\bm{\beta}_d}$ the estimator for $\bm{\beta}_d$, and its standard error
+  are estimated by 10-fold cross validation. In the NIG models that 
+  provide full posteriors, the posterior mean 
   $\E(\bm{\beta}_d | \mathbf{y}_d)$ is used point estimate.
 	
 	\subsection{Results}\label{sec:results}
@@ -1046,7 +1047,9 @@ rownames(res) <- temp
 
 pmse1 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
 pmse1 <- aggregate(pmse1, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse1 <- apply(pmse1, 2, median)
+mpmse1 <- apply(pmse1, 2, mean)
+sdpmse1 <- apply(pmse1, 2, sd)
+ppmse1 <- paste0(round(mpmse1, 3), " (", round(sdpmse1, 3), ")")
 
 res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
@@ -1055,7 +1058,9 @@ rownames(res) <- temp
 
 pmse2 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
 pmse2 <- aggregate(pmse2, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse2 <- apply(pmse2, 2, median)
+mpmse2 <- apply(pmse2, 2, mean)
+sdpmse2 <- apply(pmse2, 2, sd)
+ppmse2 <- paste0(round(mpmse2, 3), " (", round(sdpmse2, 3), ")")
 
 res <- read.table("results/analysis_gdsc_res3.txt", row.names=NULL)
 temp <- res[, 1]
@@ -1064,30 +1069,36 @@ rownames(res) <- temp
 
 pmse3 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
 pmse3 <- aggregate(pmse3, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse3 <- apply(pmse3, 2, median)
+mpmse3 <- apply(pmse3, 2, mean)
+sdpmse3 <- apply(pmse3, 2, sd)
+ppmse3 <- paste0(round(mpmse3, 3), " (", round(sdpmse3, 3), ")")
 
-# res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
-# temp <- res[, 1]
-# res <- as.matrix(res[, -1])
-# rownames(res) <- temp
-res <- matrix(1, nrow=2510, ncol=17); rownames(res) <- paste0("pmse.", 1:nrow(res))
+res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
 
 pmse4 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
 pmse4 <- aggregate(pmse4, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
-mpmse4 <- apply(pmse4, 2, median)
+mpmse4 <- apply(pmse4, 2, mean)
+sdpmse4 <- apply(pmse4, 2, sd)
+ppmse4 <- paste0(round(mpmse4, 3), " (", round(sdpmse4, 3), ")")
 
-tab5 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
-              mpmse2, c(mpmse3[1:6], NA, mpmse3[7:length(mpmse3)], rep(NA, 3)),
-              mpmse4)[, 1:7]
+tab5 <- rbind(c(ppmse1[1:6], NA, ppmse1[7:length(ppmse1)], rep(NA, 3)),
+              ppmse2, c(ppmse3[1:6], NA, ppmse3[7:length(ppmse3)], rep(NA, 3)),
+              ppmse4)[, c(1:4, 6)]
+tabm5 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
+               mpmse2, c(mpmse3[1:6], NA, mpmse3[7:length(mpmse3)], rep(NA, 3)),
+               mpmse4)[, c(1:4, 6)]
+tab5 <- t(sapply(1:nrow(tab5), function(r) {
+  id <- which(tabm5[r, ]==min(tabm5[r, ], na.rm=TRUE))
+  out <- tab5[r, ]
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out}))
 rownames(tab5) <- paste0("analysis ", 1:nrow(tab5))
 colnames(tab5) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
                     "NIG$_{\\text{f}+\\text{d}}$", "ridge", "lasso", 
-                    "xtune", "EB ridge", "bSEM")
-tab5 <- round(tab5, 3)
-tab5 <- t(apply(tab5, 1, function(r) {
-  id <- which(r==min(r, na.rm=TRUE))
-  r[id] <- paste0("\\textbf{", r[which(r==min(r, na.rm=TRUE))], "}")
-  r}))
+                    "mxtune")
 @
   The non-zero $\bm{\alpha}$ estimates in Tables ? and ? show 
   that there is an effect of the
@@ -1190,7 +1201,7 @@ kableExtra::kable_styling(knitr::kable(
 <<analysis_gdsc_pmse1>>=  
 kableExtra::kable_styling(knitr::kable(
   tab5, align="r",
-  caption="Cross-validated PMSE for GDSC data (best performing model in bold). In analyses 1 and 3, bSEM could not be estimated due to non-binary external covariates.",
+  caption="Mean (standard deviation) of cross-validated PMSE for GDSC data (standard error). Best performing model in bold.",
   format="latex", booktabs=TRUE, escape=FALSE), 
   latex_options=c("HOLD_position"))
 @

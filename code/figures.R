@@ -178,7 +178,7 @@ est.chi <- 1/(sapply(0:3, function(s) {
 x <- as.numeric(outer(1/(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
                       1/(alphad %*% t(cbind(1, rbind(0, diag(3)))))))
 y <- apply(sapply(1:nrow(est1), function(s) {
-  as.numeric(outer(est.phi[s, ], est.chi[s, ]))}), 1, median)
+  as.numeric(outer(est.phi[s, ], est.chi[s, ]))}), 1, mean)
 
 col <- bpy.colors(1, cutoff.tail=0.5)
 lty <- 3
@@ -206,12 +206,12 @@ phi <- lapply(fracs, function(q) {
   cq <- paste0("frac", q, ".alphaf")
   apply(1/(sapply(0:3, function(s) {
     res[rownames(res)==paste0(cq, s), 2]}) %*% 
-      t(cbind(1, rbind(0, diag(3))))), 2, median)})
+      t(cbind(1, rbind(0, diag(3))))), 2, mean)})
 chi <- lapply(fracs, function(q) {
   cq <- paste0("frac", q, ".alphad")
   apply(1/(sapply(0:3, function(s) {
     res[rownames(res)==paste0(cq, s), 2]}) %*% 
-      t(cbind(1, rbind(0, diag(3))))), 2, median)})
+      t(cbind(1, rbind(0, diag(3))))), 2, mean)})
 
 suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
@@ -221,10 +221,10 @@ rownames(res) <- temp
 
 phi <- c(list(apply(1/(sapply(0:3, function(s) {
   res[rownames(res)==paste0("alphaf", s), 2]}) %*% 
-    t(cbind(1, rbind(0, diag(3))))), 2, median)), phi)
+    t(cbind(1, rbind(0, diag(3))))), 2, mean)), phi)
 chi <- c(list(apply(1/(sapply(0:3, function(s) {
   res[rownames(res)==paste0("alphad", s), 2]}) %*% 
-    t(cbind(1, rbind(0, diag(3))))), 2, median)), chi)
+    t(cbind(1, rbind(0, diag(3))))), 2, mean)), chi)
 
 lty <- c(1:(1 + length(fracs)))
 col <- bpy.colors(1, cutoff.tail=0.3, 
@@ -299,7 +299,6 @@ legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
 
 par(opar)
 
-
 ################################# presentation #################################
 # ---- dens_beta_prior1 ---- 
 library(GeneralizedHyperbolic)
@@ -317,3 +316,61 @@ legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3,
 dev.off()
 
 
+################################## supplement ##################################
+# ---- simulations_gdsc_post5 ----
+load(file="results/simulations_gdsc_res5.Rdata")
+D <- 100
+p <- 100
+H <- 4
+G <- 4
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(1:(G*H)), nrow=H, ncol=G, byrow=TRUE))
+for(h in 1:H) {
+  for(g in 1:G) {
+    hi <- hist(post.mcmc1[[h]][[g]], breaks=40, plot=FALSE)
+    m <- post.semnig1$mu[g, h]
+    s <- post.semnig1$sigma[g, h]
+    ylim <- range(c(hi$density, dnorm(m, m, s)))
+    plot(hi, freq=FALSE, ylim=ylim, xlab=expression(beta), 
+         ylab=expression(paste("p(", beta, "|", bold(y), ")")), 
+         main=paste0("(", letters[(h - 1)*H + g], ")"))
+    curve(dnorm(x, m, s), add=TRUE, col=2)
+  }
+}
+par(opar)
+
+# ---- simulations_gdsc_pmse4 ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+D <- 100
+nreps <- 100
+fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
+
+pmse <- res[grepl(".pmse.", rownames(res), fixed=TRUE), ]
+pmse <- aggregate(pmse, by=list(rep(1:(nreps*length(fracs)), each=D)), 
+                  FUN="mean")[, -1]
+mpmse <- aggregate(pmse, by=list(rep(1:length(fracs), each=nreps)), 
+                   FUN="mean")[, -1]
+
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+pmse <- aggregate(res[substr(rownames(res), 1, 5)=="pmse.", ], 
+                  by=list(rep(1:nreps, each=D)), FUN="mean")[, -1]
+mpmse <- rbind(apply(pmse, 2, mean), mpmse)
+
+col <- bpy.colors(1, cutoff.tail=0.3)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+plot(c(0, fracs), mpmse[, 2], ylab="PMSE", xlab="Proportion of permuted rows", 
+     col=col[1], cex=1.5, cex.lab=1.5, cex.axis=1.5)
+par(opar)

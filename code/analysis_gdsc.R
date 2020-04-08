@@ -863,11 +863,11 @@ write.table(est, file="results/analysis_gdsc_fit4.txt")
 ### predictions and mse
 # settings
 psel.dss <- 10
-control.semnig <- list(conv.post=FALSE, trace=TRUE, epsilon.eb=1e-3, 
-                       epsilon.vb=1e-3, maxit.eb=1, maxit.vb=1, 
+control.semnig <- list(conv.post=FALSE, trace=FALSE, epsilon.eb=1e-3, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=1, 
-                       trace=TRUE, glmnet.fit2=FALSE, beta2=TRUE)
+control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
+                       trace=FALSE, glmnet.fit2=FALSE, beta2=TRUE)
 
 set.seed(2020)
 foldid <- lapply(1:D, function(d) {
