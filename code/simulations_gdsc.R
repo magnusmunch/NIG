@@ -5,7 +5,7 @@ ncores <- 100
 
 ### libraries
 packages <- c("foreach", "doParallel", "cambridge", "statmod", "glmnet", 
-              "xtune")
+              "xtune", "rstan")
 sapply(packages, library, character.only=TRUE)
 
 ### load and preprocess data
@@ -414,38 +414,6 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                         control=control.semnig)
   fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=Z, 
                         full.post=TRUE, control=control.semnig)
-  fit.mcmc1 <- lapply(D/H*(c(1:H) - 1) + 1, function(d) {
-    sampling(stanmodels$nig , 
-             data=list(p=p, n=n, x=xtrain, y=ytrain[[d]], 
-                       phi=1/as.numeric(C[[d]] %*% fit.semnig2$eb$alphaf),
-                       chi=1/as.numeric(Z[d, ] %*% fit.semnig2$eb$alphad),
-                       lambdaf=fit.semnig2$eb$lambdaf, 
-                       lambdad=fit.semnig2$eb$lambdad), 
-             verbose=control.stan$verbose, 
-             show_messages=control.stan$show_messages)})
-  
-  
-  test <- lapply(fit.mcmc1, extract, 
-                 pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
-  opar <- par(no.readonly=TRUE)
-  par(mar=opar$mar*c(1, 1.3, 1, 1))
-  layout(matrix(c(1:(G*H)), nrow=H, ncol=G, byrow=TRUE))
-  for(h in 1:H) {
-    for(g in 1:G) {
-      hist(test[[h]][[g]], freq=FALSE, breaks=40)
-      curve(dnorm(x, fit.semnig2$vb$mu[[(D/H*(c(1:H) - 1) + 1)[h]]][
-        (p/G*(c(1:G) - 1) + 1)[g]], 
-        sqrt(diag(fit.semnig2$vb$Sigma[[(D/H*(c(1:H) - 1) + 1)[h]]])[
-          (p/G*(c(1:G) - 1) + 1)[g]])), add=TRUE, col=2)
-    }
-  }
-  par(opar)
-
-  stan_rhat(object, pars, ...)
-  stan_ess(object, pars, ...)
-  stan_mcse(object, pars, ...)
-  
-  
   
   # standard penalized methods
   fit.lasso1 <- lapply(1:D, function(d) {
@@ -739,4 +707,75 @@ rownames(res2) <-
                  "lambdaf", "lambdad"), times=nreps)))
 write.table(res2, file="results/simulations_gdsc_res4.txt")
 
+################################################################################
+################################# simulation 5 #################################
+################################################################################
+### simulation settings
+D <- 100
+p <- 100
+n <- 100
+ntest <- nrow(expr$expr) - n
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+G <- length(alphaf)
+H <- length(alphad)
+shape <- 3
+rate <- 2
+lambdaf <- 1
+lambdad <- 1
+C <- replicate(D, list(unname(model.matrix(~ factor(rep(1:G, each=p/G))))))
+Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
+
+# estimation settings
+methods <- c("NIG", "MCMC")
+control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
+                       maxit.post=100, maxit.block=0)
+control.stan <- list(verbose=FALSE, show_messages=FALSE, iter=3000, 
+                     warmup=1000)
+
+### simulate parameters
+set.seed(2020)
+gamma <- sapply(C, function(s) {
+  sqrt(rinvgauss(p, 1/as.numeric(s %*% alphaf), lambdaf))})
+tau <- sqrt(rinvgauss(D, 1/as.numeric(Z %*% alphad), lambdad))
+sigma <- 1/sqrt(rgamma(D, shape, rate))
+beta <- sapply(1:D, function(d) {rnorm(p, 0, tau[d]*gamma[, d]*sigma[d])})
+
+# simulate data
+id <- sample(1:nrow(x), n)
+x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])[id, ]
+y <- lapply(1:D, function(d) {
+  s <- as.numeric(scale(rnorm(n, x %*% beta[, d], sigma[d])))
+  names(s) <- c(1:length(s))
+  return(s)})
+
+# fitting models
+ct <- proc.time()[3]
+fit.semnig1 <- semnig(x=rep(list(x), D), y=y, C=C, Z=Z, 
+                      full.post=TRUE, control=control.semnig)
+time.semnig1 <- proc.time()[3] - ct
+ct <- proc.time()[3]
+fit.mcmc1 <- lapply(1:D, function(d) {
+  sampling(stanmodels$nig, 
+           data=list(p=p, n=n, x=x, y=y[[d]], 
+                     phi=1/as.numeric(C[[d]] %*% fit.semnig1$eb$alphaf),
+                     chi=1/as.numeric(Z[d, ] %*% fit.semnig1$eb$alphad),
+                     lambdaf=fit.semnig1$eb$lambdaf, 
+                     lambdad=fit.semnig1$eb$lambdad), 
+           iter=control.stan$iter, warmup=control.stan$warmup,
+           verbose=control.stan$verbose, 
+           show_messages=control.stan$show_messages)})
+time.mcmc1 <- proc.time()[3] - ct
+save(fit.semnig1, fit.mcmc1, file="results/simulations_gdsc_fit5.Rdata")
+
+post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 
+                     pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
+post.semnig1 <- list(mu=sapply(fit.semnig1$vb$mu[D/H*(c(1:H) - 1) + 1], 
+                               "[", p/G*(c(1:G) - 1) + 1),
+                     sigma=sapply(fit.semnig1$vb$Sigma[D/H*(c(1:H) - 1) + 1], 
+                                  function(s) {
+                                    sqrt(diag(s)[p/G*(c(1:G) - 1) + 1])}))
+save(time.semnig1, time.mcmc1, post.mcmc1, post.semnig1, 
+     file="results/simulations_gdsc_res5.Rdata")
 
