@@ -743,7 +743,7 @@ sigma <- 1/sqrt(rgamma(D, shape, rate))
 beta <- sapply(1:D, function(d) {rnorm(p, 0, tau[d]*gamma[, d]*sigma[d])})
 
 # simulate data
-id <- sample(1:nrow(x), n)
+id <- sample(1:nrow(expr$expr), n)
 x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])[id, ]
 y <- lapply(1:D, function(d) {
   s <- as.numeric(scale(rnorm(n, x %*% beta[, d], sigma[d])))
@@ -767,6 +767,23 @@ fit.mcmc1 <- lapply(1:D, function(d) {
            verbose=control.stan$verbose, 
            show_messages=control.stan$show_messages)})
 time.mcmc1 <- proc.time()[3] - ct
+ct <- proc.time()[3]
+fit.mcmc2 <- sampling(stanmodels$nig_full,
+                      data=list(D=D, p=rep(p, D), sump=p*D, n=n, G=G, H=H,
+                                x=Reduce("cbind", replicate(D, list(x))),
+                                y=Reduce("cbind", y), C=Reduce("rbind", C),
+                                Z=Z, nuf=10, nud=10, kappaf=1, 
+                                kappad=1, xif=1, xid=1),
+                      chains=1, iter=1000, warmup=1000)
+time.mcmc2 <- proc.time()[3] - ct
+
+stan_ess(fit.mcmc2)
+stan_rhat
+stan_diag
+stan_mcse
+stan_ac
+stan_trace(fit.mcmc2, pars=c("beta[2]"))
+
 save(fit.semnig1, fit.mcmc1, file="results/simulations_gdsc_fit5.Rdata")
 
 post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 

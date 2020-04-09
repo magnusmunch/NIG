@@ -1073,7 +1073,7 @@ mpmse3 <- apply(pmse3, 2, mean)
 sdpmse3 <- apply(pmse3, 2, sd)
 ppmse3 <- paste0(round(mpmse3, 3), " (", round(sdpmse3, 3), ")")
 
-res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res4.1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -1265,7 +1265,9 @@ time2.semnig <- 1
 	is geared towards predictive performance, because cross-validation is used
 	to train these parameters, as opposed to empirical Bayes estimation of the
 	hyperparameters in the NIG model, which aims to improve model fit. In that 
-	sense, the comparison metric (PMSE) is not to the benefit of the NIG model. 
+	sense, the comparison metric (PMSE) is not to the benefit of the NIG model.
+	We note that direct prediction error optimisation is not feasible in our
+	external covariates setting.
 	
 	The results in Section
 	\ref{sec:gdsc} show that the inclusion of the external covariates covariates 
