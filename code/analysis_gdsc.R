@@ -118,6 +118,40 @@ fit.ebridge1 <- ebridge(x, y, lapply(C, function(s) {matrix(s[, -1])}), NULL,
 
 save(fit.semnig1, fit.semnig2, fit.ridge1, fit.lasso1, fit.xtune1, fit.ebridge1, 
      file="results/analysis_gdsc_fit1.Rdata")
+load(file="results/analysis_gdsc_fit1.Rdata")
+test1 <- logcpo(x, y, n, fit.semnig1)
+test2 <- logcpo(x, y, n, fit.semnig2)
+
+.f.int.cpo2 <- function(x, xtSigmax, n, p, zeta, y, xtmu) {
+  ((y - x)^2/(2*zeta) + 1)^(-(n + p)/2)*exp(-(x - xtmu)^2/(2*xtSigmax))
+}
+
+xtSigmax <- 1
+n <- 100
+p <- 100
+zeta <- 1
+y <- 1
+xtmu <- 0
+curve(.f.int.cpo2(x=x, xtSigmax=xtSigmax, n=n, p=p, zeta=zeta, y=y, xtmu=xtmu), 
+      from=-1, to=3, n=1000)
+
+a <- 1
+b <- -5
+(a - b)^2
+(b - a)^2
+
+plot(unlist(y), exp(unlist(test1)))
+abline(h=0.01, col=2)
+
+plot(y[[1]], exp(test1[[1]]))
+
+abline(h=log(0.01))
+hist(test1[[1]], breaks=30)
+abline(v=log(0.01))
+
+hist(test1[[1]])
+plot(sapply(test1, mean), sapply(test2, mean))
+abline(a=0, b=1)
 
 est <- cbind(c(fit.semnig1$eb$alphaf, NA, fit.semnig1$eb$alphad, 
                fit.semnig1$eb$lambdaf, fit.semnig1$eb$lambdad),
@@ -912,16 +946,16 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   #                      full.post=TRUE, control=control.semnig)
   
   # penalized regression models
-  cv.ridge1 <- lapply(c(1:D), function(d) {
-    cv.glmnet(xtrain[[d]], ytrain[[d]], alpha=0, foldid=foldid2[[d]],
-              intercept=FALSE)})
-  cv.lasso1 <- lapply(c(1:D), function(d) {
-    cv.glmnet(xtrain[[d]], ytrain[[d]], foldid=foldid2[[d]], intercept=FALSE)})
+  # cv.ridge1 <- lapply(c(1:D), function(d) {
+  #   cv.glmnet(xtrain[[d]], ytrain[[d]], alpha=0, foldid=foldid2[[d]],
+  #             intercept=FALSE)})
+  # cv.lasso1 <- lapply(c(1:D), function(d) {
+  #   cv.glmnet(xtrain[[d]], ytrain[[d]], foldid=foldid2[[d]], intercept=FALSE)})
 
   # fit xtune
-  cv.xtune1 <- lapply(c(1:D), function(d) {
-    xtune(xtrain[[d]], ytrain[[d]], C[[d]][, -1], family="linear",
-          method="ridge", message=FALSE, control=list(intercept=FALSE))})
+  # cv.xtune1 <- lapply(c(1:D), function(d) {
+  #   xtune(xtrain[[d]], ytrain[[d]], C[[d]][, -1], family="linear",
+  #         method="ridge", message=FALSE, control=list(intercept=FALSE))})
   
   # fit ebridge model
   # cv.ebridge1 <- ebridge(xtrain, ytrain,
@@ -939,50 +973,47 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   # cv.dss.semnig1 <- lapply(c(1:D), function(d) {
   #   cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
   #             penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
-  cv.dss.ridge1 <- lapply(c(1:D), function(d) {
-    b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
-              penalty.factor=0.5/abs(b), intercept=FALSE)})
-  cv.dss.bSEM1 <- lapply(c(1:D), function(d) {
-    b <- cv.bSEM1$vb$beta[[d]][, "mu"]
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
-              penalty.factor=0.5/abs(b), intercept=FALSE)})
+  # cv.dss.ridge1 <- lapply(c(1:D), function(d) {
+  #   b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
+  #   cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
+  #             penalty.factor=0.5/abs(b), intercept=FALSE)})
+  # cv.dss.bSEM1 <- lapply(c(1:D), function(d) {
+  #   b <- cv.bSEM1$vb$beta[[d]][, "mu"]
+  #   cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
+  #             penalty.factor=0.5/abs(b), intercept=FALSE)})
   
   # estimates
   best <- list(
-                # semnig1=cv.semnig1$vb$mpost$beta, 
-    #            semnig2=cv.semnig2$vb$mpost$beta,
-               ridge1=lapply(cv.ridge1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               lasso1=lapply(cv.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=lapply(cv.xtune1, function(s) {
-                 unname(s$beta.est[-1, ])}))
-               # ,
-               # ebridge1=cv.ebridge1$beta1
-               # # ,
-               # # bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]})
-               # )
+               # semnig1=cv.semnig1$vb$mpost$beta,
+               # semnig2=cv.semnig2$vb$mpost$beta,
+               # ridge1=lapply(cv.ridge1, function(s) {
+               #   coef(s, s="lambda.min")[-1, 1]}),
+               # lasso1=lapply(cv.lasso1, function(s) {
+               #   coef(s, s="lambda.min")[-1, 1]}),
+               # xtune1=lapply(cv.xtune1, function(s) {
+               #   unname(s$beta.est[-1, ])}),
+               # ebridge1=cv.ebridge1$beta1,
+               bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]}))
   # best$dss.semnig1 <- lapply(cv.dss.semnig1, function(s) {
   #   coef(s, s="lambda.min")[-1, 1]})
   # best$dss.semnig2 <- lapply(c(1:D), function(d) {
   #   coef.dss(cv.dss.semnig1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
   # best$dss.semnig3 <- lapply(1:D, function(d) {
   #   coef.dss(cv.dss.semnig1[[d]], psel=psel.dss)[-1, ]})
-  best$dss.lasso1 <- lapply(1:D, function(d) {
-    coef.dss(cv.lasso1[[d]], psel=psel.dss)[-1, ]})
-  best$dss.ridge1 <- lapply(cv.dss.ridge1, function(s) {
-    coef(s, s="lambda.min")[-1, 1]})
-  best$dss.ridge2 <- lapply(1:D, function(d) {
-    coef.dss(cv.dss.ridge1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
-  best$dss.ridge3 <- lapply(1:D, function(d) {
-    coef.dss(cv.dss.ridge1[[d]], psel=psel.dss)[-1, ]})
-  best$dss.bSEM1 <- lapply(cv.dss.bSEM1, function(s) {
-    coef(s, s="lambda.min")[-1, 1]})
-  best$dss.bSEM2 <- lapply(1:D, function(d) {
-    coef.dss(cv.dss.bSEM1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
-  best$dss.bSEM3 <- lapply(1:D, function(d) {
-    coef.dss(cv.dss.bSEM1[[d]], psel=psel.dss)[-1, ]})
+  # best$dss.lasso1 <- lapply(1:D, function(d) {
+  #   coef.dss(cv.lasso1[[d]], psel=psel.dss)[-1, ]})
+  # best$dss.ridge1 <- lapply(cv.dss.ridge1, function(s) {
+  #   coef(s, s="lambda.min")[-1, 1]})
+  # best$dss.ridge2 <- lapply(1:D, function(d) {
+  #   coef.dss(cv.dss.ridge1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
+  # best$dss.ridge3 <- lapply(1:D, function(d) {
+  #   coef.dss(cv.dss.ridge1[[d]], psel=psel.dss)[-1, ]})
+  # best$dss.bSEM1 <- lapply(cv.dss.bSEM1, function(s) {
+  #   coef(s, s="lambda.min")[-1, 1]})
+  # best$dss.bSEM2 <- lapply(1:D, function(d) {
+  #   coef.dss(cv.dss.bSEM1[[d]], psel=sum(best$lasso1[[d]]!=0))[-1, ]})
+  # best$dss.bSEM3 <- lapply(1:D, function(d) {
+  #   coef.dss(cv.dss.bSEM1[[d]], psel=psel.dss)[-1, ]})
   
   pred <- lapply(best, function(b) {
     sapply(1:D, function(d) {as.numeric(xtest[[d]] %*% b[[d]])})})
@@ -1003,17 +1034,31 @@ psel <- Reduce("rbind", lapply(res, "[[", "psel"))
 rownames(psel) <- paste0("psel.", rownames(psel))
 
 res <- rbind(pmse, psel)
-write.table(res, file="results/analysis_gdsc_res4.2.txt")
+write.table(res, file="results/analysis_gdsc_res4.3.txt")
 
 
 
+res4.1 <- read.table("results/analysis_gdsc_res4.1.txt", row.names=NULL)
+temp <- res4.1[, 1]
+res4.1 <- as.matrix(res4.1[, -1])
+rownames(res4.1) <- temp
+
+res4.2 <- read.table("results/analysis_gdsc_res4.2.txt", row.names=NULL)
+temp <- res4.2[, 1]
+res4.2 <- as.matrix(res4.2[, -1])
+rownames(res4.2) <- temp
 
 
 
+methods <- c("semnig1", "semnig2", "ridge1", "lasso1", "xtune1", "ebridge1", 
+             "bSEM1", "dss.semnig1", "dss.semnig2", "dss.semnig3", "dss.lasso1", 
+             "dss.ridge1", "dss.ridge2", "dss.ridge3", "dss.bSEM1", "dss.bSEM2", 
+             "dss.bSEM3")
 
-
-
-
+res4 <- cbind(res4.1, res4.2)
+res4 <- res4[, methods]
+sort(colnames(res4))
+sort(methods)
 
 
 

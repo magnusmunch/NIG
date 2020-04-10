@@ -1334,12 +1334,16 @@ time2.semnig <- 1
 	
 	\section*{Reproducible Research}
 	All results and documents may be recreated from 
-	\url{https://github.com/magnusmunch/cambridge}.
+	\url{https://github.com/magnusmunch/cambridge}. All timings were obtained
+	on a 2016 MacBook Pro with a 2 GHz Dual-Core Intel Core i5 processor and
+	8 GB of 1867 MHz LPDDR3 memory, running macOS  10.15.1.
 	
 	\section*{Acknowledgements}
 	% We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
 	% Biostatistics and Epidemiology for their suggestions on the pre-processing of
 	% the GDSC data. 
+	We thank the referees for their helpful comments and suggestions on an earlier
+	version of this manuscript.
 	MM visited SR and GL on a travel grant funded the Amsterdam Public Health 
 	institute's Methodology program.
 	\textit{Conflict of Interest}: None declared.

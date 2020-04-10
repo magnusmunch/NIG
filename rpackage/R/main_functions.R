@@ -398,24 +398,24 @@ new.elbo <- function(object, newx, newy) {
 
 # calculate log cpo on test data (not tested)
 logcpo <- function(xtest, ytest, ntrain, fit) {
-  D <- ncol(ytest)
-  ntest <- nrow(ytest)
+  D <- length(ytest)
+  ntest <- sapply(ytest, length)
   ptest <- sapply(xtest, ncol)
-  out <- matrix(nrow=ntest, ncol=D)
+  out <- lapply(ntest, numeric)
   for(d in 1:D) {
     xtSigmax <- rowSums((xtest[[d]] %*% fit$vb$Sigma[[d]])*xtest[[d]])
     xtmu <- as.numeric(xtest[[d]] %*% fit$vb$mu[[d]])
     p <- length(fit$vb$mu[[d]])
     zeta <- fit$vb$zeta[d]
-    for(i in 1:ntest) {
-      int <- integrate(.f.int.cpo, -Inf, Inf, xtSigmax=xtSigmax[i], n=ntrain, 
-                       p=p, zeta=zeta, y=ytest[i, d], xtmu=xtmu[i],
+    for(i in 1:ntest[d]) {
+      int <- integrate(.f.int.cpo, -Inf, Inf, xtSigmax=xtSigmax[i], n=ntrain[d], 
+                       p=p, zeta=zeta, y=ytest[[d]][i], xtmu=xtmu[i],
                        stop.on.error=FALSE)
       int.val <- ifelse(int$message=="the integral is probably divergent", NA, 
                         int$value) 
-      
-      out[i, d] <- -log(2) - log(pi) - 0.5*log(xtSigmax[i]) - 0.5*log(zeta) +
-        lgamma((ntrain + p + 2)/2) - lgamma((ntrain + p + 1)/2) - log(int.val)
+      out[[d]][i] <- -log(2) - log(pi) - 0.5*log(xtSigmax[i]) - 0.5*log(zeta) +
+        lgamma((ntrain[d] + p + 2)/2) - lgamma((ntrain[d] + p + 1)/2) -
+        log(int.val)
     }
   }
   return(out)
