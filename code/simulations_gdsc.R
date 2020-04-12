@@ -776,13 +776,11 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
                                 kappad=1, xif=1, xid=1),
                       chains=1, iter=2000, warmup=1000)
 time.mcmc2 <- proc.time()[3] - ct
-
 save(fit.semnig1, fit.mcmc1, fit.mcmc2, 
      file="results/simulations_gdsc_fit5.Rdata")
-load(file="results/simulations_gdsc_fit5.Rdata")
-library(rstan)
-get_stancode(fit.mcmc2)
 
+post.semnig1 <- list(mu=fit.semnig1$vb$mu, 
+                     Sigma=fit.semnig1$vb$Sigma)
 post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 
                      pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
 post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
@@ -796,30 +794,46 @@ post.mcmc2 <- list(beta=lapply(split(as.data.frame(t(post.mcmc2$beta)),
 save(time.semnig1, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, post.semnig1, 
      file="results/simulations_gdsc_res5.Rdata")
 
+
+
+
+
+
+library(rstan)
+get_stancode(fit.mcmc2)
+
+
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
 layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
               nrow=4, ncol=4, byrow=TRUE))
-hist(post.mcmc2$alphaf[1, ])
-hist(post.mcmc2$alphaf[2, ])
-hist(post.mcmc2$alphaf[3, ])
-hist(post.mcmc2$alphaf[4, ])
+hist(post.mcmc2$alphaf[, 1])
+hist(post.mcmc2$alphaf[, 2])
+hist(post.mcmc2$alphaf[, 3])
+hist(post.mcmc2$alphaf[, 4])
 par(opar)
 
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
 layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
               nrow=4, ncol=4, byrow=TRUE))
-hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 1])
-hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 2])
-hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 3])
-hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 4])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 1])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 2])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 3])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 4])
 par(opar)
 
-rowMeans(post.mcmc2$alphaf)
-alphaf
+plot(alphaf, colMeans(post.mcmc2$alphaf))
+
+plot(1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
+     colMeans(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))))
+abline(a=0, b=1)
+
+plot(1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3))))),
+     colMeans(1/(post.mcmc2$alphad %*% t(cbind(1, rbind(0, diag(3)))))))
+abline(a=0, b=1)
 test <- stan_model("rpackage/inst/stan/nig_full.stan")
-1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
+
 
 stan_ess(fit.mcmc2)
 stan_rhat
