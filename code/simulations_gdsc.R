@@ -774,8 +774,52 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
                                 y=Reduce("cbind", y), C=Reduce("rbind", C),
                                 Z=Z, nuf=10, nud=10, kappaf=1, 
                                 kappad=1, xif=1, xid=1),
-                      chains=1, iter=1000, warmup=1000)
+                      chains=1, iter=2000, warmup=1000)
 time.mcmc2 <- proc.time()[3] - ct
+
+save(fit.semnig1, fit.mcmc1, fit.mcmc2, 
+     file="results/simulations_gdsc_fit5.Rdata")
+load(file="results/simulations_gdsc_fit5.Rdata")
+library(rstan)
+get_stancode(fit.mcmc2)
+
+post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 
+                     pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
+post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
+                                        "lambdaf", "lambdad"))
+post.mcmc2 <- list(beta=lapply(split(as.data.frame(t(post.mcmc2$beta)), 
+                                     rep(1:D, each=p))[D/H*(c(1:H) - 1) + 1],
+                               function(s) {
+                                 unname(as.matrix(s)[p/G*(c(1:G) - 1) + 1, ])}),
+                   alphaf=t(post.mcmc2$alphaf), alphad=t(post.mcmc2$alphad),
+                   lambdaf=t(post.mcmc2$lambdaf), lambdad=t(post.mcmc2$lambdad))
+save(time.semnig1, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, post.semnig1, 
+     file="results/simulations_gdsc_res5.Rdata")
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+              nrow=4, ncol=4, byrow=TRUE))
+hist(post.mcmc2$alphaf[1, ])
+hist(post.mcmc2$alphaf[2, ])
+hist(post.mcmc2$alphaf[3, ])
+hist(post.mcmc2$alphaf[4, ])
+par(opar)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+              nrow=4, ncol=4, byrow=TRUE))
+hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 1])
+hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 2])
+hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 3])
+hist(1/(t(post.mcmc2$alphaf) %*% t(cbind(1, rbind(0, diag(3)))))[, 4])
+par(opar)
+
+rowMeans(post.mcmc2$alphaf)
+alphaf
+test <- stan_model("rpackage/inst/stan/nig_full.stan")
+1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3)))))
 
 stan_ess(fit.mcmc2)
 stan_rhat
@@ -783,16 +827,3 @@ stan_diag
 stan_mcse
 stan_ac
 stan_trace(fit.mcmc2, pars=c("beta[2]"))
-
-save(fit.semnig1, fit.mcmc1, file="results/simulations_gdsc_fit5.Rdata")
-
-post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 
-                     pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
-post.semnig1 <- list(mu=sapply(fit.semnig1$vb$mu[D/H*(c(1:H) - 1) + 1], 
-                               "[", p/G*(c(1:G) - 1) + 1),
-                     sigma=sapply(fit.semnig1$vb$Sigma[D/H*(c(1:H) - 1) + 1], 
-                                  function(s) {
-                                    sqrt(diag(s)[p/G*(c(1:G) - 1) + 1])}))
-save(time.semnig1, time.mcmc1, post.mcmc1, post.semnig1, 
-     file="results/simulations_gdsc_res5.Rdata")
-

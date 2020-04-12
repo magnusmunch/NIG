@@ -537,6 +537,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   therefore propose to estimate these hyperparameters by empirical Bayes.
   In our case, this results in an objective and data-driven inclusion of the
   external feature and drug covariates.
+	
 	The canonical method for empirical Bayes is to maximise the marginal 
 	likelihood with respect to the hyperparameters. In 
 	\cite{casella_empirical_2001} the marginal likelihood is maximised by an EM 
@@ -577,12 +578,10 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	where now the expectation is with respect to the converged variational 
 	posterior $Q^{(l)}=\prod_{d=1}^D Q_d^{(l)}$. Note that the prior 
 	$\bgamma^2_d$ and $\tau_d^2$ independence assumption 
-	results in separate maximisation problems for the 
+	results in separate optimisation problems for the 
 	feature hyperparameters ($\bm{\alpha}_{\text{feat}}$ and 
 	$\bm{\lambda}_{\text{feat}}$), and the drug hyperparameters 
-	($\bm{\alpha}_{\text{drug}}$ and $\bm{\lambda}_{\text{drug}}$) at each
-	iteration of the EM algorithm.
-	
+	($\bm{\alpha}_{\text{drug}}$ and $\bm{\lambda}_{\text{drug}}$).
 	If we stack the drug and feature covariates:
 	\begin{align*}
 	  \mathbf{C} = 
@@ -648,12 +647,17 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   
   Variational Bayes approximations are known to underestimate posterior 
   variances \cite[]{rue_approximate_2009,consonni_mean-field_2007,
-  bishop_pattern_2006,wang_inadequacy_2005}. If posterior variances are 
-  required, 
-  we suggest generating samples from the posterior with fixed hyperparameters
+  bishop_pattern_2006,wang_inadequacy_2005}. In simulation Scenario 5 in Section 
+  \ref{md-sec:simulations} of the SM, we compare the variational posterior to 
+  MCMC samples from the posterior with fixed hyperparameters
   estimates (after the procedure described in Section \ref{sec:empiricalbayes}
-  has converged). A Gibbs sampler is described in 
-  SM Section \ref{sm-sec:gibbssampler}. Alternatively, we provide an
+  has converged). In this simulation Scenario and other settings (not 
+  shown), the variational approximation to the posterior is accurate. If 
+  however, the
+  user is reluctant to trust the variational posterior variances, samples
+  from the posterior may be generated with the
+  Gibbs sampler in SM Section \ref{sm-sec:gibbssampler}. Alternatively, 
+  we provide an
   implementation of the proposed model in stan using the R package rstan 
   \cite[]{guo_rstan:_2018} at 
   \url{https://github.com/magnusmunch/cambridge}.
@@ -674,7 +678,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	hyperparameters.
 	
 	A pre-processing step selects 100 features with largest variance, while
-	100 drug sensitivities for 1014 cell lines are 
+	100 drug sensitivities for 100 cell lines are 
 	simulated from model (\ref{eq:likelihood}) and 
 	(\ref{eq:prior}). We draw the error
 	variances as $\forall d: \sigma_d^2 \sim \Gamma^{-1}(3,2)$,
@@ -699,21 +703,21 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	    \{ 1, 1/2, 1/4, 1/8 \}$. The scale is set to $\lambda_{\text{drug}}=1$.}
 	  \item{Scenario 3 combines the procedures from Scenarios 1 and 2 to draw both
 	    the $\gamma_{jd}^2$ and $\tau_d^2$ according to (\ref{eq:prior}).}
-	  \item{Scenario 4 is equal to Scenario three, except that the rows of the
-	    external covariates matrix are permuted. Permutation
-	    adds noise and is supposed to mimic a low external covariates signal. We
-	    mimic different noise levels by permutation of fractions 
+	  \item{Scenario 4 is equal to Scenario three, except that we add noise to
+	    the external covariates. Noise is supposed to mimic a low external 
+	    covariate signal and is added by permutation of fractions 
 	    $q \in \{0.1, 0.2, 0.33, 0.5, 0.67, 0.8, 1\}$ of the 
-	    number of rows.}
+	    rows of the external covariates.}
 	\end{itemize}
 	We estimate two models: (i) the NIG model that only includes an intercept in
 	the external covariates, called NIG$_{\text{f}}^-$, NIG$_{\text{d}}^-$, or
 	NIG$_{\text{f}+\text{d}}^-$, depending on which variance components are 
 	estimated (feature, drug, or both in Scenarios 1, 2, and 3/4, respectively),
+	and 
 	(ii) the NIG model estimated as in Section \ref{sec:estimation} that includes
 	all external covariates, called NIG$_{\text{f}}$, NIG$_{\text{d}}$, or
 	NIG$_{\text{f}+\text{d}}$, again depending on which variance components are 
-	estimated, frequentist 
+	estimated.
 	Exclusion of the external covariates as in the NIG$_{\text{f}}^-$, 
 	NIG$_{\text{d}}^-$, and NIG$_{\text{f}+\text{d}}^-$ models
 	amounts to direct estimation of common expected 
@@ -724,14 +728,14 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	Section \ref{sec:introduction}, models NIG$_{\text{f}}$ and NIG$_{\text{d}}$
 	may be described as local and global shrinkage rules, respectively, as 
 	opposed to the global-local shrinkage models NIG$_{\text{f}+\text{d}}$ and
-	NIG$_{\text{f}+\text{d}}^-$. All models are fit on 100 randomly selected cell
-	lines. We repeat every simulation Scenario 100 times. 
+	NIG$_{\text{f}+\text{d}}^-$. We repeat every simulation Scenario 100 times. 
 	
-	SM Section \ref{sm-sec:simulations} contains
-	additional simulation results for
-	the NIG model, plus results for 
-	four alternative methods: frequentist (i) lasso and (ii) ridge models, 
-	and and EB version of the ridge model: (iii) a
+	SM Section \ref{sm-sec:simulations} contains an additional simulation 
+	Scenario 5 that investigates the performance of the variational Bayes approach
+	as compared to MCMC samples from the posterior, as well as more 
+	simulation results for Scenarios 1-4 for
+	the NIG model and four alternative methods: frequentist (i) 
+	lasso and (ii) ridge models, and EB version of the ridge model: (iii) a
 	multivariate Bayesian extension of \texttt{xtune} 
 	\cite[]{ni_bayesian_2019} named mxtune, as introduced in SM Section 
 	\ref{sm-sec:mxtune}.
@@ -878,21 +882,21 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	logarithm of the IC50 values. In the following, IC50 refers 
 	to these log-transformed values. 
 	After removing all cell lines with missing values, we end up with 388 to 1043
-	IC50 estimates for for 251 drugs. Differences in the number of cell lines
+	IC50 estimates for 251 drugs. Differences in the number of cell lines
 	between drugs occur, because not all drug and cell line combinations are 
 	available. The pre-processed expression and mutation data consist of
 	17737 and 300 genes, respectively.
-	
-	A comprehensive penalized regression
-	approach such as in 
-	{\cite{mai_composite_2019} uses most of the available molecular markers 
-	instead of just gene expression (68 mutations, 426 copy numbers, 
-	and 2602 gene expression levels for 498 cell lines and 97 drugs). The 
-	current version of our software is not able to handle such problem sizes,
-	due to the repeated calculation of posterior parameters in the empirical
-	Bayes iterations. Currently, problems with number of outcomes in the hundreds
-	and number of features and samples up to a thousand are computationally 
-	feasible.
+	% 
+	% A comprehensive penalized regression
+	% approach such as in 
+	% {\cite{mai_composite_2019} uses most of the available molecular markers 
+	% instead of just gene expression (68 mutations, 426 copy numbers, 
+	% and 2602 gene expression levels for 498 cell lines and 97 drugs). The 
+	% current version of our software is not able to handle such problem sizes,
+	% due to the repeated calculation of posterior parameters in the empirical
+	% Bayes iterations. Currently, problems with number of outcomes in the hundreds
+	% and number of features and samples up to a thousand are computationally 
+	% feasible.
 
 	\subsection{External data}
 	Two ternary drug covariates are available: the developmental stage
@@ -941,14 +945,13 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	  \item{Analysis 1 includes gene expressions as predictors and $p$-values from
 	    the gene mutation data as external covariate ($G=1$, $H=0$). 
 	    A pre-processing step selects between 221 and 280 genes per drug for 
-	    which a mutation $p$-value is available.}
-	  \item{Analysis 2 includes both gene  expressions and mutations as predictors
+	    which both the expression as well as a mutation $p$-value is available.}
+	  \item{Analysis 2 includes both gene expressions and mutations as predictors
 	    with the feature type as external covariate, i.e., wether the feature
 	    is a expression or mutation ($G=1$, $H=0$). For this analysis,
-	    we pre-select 300 gene 
-	    expressions with maximum 
-	    variance and 295 gene mutations for which there are mutated as well as 
-	    unmutated cell lines available.}
+	    we pre-select 300 gene expressions with maximum 
+	    variance and 295 gene mutations for which there are both mutated and
+	    wildtype cell lines available.}
 	  \item{Analysis 3 uses 500 gene expressions as features, selected based on
 	    maximum varaince. The CCLE $p$-values are included as external 
 	    covariates ($G=1$, $H=0$).}
@@ -963,31 +966,31 @@ true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
 	(i) NIG$_{\text{f}+\text{d}}^-$, (ii) NIG$_{\text{f}+\text{d}}$, 
 	frequentist (iii) lasso and (iv) ridge models, and (v) mxtune 
 	(see SM Section \ref{sm-sec:mxtune}). 
-	% In addition, in Analyses 2 and 
-	% 4, we fit a (vi) bSEM model 
-	% \cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The
-	% bSEM model is similar to the NIG model in that it
-	% draws the $\beta_{jd}$ from a conditionally normal distribution, but
-	% fixes $\tau_d^2=1$ and draws
-	% $\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
-	% $\gamma_{jd}^2 \sim \mathcal{IG} (\phi_{jd}, \lambda_{jd})$, where 
-	% $\Gamma^{-1} (\phi, \lambda)$ denotes the inverse gamma distribution with 
-	% shape $\phi$ and scale $\lambda$. Additionally, the bSEM model can
-	% only incorporate one binary external covariate that divides the features into
-	% two groups, i.e., $\bm{\alpha}_{\text{feat}} = \begin{bmatrix} \alpha_0 &
-	% \alpha_1
-	% \end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix}
-	% \tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
-	% 1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
-	% $\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
-	% estimated in a similar fashion as in Section \ref{sec:estimation}. 
+	In addition, in Analyses 2 and
+	4, we fit a (vi) bSEM model
+	\cite[]{leday_gene_2017,kpogbezan_empirical_2017}. The
+	bSEM model is similar to the NIG model in that it
+	draws the $\beta_{jd}$ from a conditionally normal distribution, but
+	fixes $\tau_d^2=1$ and draws
+	$\gamma_{jd}^2 \sim \Gamma^{-1} (\phi_{jd}, \lambda_{jd})$, instead of
+	$\gamma_{jd}^2 \sim \mathcal{IG} (\phi_{jd}, \lambda_{jd})$, where
+	$\Gamma^{-1} (\phi, \lambda)$ denotes the inverse gamma distribution with
+	shape $\phi$ and scale $\lambda$. Additionally, the bSEM model can
+	only incorporate one binary external covariate that divides the features into
+	two groups, i.e., $\bm{\alpha}_{\text{feat}} = \begin{bmatrix} \alpha_0 &
+	\alpha_1
+	\end{bmatrix} \tr$ and $\bm{c}_{jd} = \begin{bmatrix} 1 & 0 \end{bmatrix}
+	\tr$ if feature $jd$ belongs to group one and $\bm{c}_{jd} = \begin{bmatrix}
+	1 & 1 \end{bmatrix} \tr$ if feature $jd$ belongs to group two. Both
+	$\bm{\alpha}_{\text{feat}}$ and $\lambda_{\text{feat}}$ are
+	estimated in a similar fashion as in Section \ref{sec:estimation}.
 	
 	In all analyses we use all cell lines to estimate the hyperparameters 
 	presented in Section \ref{sec:results}. Mean prediction PMSE,
 	$\text{PMSE} = D^{-1} n^{-1} \sum_{d=1}^D 
   \sum_{i=1}^n (\mathbf{y}_d - \mathbf{x}_i \tr \hat{\bm{\beta}_d})^2$, with
   $\hat{\bm{\beta}_d}$ the estimator for $\bm{\beta}_d$, and its standard error
-  are estimated by 10-fold cross validation. In the NIG models that 
+  are estimated by 10-fold cross validation. In the NIG and bSEM models, that 
   provide full posteriors, the posterior mean 
   $\E(\bm{\beta}_d | \mathbf{y}_d)$ is used point estimate.
 	
@@ -1073,23 +1076,23 @@ mpmse3 <- apply(pmse3, 2, mean)
 sdpmse3 <- apply(pmse3, 2, sd)
 ppmse3 <- paste0(round(mpmse3, 3), " (", round(sdpmse3, 3), ")")
 
-res <- read.table("results/analysis_gdsc_res4.1.txt", row.names=NULL)
+res <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
 pmse4 <- res[substr(rownames(res), 1, 5)=="pmse.", ]
-pmse4 <- aggregate(pmse4, by=list(rep(1:10, each=251)), FUN="mean")[, -1]
+pmse4 <- aggregate(pmse4, by=list(rep(1:10, each=249)), FUN="mean")[, -1]
 mpmse4 <- apply(pmse4, 2, mean)
 sdpmse4 <- apply(pmse4, 2, sd)
 ppmse4 <- paste0(round(mpmse4, 3), " (", round(sdpmse4, 3), ")")
 
 tab5 <- rbind(c(ppmse1[1:6], NA, ppmse1[7:length(ppmse1)], rep(NA, 3)),
               ppmse2, c(ppmse3[1:6], NA, ppmse3[7:length(ppmse3)], rep(NA, 3)),
-              ppmse4)[, c(1:4, 6)]
+              ppmse4)[, c(1:3, 5:7)]
 tabm5 <- rbind(c(mpmse1[1:6], NA, mpmse1[7:length(mpmse1)], rep(NA, 3)),
                mpmse2, c(mpmse3[1:6], NA, mpmse3[7:length(mpmse3)], rep(NA, 3)),
-               mpmse4)[, c(1:4, 6)]
+               mpmse4)[, c(1:3, 5:7)]
 tab5 <- t(sapply(1:nrow(tab5), function(r) {
   id <- which(tabm5[r, ]==min(tabm5[r, ], na.rm=TRUE))
   out <- tab5[r, ]
@@ -1097,8 +1100,8 @@ tab5 <- t(sapply(1:nrow(tab5), function(r) {
   out}))
 rownames(tab5) <- paste0("analysis ", 1:nrow(tab5))
 colnames(tab5) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
-                    "NIG$_{\\text{f}+\\text{d}}$", "ridge", "lasso", 
-                    "mxtune")
+                    "NIG$_{\\text{f}+\\text{d}}$", "ridge", "xtune",
+                    "mxtune", "bSEM")
 @
   The non-zero $\bm{\alpha}$ estimates in Tables ? and ? show 
   that there is an effect of the
@@ -1229,6 +1232,9 @@ kableExtra::kable_styling(knitr::kable(
   SM Section \ref{sm-sec:gibbssampler}. The full posterior gives direct access
   to the parameter uncertainties for a better interpretable model.
 
+  Section \ref{sm-sec:gdsc} in the SM displayes the conditional predictive 
+  ordinates (CPO) for the four analyses. A visual inspection of the CPOs learns
+  that no extreme outliers occur.
 	\section{Discussion}\label{sec:discussion}
 <<time>>=
 # load("results/analysis_gdsc_fit1.Rdata")
@@ -1339,12 +1345,9 @@ time2.semnig <- 1
 	8 GB of 1867 MHz LPDDR3 memory, running macOS  10.15.1.
 	
 	\section*{Acknowledgements}
-	% We thank Zhi Zhao and Leiv Tore Salte R{\o}nneberg from the Oslo Centre for 
-	% Biostatistics and Epidemiology for their suggestions on the pre-processing of
-	% the GDSC data. 
 	We thank the referees for their helpful comments and suggestions on an earlier
 	version of this manuscript.
-	MM visited SR and GL on a travel grant funded the Amsterdam Public Health 
+	MM visited SR and GL on a travel grant funded by the Amsterdam Public Health 
 	institute's Methodology program.
 	\textit{Conflict of Interest}: None declared.
 	

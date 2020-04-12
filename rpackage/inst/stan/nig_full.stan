@@ -44,8 +44,8 @@ transformed parameters {
   vector<lower=0>[sump] gamma = sqrt(gammasq);
   vector<lower=0>[D] tau = sqrt(tausq);
   vector<lower=0>[D] sigma = sqrt(sigmasq);
-  vector<lower=0>[sump] phi = C*alphaf;
-  vector<lower=0>[D] chi = Z*alphad;
+  vector<lower=0>[sump] phi = 1 ./ (C*alphaf);
+  vector<lower=0>[D] chi = 1 ./ (Z*alphad);
 }
 
 model {

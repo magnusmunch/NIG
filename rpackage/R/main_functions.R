@@ -400,7 +400,6 @@ new.elbo <- function(object, newx, newy) {
 logcpo <- function(xtest, ytest, ntrain, fit) {
   D <- length(ytest)
   ntest <- sapply(ytest, length)
-  ptest <- sapply(xtest, ncol)
   out <- lapply(ntest, numeric)
   for(d in 1:D) {
     xtSigmax <- rowSums((xtest[[d]] %*% fit$vb$Sigma[[d]])*xtest[[d]])
@@ -414,7 +413,7 @@ logcpo <- function(xtest, ytest, ntrain, fit) {
       int.val <- ifelse(int$message=="the integral is probably divergent", NA, 
                         int$value) 
       out[[d]][i] <- -log(2) - log(pi) - 0.5*log(xtSigmax[i]) - 0.5*log(zeta) +
-        lgamma((ntrain[d] + p + 2)/2) - lgamma((ntrain[d] + p + 1)/2) -
+        lgamma((ntrain[d] + p + 2)/2) - lgamma((ntrain[d] + p + 1)/2) + 
         log(int.val)
     }
   }
