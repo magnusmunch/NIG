@@ -1,4 +1,6 @@
+################################################################################
 ################################# main document ################################
+################################################################################
 # ---- figures ----
 # ---- dens_kappa ----
 suppressWarnings(suppressMessages(library(sp)))
@@ -299,24 +301,9 @@ legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
 
 par(opar)
 
-################################# presentation #################################
-# ---- dens_beta_prior1 ---- 
-library(GeneralizedHyperbolic)
-dprior <- function(x, lambda, theta, sigma) {
-  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
-}
-colors <- sp::bpy.colors(4)[-c(1, 4)]
-pdf(file="figs/dens_beta_prior1.pdf", width=10)
-curve(dprior(x, 0.1, 10, 1), -2, 2, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", 
-      bty="n", ann=FALSE, n=1000)
-curve(dprior(x, 10, 0.1, 1), -2, 2, col=colors[2], lwd=4, add=TRUE, main="", yaxt="n", 
-      xaxt="n", bty="n", ann=FALSE, n=1000)
-legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3, 
-       border=colors)
-dev.off()
-
-
+################################################################################
 ################################## supplement ##################################
+################################################################################
 # ---- simulations_gdsc_post5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
 D <- 100
@@ -374,3 +361,68 @@ par(mar=opar$mar*c(1, 1.3, 1, 1))
 plot(c(0, fracs), mpmse[, 2], ylab="PMSE", xlab="Proportion of permuted rows", 
      col=col[1], cex=1.5, cex.lab=1.5, cex.axis=1.5)
 par(opar)
+
+# simualtions 5
+load(file="results/simulations_gdsc_res5.Rdata")
+
+
+library(rstan)
+get_stancode(fit.mcmc2)
+
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+              nrow=4, ncol=4, byrow=TRUE))
+hist(post.mcmc2$alphaf[, 1])
+hist(post.mcmc2$alphaf[, 2])
+hist(post.mcmc2$alphaf[, 3])
+hist(post.mcmc2$alphaf[, 4])
+par(opar)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+              nrow=4, ncol=4, byrow=TRUE))
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 1])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 2])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 3])
+hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 4])
+par(opar)
+
+plot(alphaf, colMeans(post.mcmc2$alphaf))
+
+plot(1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
+     colMeans(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))))
+abline(a=0, b=1)
+
+plot(1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3))))),
+     colMeans(1/(post.mcmc2$alphad %*% t(cbind(1, rbind(0, diag(3)))))))
+abline(a=0, b=1)
+test <- stan_model("rpackage/inst/stan/nig_full.stan")
+
+
+stan_ess(fit.mcmc2)
+stan_rhat
+stan_diag
+stan_mcse
+stan_ac
+stan_trace(fit.mcmc2, pars=c("beta[2]"))
+
+################################################################################
+################################# presentation #################################
+################################################################################
+# ---- dens_beta_prior1 ---- 
+library(GeneralizedHyperbolic)
+dprior <- function(x, lambda, theta, sigma) {
+  dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
+}
+colors <- sp::bpy.colors(4)[-c(1, 4)]
+pdf(file="figs/dens_beta_prior1.pdf", width=10)
+curve(dprior(x, 0.1, 10, 1), -2, 2, col=colors[1], lwd=4, main="", yaxt="n", xaxt="n", 
+      bty="n", ann=FALSE, n=1000)
+curve(dprior(x, 10, 0.1, 1), -2, 2, col=colors[2], lwd=4, add=TRUE, main="", yaxt="n", 
+      xaxt="n", bty="n", ann=FALSE, n=1000)
+legend("topright", legend=c(NA, NA), fill=colors, box.col=NA, cex=3, 
+       border=colors)
+dev.off()
