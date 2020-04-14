@@ -36,7 +36,7 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
 control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
@@ -142,24 +142,24 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                c(NA, fit.ebridge1$alphaf, NA))
 
   # calculate ELBO and conditional predictive ordinate for semnig models
-  elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
-                 fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
-                 rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  # elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
+  #                fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
+  #                rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  # 
+  # elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)), 
+  #                        Reduce("cbind", ytest)),
+  #               new.elbo(fit.semnig1, replicate(D, list(xtest)), 
+  #                        Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
+  #               rep(NA, D), rep(NA, D))
 
-  elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)),
-                new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
-                rep(NA, D), rep(NA, D))
-
-  lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig1)),
-                colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig2)), 
-                rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig1)),
+  #               colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
+  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
   
-  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot, lpml=lpml)
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est)
+       # , elbo=elbo, elbot=elbot, lpml=lpml)
 }
 stopCluster(cl=cl)
 
@@ -169,17 +169,22 @@ emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
 emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
 pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
-elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
+# elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
+# elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
+# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
   
 
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, 
+              # elbo, elbot, lpml, 
+              est)
 colnames(res2) <- c(methods)
-rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot", "lpml"), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"
+                                 # , "elbo", "elbot", "lpml"
+                                 ), each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 
+                               # 8
+                               5)),
                     rep(c(paste0("alphaf", 0:3), "lambdaf"), times=nreps))
 write.table(res2, file="results/simulations_gdsc_res1.2.txt")
 
