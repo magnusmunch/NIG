@@ -1,4 +1,4 @@
-Package: cambridge
+Package: NIG
 Type: Package
 Title: Joint estimation of univariate regressions
 Version: 0.0.0.9000
@@ -27,7 +27,7 @@ LinkingTo:
     StanHeaders (>= 2.18.0)
 Suggests: knitr, testthat
 VignetteBuilder: knitr
-URL: https://github.com/magnusmunch/cambridge/
+URL: https://github.com/magnusmunch/NIG/
 NeedsCompilation: yes
 Encoding: UTF-8
 LazyData: true

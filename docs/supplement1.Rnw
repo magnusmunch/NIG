@@ -856,6 +856,9 @@ kable(tab, col.names=colnames(tab), align="r",
   \text{CPO}_{id} = p(y_i | \bm{y}_{-i}) = 
   $$
   
+<<analysis_gdsc_res2, fig.cap="Simulation results for Scenario 4: Median PMSE against the proportion of permuted rows in the external features.", out.width="50%", fig.asp=1>>= 
+@
+  
   \bibliographystyle{author_short3}  
 	\bibliography{refs}
 	

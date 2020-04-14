@@ -215,8 +215,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # post selection
   cv.dss.semnig1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
-              penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig2$vb$mu[[d]]),
+              penalty.factor=0.5/abs(cv.semnig2$vb$mu[[d]]), intercept=FALSE)})
   cv.dss.ridge1 <- lapply(1:D, function(d) {
     b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
@@ -473,8 +473,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # post selection
   cv.dss.semnig1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
-              penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig2$vb$mu[[d]]),
+              penalty.factor=0.5/abs(cv.semnig2$vb$mu[[d]]), intercept=FALSE)})
   cv.dss.ridge1 <- lapply(1:D, function(d) {
     b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
@@ -714,8 +714,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # post selection
   cv.dss.semnig1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
-              penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig2$vb$mu[[d]]),
+              penalty.factor=0.5/abs(cv.semnig2$vb$mu[[d]]), intercept=FALSE)})
   cv.dss.ridge1 <- lapply(1:D, function(d) {
     b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
@@ -957,8 +957,8 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # post selection
   cv.dss.semnig1 <- lapply(c(1:D), function(d) {
-    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig1$vb$mu[[d]]),
-              penalty.factor=0.5/abs(cv.semnig1$vb$mu[[d]]), intercept=FALSE)})
+    cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% cv.semnig2$vb$mu[[d]]),
+              penalty.factor=0.5/abs(cv.semnig2$vb$mu[[d]]), intercept=FALSE)})
   cv.dss.ridge1 <- lapply(c(1:D), function(d) {
     b <- coef(cv.ridge1[[d]], s="lambda.min")[-1, ]
     cv.glmnet(xtrain[[d]], as.numeric(xtrain[[d]] %*% b),
@@ -969,16 +969,18 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
               penalty.factor=0.5/abs(b), intercept=FALSE)})
   
   # estimates
-  best <- list(semnig1=cv.semnig1$vb$mpost$beta,
+  best <- list(
+               semnig1=cv.semnig1$vb$mpost$beta,
                semnig2=cv.semnig2$vb$mpost$beta,
                ridge1=lapply(cv.ridge1, function(s) {
                  coef(s, s="lambda.min")[-1, 1]}),
                lasso1=lapply(cv.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=lapply(cv.xtune1, function(s) {
+                 coef(s, s="lambda.min")[-1, 1]})
+               , xtune1=lapply(cv.xtune1, function(s) {
                  unname(s$beta.est[-1, ])}),
                ebridge1=cv.ebridge1$beta1,
-               bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]}))
+               bSEM1=lapply(cv.bSEM1$vb$beta, function(s) {s[, "mu"]})
+               )
   best$dss.semnig1 <- lapply(cv.dss.semnig1, function(s) {
     coef(s, s="lambda.min")[-1, 1]})
   best$dss.semnig2 <- lapply(c(1:D), function(d) {
@@ -1021,6 +1023,19 @@ rownames(psel) <- paste0("psel.", rownames(psel))
 res <- rbind(pmse, psel)
 write.table(res, file="results/analysis_gdsc_res4.txt")
 
+################################################################################
+############################### computation times ##############################
+################################################################################
+load(file="results/analysis_gdsc_fit1.Rdata")
+time1 <- sum(fit.semnig2$time)
+load(file="results/analysis_gdsc_fit2.Rdata")
+time2 <- sum(fit.semnig2$time)
+load(file="results/analysis_gdsc_fit3.Rdata")
+time3 <- sum(fit.semnig2$time)
+load(file="results/analysis_gdsc_fit4.Rdata")
+time4 <- sum(fit.semnig2$time)
+write.table(c(time1, time2, time3, time4), 
+            file="results/analysis_gdsc_time1.txt")
 
 
 

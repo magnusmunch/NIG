@@ -259,48 +259,6 @@ legend("topright", lty=lty, col=col, title="Permuted rows",
        legend=paste0(round(100*c(0, fracs), 0), "%"))
 par(opar)
 
-# ---- analysis_gdsc_res1 ----
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/analysis_gdsc_res1.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
-
-ylim1 <- range(1 - c(res[, "semnig1"], res[, "ridge1"]))
-ylim2 <- range(1 - c(res[, "ebridge1"], res[, "ridge1"]))
-
-col <- bpy.colors(3, cutoff.tail=0.2)
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(rep(c(1:2), each=2), nrow=2, ncol=2, byrow=TRUE))
-plot(1 - pmse[, "ridge1"], xlab="Drug", 
-     ylab="MSE reduction", main="(a)",
-     cex=0.5, pch=16, ylim=ylim1, col=col[1])
-points(1 - pmse[, "semnig1"], cex=0.5, pch=16, col=col[2])
-abline(v=order(abs(pmse[, "ridge1"] - pmse[, "semnig1"]), 
-               decreasing=TRUE)[c(1:5)], lty=2, 
-       col=col[as.numeric((pmse[, "ridge1"] - pmse[, "semnig1"] > 0) + 1)[
-         order(abs(pmse[, "ridge1"] - pmse[, "semnig1"]), 
-               decreasing=TRUE)[c(1:5)]]])
-abline(h=0, lty=3)
-legend("topleft", c("ridge + CV", "NIG"), pch=16, col=col[c(1, 2)])
-
-plot(1 - pmse[, "ridge1"], xlab="Drug", 
-     ylab="MSE reduction", main="(b)",
-     cex=0.5, pch=16, ylim=ylim2, col=col[1])
-points(1 - pmse[, "ebridge1"], cex=0.5, pch=16, col=col[3])
-abline(v=order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"]), 
-               decreasing=TRUE)[c(1:5)], lty=2, 
-       col=col[as.numeric((pmse[, "ridge1"] - pmse[, "ebridge1"] > 0)*2 + 1)[
-         order(abs(pmse[, "ridge1"] - pmse[, "ebridge1"]), 
-               decreasing=TRUE)[c(1:5)]]])
-abline(h=0, lty=3)
-legend("topleft", c("ridge + CV", "ridge + EB"), pch=16, col=col[c(1, 3)])
-
-par(opar)
-
 ################################################################################
 ################################## supplement ##################################
 ################################################################################
@@ -408,6 +366,50 @@ stan_diag
 stan_mcse
 stan_ac
 stan_trace(fit.mcmc2, pars=c("beta[2]"))
+
+# ---- analysis_gdsc_res2 ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
+mpmse <- aggregate(pmse, list(rownames(pmse)), FUN="mean")[, -1][, c(1:3, 6)]
+
+ylim1 <- range(1 - c(mpmse[, "semnig2"], mpmse[, "ridge1"]))
+ylim2 <- range(1 - c(mpmse[, "ebridge1"], mpmse[, "ridge1"]))
+
+col <- bpy.colors(3, cutoff.tail=0.2)
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(rep(c(1:2), each=2), nrow=2, ncol=2, byrow=TRUE))
+plot(1 - mpmse[, "ridge1"], xlab="Drug", 
+     ylab="PMSE reduction", main="(a)",
+     cex=0.5, pch=16, ylim=ylim1, col=col[1])
+points(1 - mpmse[, "semnig2"], cex=0.5, pch=16, col=col[2])
+abline(v=order(abs(mpmse[, "ridge1"] - mpmse[, "semnig2"]), 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=col[as.numeric((mpmse[, "ridge1"] - mpmse[, "semnig2"] > 0) + 1)[
+         order(abs(mpmse[, "ridge1"] - mpmse[, "semnig2"]), 
+               decreasing=TRUE)[c(1:5)]]])
+abline(h=0, lty=3)
+legend("topleft", c("ridge", expression(NIG[f+d])), 
+       pch=16, col=col[c(1, 2)])
+
+plot(1 - mpmse[, "ridge1"], xlab="Drug", 
+     ylab="PMSE reduction", main="(b)",
+     cex=0.5, pch=16, ylim=ylim2, col=col[1])
+points(1 - mpmse[, "ebridge1"], cex=0.5, pch=16, col=col[3])
+abline(v=order(abs(mpmse[, "ridge1"] - mpmse[, "ebridge1"]), 
+               decreasing=TRUE)[c(1:5)], lty=2, 
+       col=col[as.numeric((mpmse[, "ridge1"] - mpmse[, "ebridge1"] > 0)*2 + 1)[
+         order(abs(mpmse[, "ridge1"] - mpmse[, "ebridge1"]), 
+               decreasing=TRUE)[c(1:5)]]])
+abline(h=0, lty=3)
+legend("topleft", c("ridge", "mxtune"), pch=16, col=col[c(1, 3)])
+
+par(opar)
 
 ################################################################################
 ################################# presentation #################################

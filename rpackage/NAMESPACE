@@ -12,4 +12,4 @@ importFrom(GeneralizedHyperbolic, rgig)
 importFrom(mvtnorm, rmvnorm)
 importFrom(glmnet, glmnet, cv.glmnet)
 
-useDynLib(cambridge, .registration=TRUE)
+useDynLib(NIG, .registration=TRUE)

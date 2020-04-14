@@ -8,8 +8,8 @@
 using namespace Rcpp;
 
 // f_optim_mat
-double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D, List idsel, int G, int H, List y, arma::mat x, arma::vec yty);
-RcppExport SEXP _cambridge_f_optim_mat(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP idselSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP) {
+double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D, List idsel, int G, int H, List y, arma::mat x, arma::vec yty, bool Zpres);
+RcppExport SEXP _NIG_f_optim_mat(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP idselSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP, SEXP ZpresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -28,13 +28,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type y(ySEXP);
     Rcpp::traits::input_parameter< arma::mat >::type x(xSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type yty(ytySEXP);
-    rcpp_result_gen = Rcpp::wrap(f_optim_mat(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, idsel, G, H, y, x, yty));
+    Rcpp::traits::input_parameter< bool >::type Zpres(ZpresSEXP);
+    rcpp_result_gen = Rcpp::wrap(f_optim_mat(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, idsel, G, H, y, x, yty, Zpres));
     return rcpp_result_gen;
 END_RCPP
 }
 // f_optim_list
-double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, int D, int G, int H, List y, List x, arma::vec yty);
-RcppExport SEXP _cambridge_f_optim_list(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP) {
+double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta, arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, int D, int G, int H, List y, List x, arma::vec yty, bool Zpres);
+RcppExport SEXP _NIG_f_optim_list(SEXP alphaSEXP, SEXP lambdaSEXP, SEXP nuSEXP, SEXP zetaSEXP, SEXP CmatSEXP, SEXP ZSEXP, SEXP nSEXP, SEXP pSEXP, SEXP DSEXP, SEXP GSEXP, SEXP HSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytySEXP, SEXP ZpresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -52,13 +53,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< List >::type y(ySEXP);
     Rcpp::traits::input_parameter< List >::type x(xSEXP);
     Rcpp::traits::input_parameter< arma::vec >::type yty(ytySEXP);
-    rcpp_result_gen = Rcpp::wrap(f_optim_list(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, G, H, y, x, yty));
+    Rcpp::traits::input_parameter< bool >::type Zpres(ZpresSEXP);
+    rcpp_result_gen = Rcpp::wrap(f_optim_list(alpha, lambda, nu, zeta, Cmat, Z, n, p, D, G, H, y, x, yty, Zpres));
     return rcpp_result_gen;
 END_RCPP
 }
 // Sigma_unp
 arma::mat Sigma_unp(double aold, arma::vec bold, arma::mat xu, arma::mat xr, int u, int r);
-RcppExport SEXP _cambridge_Sigma_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
+RcppExport SEXP _NIG_Sigma_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -74,7 +76,7 @@ END_RCPP
 }
 // Sigma
 arma::mat Sigma(double aold, arma::vec bold, arma::mat x);
-RcppExport SEXP _cambridge_Sigma(SEXP aoldSEXP, SEXP boldSEXP, SEXP xSEXP) {
+RcppExport SEXP _NIG_Sigma(SEXP aoldSEXP, SEXP boldSEXP, SEXP xSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -87,7 +89,7 @@ END_RCPP
 }
 // aux_var_unp
 List aux_var_unp(double aold, arma::vec bold, arma::vec y, arma::mat xu, arma::mat xr, int u, int r);
-RcppExport SEXP _cambridge_aux_var_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
+RcppExport SEXP _NIG_aux_var_unp(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xuSEXP, SEXP xrSEXP, SEXP uSEXP, SEXP rSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -104,7 +106,7 @@ END_RCPP
 }
 // aux_var
 List aux_var(double aold, arma::vec bold, arma::vec y, arma::mat x, arma::rowvec ytx);
-RcppExport SEXP _cambridge_aux_var(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytxSEXP) {
+RcppExport SEXP _NIG_aux_var(SEXP aoldSEXP, SEXP boldSEXP, SEXP ySEXP, SEXP xSEXP, SEXP ytxSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -122,18 +124,18 @@ RcppExport SEXP _rcpp_module_boot_stan_fit4nig_mod();
 RcppExport SEXP _rcpp_module_boot_stan_fit4nig_full_mod();
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_cambridge_f_optim_mat", (DL_FUNC) &_cambridge_f_optim_mat, 15},
-    {"_cambridge_f_optim_list", (DL_FUNC) &_cambridge_f_optim_list, 14},
-    {"_cambridge_Sigma_unp", (DL_FUNC) &_cambridge_Sigma_unp, 6},
-    {"_cambridge_Sigma", (DL_FUNC) &_cambridge_Sigma, 3},
-    {"_cambridge_aux_var_unp", (DL_FUNC) &_cambridge_aux_var_unp, 7},
-    {"_cambridge_aux_var", (DL_FUNC) &_cambridge_aux_var, 5},
+    {"_NIG_f_optim_mat", (DL_FUNC) &_NIG_f_optim_mat, 16},
+    {"_NIG_f_optim_list", (DL_FUNC) &_NIG_f_optim_list, 15},
+    {"_NIG_Sigma_unp", (DL_FUNC) &_NIG_Sigma_unp, 6},
+    {"_NIG_Sigma", (DL_FUNC) &_NIG_Sigma, 3},
+    {"_NIG_aux_var_unp", (DL_FUNC) &_NIG_aux_var_unp, 7},
+    {"_NIG_aux_var", (DL_FUNC) &_NIG_aux_var, 5},
     {"_rcpp_module_boot_stan_fit4nig_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4nig_mod, 0},
     {"_rcpp_module_boot_stan_fit4nig_full_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4nig_full_mod, 0},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_cambridge(DllInfo *dll) {
+RcppExport void R_init_NIG(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
