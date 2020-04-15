@@ -38,9 +38,10 @@
 *.toc
 *.xlsx
 .DS_Store
-.Rproj.user
+
 
 /misc
 /data
 /submission
 /revision
+.Rproj.user
