@@ -5,6 +5,7 @@ opts_chunk$set(fig.align='center', fig.path="../figs/",
                echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
 knit_hooks$set(document=function(x) {
   sub('\\usepackage[]{color}', '\\usepackage{xcolor}', x, fixed=TRUE)})
+options(knitr.kable.NA="", digits=3)
 @
 
 % read figure code
@@ -178,12 +179,12 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	(solid), $a=1$, $b=4$ (dashed), and $a=1$, $b=0.2$ (dotted).
 	The lasso prior results from an exponential prior on $\gamma_{jd}^2$. To
 	create Figure \ref{md-fig:dens_kappa}c the following settings were
-	used for rate $\lambda$: $\lambda=1$ (solid), $\lambda=0.2$ (dashed), and 
-	$\lambda=0.1$ (dotted).
+	used for exponential rate $\lambda$: $\lambda=1$ (solid), $\lambda=0.2$ 
+	(dashed), and $\lambda=0.1$ (dotted).
 	
 	\section{Jeffrey's prior}\label{sec:jeffreysprior}
 	We parametrise the data with a Gaussian distribution with unknown mean and 
-	variance, i.e., $y_i \sim \mathcal{N} (\mu, \sigma^2)$. This gives us the
+	variance, i.e., $y_i \sim \mathcal{N} (\mu, \sigma^2)$. This results in the
 	following Hessian (matrix of second derivatives) of the log density:
 	$$
 	\mathbf{H}(\log f(y_i | \mu, \sigma^2)) = \begin{bmatrix}
@@ -191,7 +192,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	y_i - \mu & \frac{1}{2\sigma^4} - \frac{(y_i - \mu)^2}{\sigma^6}.
 	\end{bmatrix}
 	$$
-	Jeffrey's prior is now found as:
+	Jeffreys prior \cite[]{jeffreys_invariant_1946} is now found as:
 	$$
 	\pi(\mu, \sigma^2) \propto |\mathcal{I}(\mu, \sigma^2)|^{1/2} = 
 	|-\E (\mathbf{H})|^{1/2} = \begin{vmatrix}
@@ -295,7 +296,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	
   \section{Evidence lower bound}\label{sec:elbo}
   The evidence lower bound that is maximised during the iterations is: 
-  $\text{ELBO}^{(l)}=\text{ELBO}_d^{(l)}$, with:
+  $\text{ELBO}^{(l)}=\sum_{d=1}^D \text{ELBO}_d^{(l)}$, with:
   \begin{align*}
     \text{ELBO}&^{(l)}_d \\
     & = -\frac{n+p+1}{2} \log \pi + \frac{p+1-n}{2}\log 2 + \frac{n+1}{2} + p
@@ -353,7 +354,8 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \X \tr \} \mathbf{1}_{n \times 1}.
   \end{align}
   Both (\ref{eq:complexity1}) and (\ref{eq:complexity2}) are operations of
-  complexity $\mathcal{O}(pn^2)$.
+  complexity $\mathcal{O}(pn^2)$ instead of $\mathcal{O}(p^3)$ for naive
+  calculation.
   
   \section{Ratios of modified Bessel functions}\label{sec:ratiosmodifiedbessels}
   Ratios of modified Bessel functions of the second kind 
@@ -378,8 +380,9 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       & \text{for } p \text{ odd}.
     \end{cases}
   \end{align*} 
-  The ratio $K_0(x)/K_1(x)$ is well-behaved, so that it may be computed
-  without numerical issues.
+  The ratio $K_0(x)/K_1(x)$ is well-behaved, so that an 
+  arbitrary ratio $K_{\alpha - 1}(x)/K_{\alpha}(x)$ may be calculated as
+  a sequence of numerically stable scalar sums, products and inverses.
   
   \section{Empirical Bayes}\label{sec:eb}
   For the feature scale parameter $\lambda_{\text{feat}}$ updates to be 
@@ -395,7 +398,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   which holds if all summands in the left-hand side of (\ref{eq:inequality})
   are non-negative.
   
-  Next, we note that through Jensen's inequality 
+  We note that through Jensen's inequality 
   $e_{jd}^{-1}=\E(\gamma_{jd}^{2})^{-1} \leq \E(\gamma_{jd}^{-2})=b_{jd}$,
   we may lowerbound the summands in left-hand side of (\ref{eq:inequality}):
   $$
@@ -426,21 +429,20 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       \y_d \label{eq:musample}, \\
       \gamma_{jd}^2 | \beta_{jd}, \sigma_d^2, \tau_d^2, \y &
       \sim \mathcal{GIG}
-      \(-1, \lambda_{\text{feat}}/ \phi_{jd}^{2}, \delta_{jd}\), \nonumber \\
+      \(-1, \lambda_{\text{feat}}/ \phi_{jd}^{2}, \delta_{jd}\), \\
       \text{with } & \delta_{jd} = \sigma_d^{-2} \tau_d^{-2} \beta_{jd}^2 + 
       \lambda_{\text{feat}}, \nonumber \\
       \tau_d^2 | \bm{\beta}_d, \sigma_d^2, \bgamma_{d}^2, \y & \sim
       \mathcal{GIG}
       \(-\frac{p+1}{2}, \lambda_{\text{drug}}/ \chi_{d}^{2}, \eta_d\), 
-      \nonumber \\
+      \\
       \text{with } & \eta_d = \sigma_d^{-2} \sum_{j=1}^p \gamma_{jd}^{-2}
-      \beta_{jd}^2 + \lambda_{\text{drug}}, \nonumber \\
+      \beta_{jd}^2 + \lambda_{\text{drug}}, \\
       \sigma_d^2 | \bm{\beta}_d, \bgamma_d^2, \tau_d^2, \y & \sim \Gamma^{-1} 
-      \(\frac{n + p + 1}{2}, \zeta_d\), \nonumber \\
+      \(\frac{n + p + 1}{2}, \zeta_d\), \\
       \text{with } & \zeta_d = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -
       2 \mathbf{y}_d \tr \X \bm{\beta}_d + \bm{\beta}_d \X \tr \X \bm{\beta}_d + 
       \tau^{-2}_d \bm{\beta}_d \tr \diag(\gamma_{jd}^{-2}) \bm{\beta}_d) \]. 
-      \nonumber
     \end{align}
   \end{subequations}
   In high dimensional space, the $p \times p$ matrix inversions in 
@@ -450,14 +452,14 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   of this inverse, thereby offering a siginifcant speed-up compared to naive
   sampling.
   
-  Sampling from (\ref{eq:gibbssampler}) either requires specifying 
+  Sampling from (\ref{eq:gibbssampler}) either requires estimating 
+  (as in \ref{md-sec:empiricalbayes}) or specifying 
   hyperparameters
   $\bm{\alpha}_{\text{feat}}$, $\bm{\alpha}_{\text{drug}}$, 
   $\lambda_{\text{feat}}$, and $\lambda_{\text{drug}}$, or to endow them with
   and extra layer of hyperpriors. In general, specifying them requires 
-  rarely available, detailed subject knowledge, so we resort to endowing them
-  with possibly flat, improper (as in \cite{upadhyay_bayesian_1996})
-  hyperpriors:
+  rarely available, detailed subject knowledge, so we may resort to endowing 
+  them with hyperpriors (as in \cite{upadhyay_bayesian_1996}):
   \begin{align*}
     \bm{\alpha}_{\text{feat},g} | \lambda_{\text{feat}} & \sim 
     \mathcal{N}(0, \nu_{\text{feat}}^2/\lambda_{\text{feat}}), \\
@@ -470,7 +472,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   \end{align*}
   with hyperparameters $\nu_{\text{feat}}^2$, $\nu_{\text{drug}}^2$, 
   $\kappa_{\text{feat}}$, $\xi_{\text{feat}}$, $\kappa_{\text{drug}}$, and
-  $\xi_{\text{drug}}$. Improper priors occur if we let 
+  $\xi_{\text{drug}}$. Improper, flat priors occur if we let 
   $\nu_{\text{feat}}, \nu_{\text{drug}} \to \infty$ and 
   $\kappa_{\text{feat}}, \kappa_{\text{drug}}, \xi_{\text{feat}}, 
   \xi_{\text{drug}} \to 0$. The corresponding full conditionals are
@@ -507,11 +509,12 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \[\mathbf{Z} \bm{\alpha}_{\text{drug}} - \diag(\tau_{d}^{-2}) 
     \mathbf{1}_{D \times 1}\] \tr \diag(\tau_{d}^2) 
     \[\mathbf{Z} \bm{\alpha}_{\text{drug}} - 
-    \diag(\tau_{d}^{-2}) \mathbf{1}_{D \times 1}\] + \xi_{\text{drug}}.
+    \diag(\tau_{d}^{-2}) \mathbf{1}_{D \times 1}\] + \xi_{\text{drug}},
   \end{align*}
+  which may be sampled together with (\ref{eq:gibbssampler}).
   
   \section{Multivariate Bayesian extension of \texttt{xtune}}\label{sec:mxtune}
-  Consider the following simpler hyperprior alternative to 
+  Consider the following simpler alternative prior to 
   equation (\ref{md-eq:prior}) in the MD:
   \begin{subequations}\label{eq:altprior}
 		\begin{align}
@@ -530,7 +533,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	are modelled on the log-scale to ensure non-negative variance components.
 	Additionally, it allows for more flexibility in the error variance
 	prior model. Note that in the limit $\zeta \to 0$ and $\nu=1/2$, the error
-	variance follows the Jeffrey`s prior from (\ref{md-eq:prior}) in the MD. 
+	variance follows the Jeffreys prior from (\ref{md-eq:prior}) in the MD. 
 	Throughout the
 	following, whenever $\zeta$ and $\nu$ are not specified, we use $\zeta \to 0$ 
 	and $\nu=1/2$.
@@ -568,45 +571,46 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   
   The MM algorithm seeks to minorise the marginal log likelihood,
   $\log p(\bm{\alpha} | \mathbf{Y})$, at current
-  parameter estimate $\bm{\alpha}^{(t)}$ with function 
-  $g(\bm{\alpha} | \bm{\alpha}^{(t)})$, such that
-  $\forall \bm{\alpha}: g(\bm{\alpha} | \bm{\alpha}^{(t)}) \leq 
+  parameter estimate $\bm{\alpha}^{(l)}$ with function 
+  $g(\bm{\alpha} | \bm{\alpha}^{(l)})$, such that
+  $\forall \bm{\alpha}: g(\bm{\alpha} | \bm{\alpha}^{(l)}) \leq 
   \log p(\bm{\alpha} | \mathbf{Y})$ 
-  and $g(\bm{\alpha}^{(t)} | \bm{\alpha}^{(t)}) = 
-  \log p(\bm{\alpha} | \mathbf{Y})$. Then, the sequence
+  and $g(\bm{\alpha}^{(l)} | \bm{\alpha}^{(l)}) = 
+  \log p(\bm{\alpha}^{(l)} | \mathbf{Y})$. Then, the sequence
   $$
-  \bm{\alpha}^{(t + 1)} = \underset{\bm{\alpha}}{\argmax} 
-  g(\bm{\alpha} | \bm{\alpha}^{(t+1)})
+  \bm{\alpha}^{(l + 1)} = \underset{\bm{\alpha}}{\argmax} 
+  g(\bm{\alpha} | \bm{\alpha}^{(l)})
   $$
-  converges to a local maximum of $f(\bm{\alpha})$. Generally, the minorisation
+  converges to a local maximum of $\log p(\bm{\alpha} | \mathbf{Y})$. 
+  Generally, the minorisation
   function is chosen such that it is concave and easy to maximise. In our case,
   a suitable minorisation is:
   \begin{subequations}\label{eq:minor}
     \begin{align}
-      g(\bm{\alpha} | \bm{\alpha}^{(t+1)}) = -\sum_{d=1}^D \bigg[
-      & \diag \( \X \tr \mathbf{A}_d^{(t)} \X \) \tr \exp (\tilde{\mathbf{C}}_d
+      g(\bm{\alpha} | \bm{\alpha}^{(l)}) = -\sum_{d=1}^D \bigg[
+      & \diag \( \X \tr \mathbf{A}_d^{(l)} \X \) \tr \exp (\tilde{\mathbf{C}}_d
       \bm{\alpha}) \\
-      & + \frac{n + 1}{\mathbf{y}_d \tr \mathbf{A}_d^{(t)} \mathbf{y}_d} 
+      & + \frac{n + 1}{\mathbf{y}_d \tr \mathbf{A}_d^{(l)} \mathbf{y}_d} 
       \mathbf{y}_d \tr \left\{ \I + \mathbf{X} \diag \[ \exp\( 
       \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} \tr \right\}^{-1} 
       \mathbf{y}_d\bigg],
     \end{align}
   \end{subequations}
-  where $\mathbf{A}_d^{(t)} = \left\{ \I + \mathbf{X} \diag \[ \exp\( 
-  \tilde{\mathbf{C}}_d \bm{\alpha}^{(t)} \) \] \mathbf{X} \tr \right\}^{-1}$.
+  where $\mathbf{A}_d^{(l)} = \left\{ \I + \mathbf{X} \diag \[ \exp\( 
+  \tilde{\mathbf{C}}_d \bm{\alpha}^{(l)} \) \] \mathbf{X} \tr \right\}^{-1}$.
   Note that (\ref{eq:minor}) is concave. However, it is slow to optimise. 
   In \cite{zeng_incorporating_2020}, another minorization is proposed for
   the second term:
   $$
   \mathbf{y}_d \tr \left\{ \I + \mathbf{X} \diag \[ \exp\( 
-  \tilde{\mathbf{C}}_d \bm{\alpha} \) \] \mathbf{X} \tr \right\}^{-1} 
-  \mathbf{y}_d = \underset{\delta}{\max} 
-  - ||\mathbf{y}_d - \mathbf{X} \delta ||_2^2 - 
-  \delta \tr \diag \[ \exp\(
-  -\tilde{\mathbf{C}}_d \bm{\alpha} \) \] \delta.
+  \tilde{\mathbf{C}}_d \bm{\alpha}^{(l)} \) \] \mathbf{X} \tr \right\}^{-1} 
+  \mathbf{y}_d = \underset{\bm{\delta}_d}{\max} 
+  - ||\mathbf{y}_d - \mathbf{X} \bm{\delta}_d ||_2^2 - 
+  \bm{\delta}_d \tr \diag \[ \exp\(
+  -\tilde{\mathbf{C}}_d \bm{\alpha}^{(l)} \) \] \bm{\delta}_d.
   $$
-  The extra parameter $\delta$ is estimated by any standard ridge regression
-  package, such as \texttt{glmnet} in \texttt{R}. 
+  The extra parameters $\bm{\delta}_d$ are estimated per drug and by any 
+  standard ridge regression package, such as \texttt{glmnet} in \texttt{R}. 
   
   \section{Extra simulation results}\label{sec:simulations}
   The lasso and ridge models were fit separately per drug, using the \texttt{R}
@@ -614,65 +618,133 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	validated penalty parameters. The \texttt{xtune} model is fit with the 
 	corresponding \texttt{R} package \cite[]{ni_bayesian_2019}.
 	
-	Performance measures are estimated from the remaining 914 cell lines
-	
-<<simulation_gdsc_res1>>=
+<<simulation_gdsc>>=
+# simulation 1
 res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
-true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
-est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
 
-tab <- cbind(
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emsel.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emsel.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emseh.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emseh.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="emse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="emse.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="pmse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="pmse.", ])),
-              FUN="mean")[, -1], 2, median))
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")[, -6]
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
 
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")     
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}}^-$",
-                            "NIG$_{\\text{f}}$")
+D <- nreps <- 100
+tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-c(1, 6), ]
+
+tab1 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab1) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab1) <- c("NIG$_{\\text{f}}^-$", 
+                     "NIG$_{\\text{f}}$", "ridge", "lasso", "mxtune")
+
+# simulation 2
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")[, -6]
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
+
+D <- nreps <- 100
+tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-c(1, 6), ]
+
+tab2 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab2) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab2) <- c("NIG$_{\\text{d}}^-$", 
+                     "NIG$_{\\text{d}}$", "ridge", "lasso")
+
+# simulation 3
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+tabm <- tabm3 <- aggregate(res, by=list(substr(rownames(res), 1, 5)), 
+                           FUN="mean")[, -6]
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
+
+D <- nreps <- 100
+tabsd <- tabsd3 <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-c(1, 6), ]
+
+tab3 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab3) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab3) <- c("NIG$_{\\text{d}}^-$", 
+                     "NIG$_{\\text{d}}$", "ridge", "lasso", "mxtune")
 @	
-
-  $\lambda_{\text{feat}}$ is overestimated with median estimate 
-	\Sexpr{round(est.lambdaf[2], 2)} (the
-	true value is 1). The overestimated $\lambda_{\text{feat}}$ translates 
-	into underestimated $\gamma_{jd}^2$ variances. 
-	
-	Table \ref{tab:simulations_gdsc_tab1} displays median estimation MSE 
-	(EMSE) and prediction MSE (PMSE) for simulation Scenario 1, calculated on an 
-	independent test data set. EMSE is further split into the contribution of the
+	Tables \ref{tab:simulations_gdsc_tab1}-\ref{tab:simulation_gdsc_tab3} 
+	display averaged estimation mean squared error (EMSE), and prediction mean
+	squared error (PMSE), calculated on independent test data, for simulation 
+	Scenarios 1-4. PMSE is calculated as in Section \ref{md-sec:gdsc} of the MD, 
+	while EMSE is calculated as: $\text{EMSE} = D^{-1} p^{-1} \sum_{d=1}^D 
+  \sum_{j=1}^p (\beta_{jd} - \hat{\beta}_{jd})^2$, with
+  $\hat{\beta}_{jd}$ the estimator for $\beta_{jd}$. In the NIG
+  models, that provide full posteriors, the posterior mean 
+  $\E(\beta_{jd} | \mathbf{y}_d)$ is used as point estimate.
+	EMSE is further split into the contribution of the
 	bottom 90\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
-	top 10\% of the $\beta_{jd}$ in size. The table includes as a reference the 
-	null model, which is an empty model that only fits the means of the $\y_{d}$.
-	Estimation MSE (EMSE) and prediction MSE (PMSE) give measures of predictive 
-	performance. Focussing on MSE, we see that the NIG$_{\text{f}}$ model, 
+	top 10\% of the $\beta_{jd}$ in size.
+	
+%   
+%   
+%   $\lambda_{\text{feat}}$ is overestimated with median estimate 
+% 	\Sexpr{round(est.lambdaf[2], 2)} (the
+% 	true value is 1). The overestimated $\lambda_{\text{feat}}$ translates 
+% 	into underestimated $\gamma_{jd}^2$ variances. 
+% 	
+% 	
+% 	
+<<simulations_gdsc_tab1>>=
+kableExtra::kable_styling(knitr::kable(
+  tab1, align="r",
+  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 1, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+
+<<simulations_gdsc_tab2>>=
+kableExtra::kable_styling(knitr::kable(
+  tab2, align="r",
+  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+
+<<simulations_gdsc_tab3>>=
+kableExtra::kable_styling(knitr::kable(
+  tab3, align="r",
+  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+
+<<simulations_gdsc_pmse4, fig.cap="Simulation results for Scenario 4: Average PMSE against the proportion of permuted rows in the external features.", out.width="100%", fig.asp=1>>= 
+@
+
+	Focussing on EMSE, we see that the NIG$_{\text{f}}$ model,
 	that includes the external covariates, performs best, both in terms of 
 	estimation and prediction. The lower MSEs confirm that the model that
 	includes the external data (NIG$_{\text{f}}$) learns the underlying structure 
@@ -682,173 +754,45 @@ rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}}^-$",
 	The heavier tails of the NIG and lasso priors allow for larger $\beta_{jd}$
 	estimates and thus lower EMSE for these $\beta_{jd}$.
 	
-<<simulations_gdsc_tab1>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 1, estimated on the test data (lowest in bold).", 
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
-@
 
-<<simulation_gdsc_res2>>=
-res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.chi <- median(1/res[rownames(res)=="alphad0", 1])
-est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
-tab <- cbind(
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emsel.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emsel.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emseh.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emseh.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="emse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="emse.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="pmse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="pmse.", ])),
-              FUN="mean")[, -1], 2, median))
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <- 
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <- 
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <- 
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <- 
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")      
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{d}}^-$",
-                            "NIG$_{\\text{d}}$")
-@	
 
-  $\lambda_{\text{feat}}$ is overestimated with median estimate
-	\Sexpr{round(est.lambdaf[1], 2)} (the true value is one) and thus 
-	again underestimates the 
-	prior $\gamma_{jd}^2$ variance.
+%   $\lambda_{\text{feat}}$ is overestimated with median estimate
+% 	\Sexpr{round(est.lambdaf[1], 2)} (the true value is one) and thus 
+% 	again underestimates the 
+% 	prior $\gamma_{jd}^2$ variance.
+% 	
+% 	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is
+% 	overestimated compared to true value one. 
+% 	Scale $\lambda_{\text{drug}}$ is underestimated with median estimate
+% 	\Sexpr{round(est.lambdad[1], 2)} compared to the true value one.
+% 	
+%   Median performance measures for simulation Scenario 2 are displayed in Table
+% 	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG$_{\text{d}}$ performs
+% 	best in terms of MSE. However, NIG$_{\text{d}}^-$ performance is the same 
+% 	here, indicating that the external covariates do not add much here.
+% 	Similarly as in Scenario 1, most of the estimation performance gain over ridge
+% 	is through the top 10\% of the $\beta_{jd}$.
+% 	
+%   
+%   Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
+% 	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
+% 	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
+% 	value 1. 
+% 	
+%   NIG$_{\text{f}+\text{d}}^-$ also over- and
+% 	underestimates 
+% 	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
+% 	\Sexpr{round(est.lambdaf[1], 2)}
+% 	and \Sexpr{round(est.lambdad[1], 2)}, respectively. 
+% 	
+%   Table 
+% 	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
+% 	that NIG$_{\text{f}+\text{d}}$ outperforms the other models in terms of
+% 	prediction and estimation MSE, with again most of the edge over ridge in the
+% 	top 10\% of the $\beta_{jd}$.
 	
-	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is
-	overestimated compared to true value one. 
-	Scale $\lambda_{\text{drug}}$ is underestimated with median estimate
-	\Sexpr{round(est.lambdad[1], 2)} compared to the true value one.
-	
-  Median performance measures for simulation Scenario 2 are displayed in Table
-	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG$_{\text{d}}$ performs
-	best in terms of MSE. However, NIG$_{\text{d}}^-$ performance is the same 
-	here, indicating that the external covariates do not add much here.
-	Similarly as in Scenario 1, most of the estimation performance gain over ridge
-	is through the top 10\% of the $\beta_{jd}$.
-	
-<<simulations_gdsc_tab2>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 2, estimated on the test data (lowest in bold).",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
-@
-
-<<simulation_gdsc_res3>>=
-res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-true.chi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.chi <- median(1/res[rownames(res)=="alphad0", 1])
-est.lambdad <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, median)
-true.phi <- mean(1/(c(1, 1, 3, 7) %*% t(unname(model.matrix(~ factor(1:4))))))
-est.phi <- median(1/res[rownames(res)=="alphaf0", 1])
-est.lambdaf <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, median)
-
-phi.ratio <- apply(apply(sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphaf" ,s), 2]}) %*%
-    t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphaf0", 2]/m}), 2, median)
-chi.ratio <- apply(apply(sapply(0:3, function(s) {
-  res[rownames(res)==paste0("alphad" ,s), 2]}) %*%
-    t(cbind(1, rbind(0, diag(3)))), 2, function(m) {
-      res[rownames(res)=="alphad0", 2]/m}), 2, median)
-true.ratio <- as.numeric(1/(c(1, 1, 3, 7) %*%
-                              t(unname(model.matrix(~ factor(1:4))))))
-
-tab <- cbind(
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emsel.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emsel.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 6)=="emseh.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 6)=="emseh.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="emse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="emse.", ])),
-              FUN="mean")[, -1], 2, median),
-  apply(
-    aggregate(res[substr(rownames(res), 1, 5)=="pmse.", ], 
-              by=list(rownames(res[substr(rownames(res), 1, 5)=="pmse.", ])),
-              FUN="mean")[, -1], 2, median))
-tab <- round(tab, 3)
-tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1] <-
-  paste0("\\textbf{", tab[which(tab[, 1]==min(tab[, 1], na.rm=TRUE)), 1], "}")
-tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2] <-
-  paste0("\\textbf{", tab[which(tab[, 2]==min(tab[, 2], na.rm=TRUE)), 2], "}")
-tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3] <-
-  paste0("\\textbf{", tab[which(tab[, 3]==min(tab[, 3], na.rm=TRUE)), 3], "}")
-tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4] <-
-  paste0("\\textbf{", tab[which(tab[, 4]==min(tab[, 4], na.rm=TRUE)), 4], "}")
-colnames(tab) <- c("$\\text{EMSE}_{\\text{bottom}}$",
-                   "$\\text{EMSE}_{\\text{top}}$",
-                   "$\\text{EMSE}_{\\text{total}}$",
-                   "$\\text{PMSE}$")
-rownames(tab)[c(1, 2)] <- c("NIG$_{\\text{f}+\\text{d}}^-$",
-                            "NIG$_{\\text{f}+\\text{d}}$")
-@
-  
-  Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
-	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
-	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
-	value 1. 
-	
-  NIG$_{\text{f}+\text{d}}^-$ also over- and
-	underestimates 
-	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
-	\Sexpr{round(est.lambdaf[1], 2)}
-	and \Sexpr{round(est.lambdad[1], 2)}, respectively. 
-	
-  Table 
-	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
-	that NIG$_{\text{f}+\text{d}}$ outperforms the other models in terms of
-	prediction and estimation MSE, with again most of the edge over ridge in the
-	top 10\% of the $\beta_{jd}$.
-	
-<<simulations_gdsc_tab3>>=
-library(knitr, quietly=TRUE, verbose=FALSE)
-suppressWarnings(library(kableExtra))
-options(knitr.kable.NA="", digits=3)
-kable(tab, col.names=colnames(tab), align="r",
-      caption="Median performance measure for simulation Scenario 3, estimated on the test data (lowest in bold).",
-      format="latex", booktabs=TRUE, escape=FALSE) %>%
-  kable_styling(latex_options=c("HOLD_position"))
-@
 
 <<simulations_gdsc_post5, fig.cap="Simulation results for Scenario 3: Samples from posterior with variational posterior superimposed (red line) for estimated hyperparameters (top row) $\\hat{\\chi}_1$, (second row) $\\hat{\\chi}_2$, (third row) $\\hat{\\chi}_3$, (bottom row) $\\hat{\\chi}_4$, (left column) $\\hat{\\phi}_1$, (second column) $\\hat{\\phi}_2$, (third column) $\\hat{\\phi}_3$, and (last column) $\\hat{\\phi}_4$.", out.width="100%", fig.asp=1>>= 
-@
-
-<<simulations_gdsc_pmse4, fig.cap="Simulation results for Scenario 4: Median PMSE against the proportion of permuted rows in the external features.", out.width="50%", fig.asp=1>>= 
 @
 
   \section{Extra GDSC data results}\label{sec:gdsc}

@@ -255,7 +255,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 		\end{align}
 	\end{subequations}
 	where $\mathcal{IG}(\phi, \lambda)$ denotes an inverse Gaussian distribution 
-	with mean $\phi$ and shape $\lambda$. 
+	with mean $\phi$ and shape $\lambda > 0$. 
 	
 	In model (\ref{eq:prior}), $\gamma_{jd}^2$ in (\ref{eq:gammaprior}) denotes a 
 	local variance 
@@ -324,14 +324,14 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   large influence on the posterior, while degree of `vagueness' is a difficult 
   parameter to set. This influence is especially pronounced if the likelihood is
   relatively flat, as may be reasonably expected in the large $p$, 
-  small $n$ setting. We therefore model the error variance with Jeffrey's 
+  small $n$ setting. We therefore model the error variance with Jeffreys 
   objective prior 
   \cite[]{jeffreys_invariant_1946} that does not depend on any 
   subjective specification of hyperparameters. In the derivation of our 
-  Jeffrey's prior
+  Jeffreys prior
   for the error variance, we jointly consider an unknown data mean and variance 
   \cite[]{kass_selection_1996}. This
-  joint consideration results in the somewhat unorthodox $1/\sigma^3$ Jeffrey's
+  joint consideration results in the somewhat unorthodox $1/\sigma^3$ Jeffreys
   prior.
 	
 	\subsection{External information}\label{sec:external}
@@ -544,10 +544,10 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	algorithm:
 	\begin{align*}
 	  \bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} & = \underset{\bm{\alpha},
-	  \bm{\lambda}}{\argmax}\E_{\cdot | \Y} 
+	  \bm{\lambda} > 0}{\argmax}\E_{\cdot | \Y} 
 	  [\log p(\Y, \B, \bm{\Gamma}^2, \bm{\tau}^2, \bsigma^2) | \bm{\alpha}^{(l)},
 	  \bm{\lambda}^{(l)}] \\
-	  & = \underset{\bm{\alpha},\bm{\lambda}}{\argmax} 
+	  & = \underset{\bm{\alpha},\bm{\lambda} > 0}{\argmax} 
 	  \E_{\cdot | \Y} [\log \pi (\bm{\Gamma}^2) | \bm{\alpha}_{\text{feat}}^{(l)},
 	  \bm{\lambda}_{\text{feat}}^{(l)}] + 
 	  \E_{\cdot | \Y} [\log \pi (\bm{\tau}^2) | 
@@ -569,7 +569,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	approximation developed in Section \ref{sec:variationalbayes}:
 	$$
 	\bm{\alpha}^{(l+1)},\bm{\lambda}^{(l+1)} = 
-	\underset{\bm{\alpha},\bm{\lambda}}{\argmax}\E_{Q^{(l)}} 
+	\underset{\bm{\alpha},\bm{\lambda} > 0}{\argmax}\E_{Q^{(l)}} 
 	[\log \pi(\bm{\Gamma}^2)| \bm{\alpha}_{\text{feat}}^{(l)}, 
 	\bm{\lambda}_{\text{feat}}^{(l)}] + 
 	\E_{Q^{(l)}} [\log \pi(\bm{\tau}^2)| 
@@ -618,7 +618,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     2 (\bm{\alpha}^{(l+1)}_{\text{drug}}) \tr \mathbf{Z} \tr 
     \mathbf{1}_{D \times 1} \]^{-1},
   \end{align*}
-  where 
+  where SM Section \ref{sm-sec:eb} shows that $\bm{\lambda}^{(l+1)} > 0$ and
   \begin{align*}
     e_{jd}^{(l)} & = \E_{Q^{(l)}}(\gamma_{jd}^2| 
     \bm{\alpha}_{\text{feat}}^{(l)}, 
