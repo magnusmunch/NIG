@@ -4,7 +4,7 @@
 ncores <- 100
 
 ### libraries
-packages <- c("foreach", "doParallel", "cambridge", "statmod", "glmnet", 
+packages <- c("foreach", "doParallel", "NIG", "statmod", "glmnet", 
               "xtune", "rstan")
 sapply(packages, library, character.only=TRUE)
 

@@ -5,7 +5,7 @@
 ################################################################################
 
 ### libraries
-packages <- c("foreach", "doParallel", "rstan", "glmnet", "pInc", "cambridge", 
+packages <- c("foreach", "doParallel", "rstan", "glmnet", "pInc", "NIG", 
               "xtune")
 sapply(packages, library, character.only=TRUE)
 
@@ -923,7 +923,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
     sample(c(rep(1:nfolds, each=ntrain[d] %/% nfolds),
              rep(1:(ntrain[d] %% nfolds), (ntrain[d] %% nfolds)!=0)))})
   
-  # semnig models
+  # # semnig models
   # cv.semnig1 <- semnig(x=xtrain, y=ytrain,
   #                      C=lapply(xtrain, function(s) {matrix(rep(1, ncol(s)))}),
   #                      Z=matrix(1, nrow=D), full.post=TRUE,
@@ -931,7 +931,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   cv.semnig2 <- semnig(x=xtrain, y=ytrain, C=C, Z=Z,
                        full.post=TRUE, control=control.semnig)
 
-  # penalized regression models
+  # # penalized regression models
   # cv.ridge1 <- lapply(c(1:D), function(d) {
   #   cv.glmnet(xtrain[[d]], ytrain[[d]], alpha=0, foldid=foldid2[[d]],
   #             intercept=FALSE)})
@@ -1021,7 +1021,7 @@ psel <- Reduce("rbind", lapply(res, "[[", "psel"))
 rownames(psel) <- paste0("psel.", rownames(psel))
 
 res <- rbind(pmse, psel)
-write.table(res, file="results/analysis_gdsc_res4.txt")
+write.table(res1, file="results/analysis_gdsc_res4.txt")
 
 ################################################################################
 ############################### computation times ##############################
@@ -1070,6 +1070,31 @@ methods <- c("semnig1", "semnig2", "ridge1", "lasso1", "xtune1", "ebridge1",
 res4 <- cbind(res4.1, res4.2, res4.3)
 colnames(res4)[17] <- "bSEM1"
 res <- res4[, methods]
+
+
+load(file="results/analysis_gdsc_res4.Rdata")
+pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
+rownames(pmse) <- paste0("pmse.", rownames(pmse))
+psel <- Reduce("rbind", lapply(res, "[[", "psel"))
+rownames(psel) <- paste0("psel.", rownames(psel))
+
+res <- rbind(pmse, psel)
+write.table(res1, file="results/analysis_gdsc_res4.txt")
+res1 <- read.table("results/analysis_gdsc_res4.txt", row.names=NULL)
+temp <- res1[, 1]
+res1 <- as.matrix(res1[, -1])
+rownames(res1) <- temp
+
+res2 <- read.table("results/analysis_gdsc_res4.2.txt", row.names=NULL)
+temp <- res2[, 1]
+res2 <- as.matrix(res2[, -1])
+rownames(res2) <- temp
+str(res2)
+colnames(res1)
+colnames(res2)
+res1[, "dss.semnig2"] <- res2[, "dss.semnig2"]
+test <- all.equal(res1[, c("lasso1")], res2[, "lasso1"])
+test[substr(rownames(test), 1, 5)=="psel.", ]
 
 
 

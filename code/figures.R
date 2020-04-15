@@ -262,6 +262,98 @@ par(opar)
 ################################################################################
 ################################## supplement ##################################
 ################################################################################
+# ---- simulations_gdsc_pmse4 ----
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")[, -6]
+plotm <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"),
+                    frac=0, 
+                    tabm[tabm$Group.1 %in% 
+                           c("emse.", "emseh", "emsel", "pmse."), -1])
+
+tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-c(1, 6), ]
+plotsd <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"),
+                     frac=0, t(tabsd))
+
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+D <- nreps <- 100
+fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
+measures <- c("emse", "emseh", "emsel", "pmse")
+
+combns <- apply(expand.grid(paste0("frac", fracs), paste0(measures, ".")), 1, 
+                paste0, collapse=".")
+
+plotm <- rbind(plotm, data.frame(
+  measure=rep(measures, each=length(fracs)),
+  frac=rep(fracs, length(measures)),
+  t(sapply(combns, function(s) {
+    colMeans(res[substr(rownames(res), 1, nchar(s))==s, ])}))[, -5]))
+
+plotsd <- rbind(plotsd, data.frame(
+  measure=rep(measures, each=length(fracs)),
+  frac=rep(fracs, length(measures)),
+  t(sapply(combns, function(s) {
+    apply(aggregate(res[substr(rownames(res), 1, nchar(s))==s, ], 
+                    list(rep(1:nreps, each=D)), mean)[, -1], 2, sd)}))[, -5]))
+
+col <- bpy.colors(6, cutoff.tail=0.3)
+
+ylim1 <- range(plotm[plotm$measure=="emse", -c(1, 2)])
+ylim2 <- range(plotm[plotm$measure=="emsel", -c(1, 2)])
+ylim3 <- range(plotm[plotm$measure=="emseh", -c(1, 2)])
+ylim4 <- range(plotm[plotm$measure=="pmse", -c(1, 2)])
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(1:4, nrow=2, byrow=TRUE))
+plot(plotm$frac[plotm$measure=="emse"], plotm$NIG.[plotm$measure=="emse"], 
+     ylim=ylim1, ylab="EMSE", xlab="Proportion of permuted rows", type="l",
+     cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(a)")
+for(m in 2:(ncol(plotm) - 2)) {
+  lines(plotm$frac[plotm$measure=="emse"], 
+        plotm[plotm$measure=="emse", colnames(plotm)[m + 2]], 
+        ylim=ylim1, lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[m])
+}
+plot(plotm$frac[plotm$measure=="emsel"], plotm$NIG.[plotm$measure=="emsel"], 
+     ylim=ylim2, ylab=expression(EMSE[bottom]), 
+     xlab="Proportion of permuted rows", type="l",
+     cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(b)")
+for(m in 2:(ncol(plotm) - 2)) {
+  lines(plotm$frac[plotm$measure=="emsel"], 
+        plotm[plotm$measure=="emsel", colnames(plotm)[m + 2]], 
+        lwd=1.5, cex=1.5, col=col[m])
+}
+plot(plotm$frac[plotm$measure=="emseh"], plotm$NIG.[plotm$measure=="emseh"], 
+     ylim=ylim3, ylab=expression(EMSE[top]), xlab="Proportion of permuted rows", 
+     type="l", cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, 
+     main="(c)")
+for(m in 2:(ncol(plotm) - 2)) {
+  lines(plotm$frac[plotm$measure=="emseh"], 
+        plotm[plotm$measure=="emseh", colnames(plotm)[m + 2]], 
+        lwd=1.5, cex=1.5, col=col[m])
+}
+plot(plotm$frac[plotm$measure=="pmse"], plotm$NIG.[plotm$measure=="pmse"], 
+     ylim=ylim4, ylab="PMSE", xlab="Proportion of permuted rows", type="l",
+     cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(d)")
+for(m in 2:(ncol(plotm) - 2)) {
+  lines(plotm$frac[plotm$measure=="pmse"], 
+        plotm[plotm$measure=="pmse", colnames(plotm)[m + 2]], 
+        lwd=1.5, cex=1.5, col=col[m])
+}
+legend("topright", legend=colnames(plotm)[-c(1, 2)], col=col, pch=16)
+par(opar)
+
+
 # ---- simulations_gdsc_post5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
 D <- 100
@@ -285,42 +377,9 @@ for(h in 1:H) {
 }
 par(opar)
 
-# ---- simulations_gdsc_pmse4 ----
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
 
-D <- 100
-nreps <- 100
-fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
 
-pmse <- res[grepl(".pmse.", rownames(res), fixed=TRUE), ]
-pmse <- aggregate(pmse, by=list(rep(1:(nreps*length(fracs)), each=D)), 
-                  FUN="mean")[, -1]
-mpmse <- aggregate(pmse, by=list(rep(1:length(fracs), each=nreps)), 
-                   FUN="mean")[, -1]
-
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-
-pmse <- aggregate(res[substr(rownames(res), 1, 5)=="pmse.", ], 
-                  by=list(rep(1:nreps, each=D)), FUN="mean")[, -1]
-mpmse <- rbind(apply(pmse, 2, mean), mpmse)
-
-col <- bpy.colors(1, cutoff.tail=0.3)
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-plot(c(0, fracs), mpmse[, 2], ylab="PMSE", xlab="Proportion of permuted rows", 
-     col=col[1], cex=1.5, cex.lab=1.5, cex.axis=1.5)
-par(opar)
-
-# simualtions 5
+# ---- simulations_gdsc_res5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
 
 
