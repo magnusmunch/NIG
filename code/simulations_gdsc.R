@@ -211,9 +211,9 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune")
 control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=1, maxit.vb=1, 
+                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=1, 
+control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
 
 # setup cluster
@@ -319,14 +319,16 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
                          Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
                 rep(NA, D))
   
-  lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig1)),
-                colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig2)), 
-                rep(NA, D), rep(NA, D), rep(NA, D))
+  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig1)),
+  #               colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
+  #               rep(NA, D), rep(NA, D), rep(NA, D))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot, lpml=lpml)
+       elbo=elbo, elbot=elbot
+       # , lpml=lpml
+       )
 }
 stopCluster(cl=cl)
 
@@ -338,14 +340,20 @@ pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
 elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
 elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
+# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
 
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
+              # lpml, 
+              est)
 colnames(res2) <- c(methods)
 rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot", "lpml"), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+                                 "elbo", "elbot"
+                                 # , "lpml"
+                                 ), each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 
+                               7)),
+                               # 8)),
                     rep(c(paste0("alphad", 0:3), "lambdad"), times=nreps))
 write.table(res2, file="results/simulations_gdsc_res2.2.txt")
 
@@ -498,14 +506,16 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                          Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
                 rep(NA, D), rep(NA, D))
   
-  lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig1)),
-                colMeans(logcpo(replicate(D, list(xtest)), 
-                                Reduce("cbind", ytest), n, fit.semnig2)), 
-                rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig1)),
+  #               colMeans(logcpo(replicate(D, list(xtest)), 
+  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
+  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot, lpml=lpml)
+       elbo=elbo, elbot=elbot
+       # , lpml=lpml
+       )
 }
 stopCluster(cl=cl)
 
@@ -517,15 +527,20 @@ pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
 elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
 elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
+# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
 
-
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
+              # lpml, 
+              est)
 colnames(res2) <- c(methods)
 rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot", "lpml"), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+                                 "elbo", "elbot"
+                                 # , "lpml"
+                                 ), each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 
+                               7)),
+                               # 8)),
                     rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                           "lambdaf", "lambdad"), times=nreps))
 write.table(res2, file="results/simulations_gdsc_res3.2.txt")
@@ -689,14 +704,16 @@ res <- foreach(q=fracs) %:%
                          Reduce("cbind", ytest)), rep(NA, D), rep(NA, D),
                 rep(NA, D), rep(NA, D))
 
-  lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)),
-                                Reduce("cbind", ytest), n, fit.semnig1)),
-                colMeans(logcpo(replicate(D, list(xtest)),
-                                Reduce("cbind", ytest), n, fit.semnig2)),
-                rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)),
+  #                               Reduce("cbind", ytest), n, fit.semnig1)),
+  #               colMeans(logcpo(replicate(D, list(xtest)),
+  #                               Reduce("cbind", ytest), n, fit.semnig2)),
+  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
 
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est,
-       elbo=elbo, elbot=elbot, lpml=lpml, q=q)
+       elbo=elbo, elbot=elbot, 
+       # lpml=lpml, 
+       q=q)
 }
 stopCluster(cl=cl)
 
@@ -709,16 +726,24 @@ res2 <- Reduce("rbind", lapply(res, function(r) {
   pmset <- Reduce("rbind", lapply(r, "[[", "pmset"))
   elbo <- Reduce("rbind", lapply(r, "[[", "elbo"))
   elbot <- Reduce("rbind", lapply(r, "[[", "elbot"))
-  lpml <- Reduce("rbind", lapply(r, "[[", "lpml"))
+  # lpml <- Reduce("rbind", lapply(r, "[[", "lpml"))
   est <- Reduce("rbind", lapply(r, "[[", "est"))
-  rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, lpml, est)}))
+  rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
+        # lpml, 
+        est)}))
 
 colnames(res2) <- c(methods)
 rownames(res2) <- 
-  paste0(rep(paste0("frac", fracs), each=8*D*nreps + 10*nreps), ".",
+  paste0(rep(paste0("frac", fracs), each=
+               # 8
+               7*D*nreps + 10*nreps), ".",
          c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                        "elbo", "elbot", "lpml"), each=D*nreps),
-                  rep(rep(paste0(".drug", c(1:D)), nreps), 8)),
+                        "elbo", "elbot"
+                        # , "lpml"
+                        ), each=D*nreps),
+                  rep(rep(paste0(".drug", c(1:D)), nreps), 
+                      7)),
+                      # 8)),
            rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                  "lambdaf", "lambdad"), times=nreps)))
 write.table(res2, file="results/simulations_gdsc_res4.2.txt")
