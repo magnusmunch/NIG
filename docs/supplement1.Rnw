@@ -692,10 +692,10 @@ tab3 <- sapply(1:ncol(tabm), function(s) {
 colnames(tab3) <- c("$\\text{EMSE}_{\\text{total}}$", 
                     "$\\text{EMSE}_{\\text{top}}$", 
                     "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
-rownames(tab3) <- c("NIG$_{\\text{d}}^-$", 
-                     "NIG$_{\\text{d}}$", "ridge", "lasso", "mxtune")
+rownames(tab3) <- c("NIG$_{\\text{f+d}}^-$", 
+                    "NIG$_{\\text{f+d}}$", "ridge", "lasso", "mxtune")
 @	
-	Tables \ref{tab:simulations_gdsc_tab1}-\ref{tab:simulation_gdsc_tab3} 
+	Tables \ref{tab:simulations_gdsc_tab1}-\ref{tab:simulations_gdsc_tab3} 
 	display averaged estimation mean squared error (EMSE), and prediction mean
 	squared error (PMSE), calculated on independent test data, for simulation 
 	Scenarios 1-4. PMSE is calculated as in Section \ref{md-sec:gdsc} of the MD, 
@@ -705,46 +705,10 @@ rownames(tab3) <- c("NIG$_{\\text{d}}^-$",
   models, that provide full posteriors, the posterior mean 
   $\E(\beta_{jd} | \mathbf{y}_d)$ is used as point estimate.
 	EMSE is further split into the contribution of the
-	bottom 90\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
+	bottom 10\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
 	top 10\% of the $\beta_{jd}$ in size.
 	
-%   
-%   
-%   $\lambda_{\text{feat}}$ is overestimated with median estimate 
-% 	\Sexpr{round(est.lambdaf[2], 2)} (the
-% 	true value is 1). The overestimated $\lambda_{\text{feat}}$ translates 
-% 	into underestimated $\gamma_{jd}^2$ variances. 
-% 	
-% 	
-% 	
-<<simulations_gdsc_tab1>>=
-kableExtra::kable_styling(knitr::kable(
-  tab1, align="r",
-  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 1, estimated on test data (lowest in bold).", 
-  format="latex", booktabs=TRUE, escape=FALSE), 
-  latex_options=c("HOLD_position"))
-@
-
-<<simulations_gdsc_tab2>>=
-kableExtra::kable_styling(knitr::kable(
-  tab2, align="r",
-  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
-  format="latex", booktabs=TRUE, escape=FALSE), 
-  latex_options=c("HOLD_position"))
-@
-
-<<simulations_gdsc_tab3>>=
-kableExtra::kable_styling(knitr::kable(
-  tab3, align="r",
-  caption="Mean EMSE (split for bottom 10\\% and top 90\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
-  format="latex", booktabs=TRUE, escape=FALSE), 
-  latex_options=c("HOLD_position"))
-@
-
-<<simulations_gdsc_pmse4, fig.cap="Simulation results for Scenario 4: Average PMSE against the proportion of permuted rows in the external features.", out.width="100%", fig.asp=1>>= 
-@
-
-	Focussing on EMSE, we see that the NIG$_{\text{f}}$ model,
+	Focussing on estimation, we see that the NIG$_{\text{f}}$ model,
 	that includes the external covariates, performs best, both in terms of 
 	estimation and prediction. The lower MSEs confirm that the model that
 	includes the external data (NIG$_{\text{f}}$) learns the underlying structure 
@@ -753,44 +717,33 @@ kableExtra::kable_styling(knitr::kable(
 	is where ridge loses the most compared to the NIG and lasso models. 
 	The heavier tails of the NIG and lasso priors allow for larger $\beta_{jd}$
 	estimates and thus lower EMSE for these $\beta_{jd}$.
-	
 
+<<simulations_gdsc_tab1>>=
+kableExtra::kable_styling(knitr::kable(
+  tab1, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 1, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
 
-%   $\lambda_{\text{feat}}$ is overestimated with median estimate
-% 	\Sexpr{round(est.lambdaf[1], 2)} (the true value is one) and thus 
-% 	again underestimates the 
-% 	prior $\gamma_{jd}^2$ variance.
-% 	
-% 	Median $\lambda_{\text{drug}}=\Sexpr{round(est.lambdad[2], 2)}$ is
-% 	overestimated compared to true value one. 
-% 	Scale $\lambda_{\text{drug}}$ is underestimated with median estimate
-% 	\Sexpr{round(est.lambdad[1], 2)} compared to the true value one.
-% 	
-%   Median performance measures for simulation Scenario 2 are displayed in Table
-% 	\ref{tab:simulations_gdsc_tab2}. Again, we see that NIG$_{\text{d}}$ performs
-% 	best in terms of MSE. However, NIG$_{\text{d}}^-$ performance is the same 
-% 	here, indicating that the external covariates do not add much here.
-% 	Similarly as in Scenario 1, most of the estimation performance gain over ridge
-% 	is through the top 10\% of the $\beta_{jd}$.
-% 	
-%   
-%   Median $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are
-% 	are over- and underestimated with \Sexpr{round(est.lambdaf[2], 2)}
-% 	and \Sexpr{round(est.lambdad[2], 2)}, respectively, compared to their true
-% 	value 1. 
-% 	
-%   NIG$_{\text{f}+\text{d}}^-$ also over- and
-% 	underestimates 
-% 	$\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ with median estimates
-% 	\Sexpr{round(est.lambdaf[1], 2)}
-% 	and \Sexpr{round(est.lambdad[1], 2)}, respectively. 
-% 	
-%   Table 
-% 	\ref{tab:simulations_gdsc_tab3}, with median performance measures, shows
-% 	that NIG$_{\text{f}+\text{d}}$ outperforms the other models in terms of
-% 	prediction and estimation MSE, with again most of the edge over ridge in the
-% 	top 10\% of the $\beta_{jd}$.
-	
+<<simulations_gdsc_tab2>>=
+kableExtra::kable_styling(knitr::kable(
+  tab2, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+
+<<simulations_gdsc_tab3>>=
+kableExtra::kable_styling(knitr::kable(
+  tab3, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 3, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+
+<<simulations_gdsc_pmse4, fig.cap="(a) Mean EMSE, separated for (b) bottom and (c) top 10\\% of $|\\hat{\\beta}_{jd}|$, and (d) PMSE for simulation Scenario 3 versus the proportion of permuted  rows in the external data, estimated on test data.", out.width="100%", fig.asp=1>>= 
+@
 
 <<simulations_gdsc_post5, fig.cap="Simulation results for Scenario 3: Samples from posterior with variational posterior superimposed (red line) for estimated hyperparameters (top row) $\\hat{\\chi}_1$, (second row) $\\hat{\\chi}_2$, (third row) $\\hat{\\chi}_3$, (bottom row) $\\hat{\\chi}_4$, (left column) $\\hat{\\phi}_1$, (second column) $\\hat{\\phi}_2$, (third column) $\\hat{\\phi}_3$, and (last column) $\\hat{\\phi}_4$.", out.width="100%", fig.asp=1>>= 
 @
@@ -800,7 +753,7 @@ kableExtra::kable_styling(knitr::kable(
   \text{CPO}_{id} = p(y_i | \bm{y}_{-i}) = 
   $$
   
-<<analysis_gdsc_res2, fig.cap="Simulation results for Scenario 4: Median PMSE against the proportion of permuted rows in the external features.", out.width="50%", fig.asp=1>>= 
+<<analysis_gdsc_res2, fig.cap="Simulation results for Scenario 4: Median PMSE against the proportion of permuted rows in the external features.", out.width="100%", fig.asp=1>>= 
 @
   
   \bibliographystyle{author_short3}  

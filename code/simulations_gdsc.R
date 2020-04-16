@@ -776,7 +776,7 @@ control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5,
                        epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.stan <- list(verbose=FALSE, show_messages=FALSE, iter=3000, 
-                     warmup=1000)
+                     warmup=1000, chains=1)
 
 ### simulate parameters
 set.seed(2020)
@@ -807,9 +807,13 @@ fit.mcmc1 <- lapply(1:D, function(d) {
                      chi=1/as.numeric(Z[d, ] %*% fit.semnig1$eb$alphad),
                      lambdaf=fit.semnig1$eb$lambdaf, 
                      lambdad=fit.semnig1$eb$lambdad), 
-           iter=control.stan$iter, warmup=control.stan$warmup,
+           iter=control.stan$iter, warmup=control.stan$warmup, 
+           chains=control.stan$chains,
            verbose=control.stan$verbose, 
-           show_messages=control.stan$show_messages)})
+           show_messages=control.stan$show_messages,
+           sample_file=paste0(
+             "results/simulations_gdsc_fit5_mcmc1/simulations_gdsc_fit5_mcmc1_drug", 
+             d, ".txt"))})
 time.mcmc1 <- proc.time()[3] - ct
 ct <- proc.time()[3]
 fit.mcmc2 <- sampling(stanmodels$nig_full,
@@ -818,10 +822,19 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
                                 y=Reduce("cbind", y), C=Reduce("rbind", C),
                                 Z=Z, nuf=10, nud=10, kappaf=1, 
                                 kappad=1, xif=1, xid=1),
-                      chains=1, iter=2000, warmup=1000)
+                      iter=control.stan$iter, warmup=control.stan$warmup, 
+                      chains=control.stan$chains,
+                      verbose=control.stan$verbose, 
+                      show_messages=control.stan$show_messages,
+                      sample_file="results/simulations_gdsc_fit5_mcmc2.txt")
 time.mcmc2 <- proc.time()[3] - ct
 save(fit.semnig1, fit.mcmc1, fit.mcmc2, 
-     file="results/simulations_gdsc_fit5.2.Rdata")
+     file="results/simulations_gdsc_fit5.Rdata")
+load(file="results/simulations_gdsc_fit5.Rdata")
+
+post.semnig1 <- list(mu=fit.semnig1$vb$mu, Sigma=fit.semnig1$vb$Sigma)
+save(post.semnig1, file="results/simulations_gdsc_fit5_semnig1.Rdata")
+save(fit.semnig1, file="results/simulations_gdsc_fit5_semnig1.Rdata")
 
 post.semnig1 <- list(mu=fit.semnig1$vb$mu, 
                      Sigma=fit.semnig1$vb$Sigma)

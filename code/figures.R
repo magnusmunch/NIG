@@ -48,7 +48,7 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -80,7 +80,7 @@ par(opar)
 
 # ---- simulations_gdsc_est2 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
+res2 <- read.table("results/simulations_gdsc_res2.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -307,6 +307,8 @@ plotsd <- rbind(plotsd, data.frame(
                     list(rep(1:nreps, each=D)), mean)[, -1], 2, sd)}))[, -5]))
 
 col <- bpy.colors(6, cutoff.tail=0.3)
+labels1 <- c("NIG$_{\\text{f+d}}^-$", 
+             "NIG$_{\\text{f+d}}$", "ridge", "lasso", "mxtune")
 
 ylim1 <- range(plotm[plotm$measure=="emse", -c(1, 2)])
 ylim2 <- range(plotm[plotm$measure=="emsel", -c(1, 2)])
@@ -353,7 +355,6 @@ for(m in 2:(ncol(plotm) - 2)) {
 legend("topright", legend=colnames(plotm)[-c(1, 2)], col=col, pch=16)
 par(opar)
 
-
 # ---- simulations_gdsc_post5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
 D <- 100
@@ -371,60 +372,94 @@ for(h in 1:H) {
     ylim <- range(c(hi$density, dnorm(m, m, s)))
     plot(hi, freq=FALSE, ylim=ylim, xlab=expression(beta), 
          ylab=expression(paste("p(", beta, "|", bold(y), ")")), 
-         main=paste0("(", letters[(h - 1)*H + g], ")"))
-    curve(dnorm(x, m, s), add=TRUE, col=2)
+         main=paste0("(", letters[(h - 1)*H + g], ")"),
+         lwd=1.5, cex=1.5)
+    curve(dnorm(x, m, s), add=TRUE, lwd=1.5, col=2)
   }
 }
 par(opar)
 
-
-
 # ---- simulations_gdsc_res5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
 
-
-library(rstan)
-get_stancode(fit.mcmc2)
-
+D <- 100
+p <- 100
+H <- 4
+G <- 4
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+phi <- 1/as.numeric(cbind(1, rbind(0, diag(3))) %*% alphaf)
+chi <- 1/as.numeric(cbind(1, rbind(0, diag(3))) %*% alphad)
 
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)),
               nrow=4, ncol=4, byrow=TRUE))
-hist(post.mcmc2$alphaf[, 1])
-hist(post.mcmc2$alphaf[, 2])
-hist(post.mcmc2$alphaf[, 3])
-hist(post.mcmc2$alphaf[, 4])
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[1, ], freq=FALSE,
+     main="(a)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[1], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[2, ], freq=FALSE,
+     main="(b)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[2], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[3, ], freq=FALSE,
+     main="(c)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[3], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[4, ], freq=FALSE,
+     main="(d)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[4], col=2)
 par(opar)
 
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)), 
+layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)),
               nrow=4, ncol=4, byrow=TRUE))
-hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 1])
-hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 2])
-hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 3])
-hist(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))[, 4])
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[1, ], freq=FALSE,
+     main="(a)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[1], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[2, ], freq=FALSE,
+     main="(b)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[2], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[3, ], freq=FALSE,
+     main="(c)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[3], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[4, ], freq=FALSE,
+     main="(d)", xlab=expression(phi), 
+     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=phi[4], col=2)
 par(opar)
 
-plot(alphaf, colMeans(post.mcmc2$alphaf))
-
-plot(1/as.numeric(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
-     colMeans(1/(post.mcmc2$alphaf %*% t(cbind(1, rbind(0, diag(3)))))))
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(rep(rep(c(1:2), each=2), 2)), nrow=2, ncol=4, byrow=TRUE))
+plot(chi, rowMeans(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad))
 abline(a=0, b=1)
-
-plot(1/as.numeric(alphad %*% t(cbind(1, rbind(0, diag(3))))),
-     colMeans(1/(post.mcmc2$alphad %*% t(cbind(1, rbind(0, diag(3)))))))
+plot(phi, rowMeans(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf))
 abline(a=0, b=1)
+par(opar)
+
 test <- stan_model("rpackage/inst/stan/nig_full.stan")
 
 
-stan_ess(fit.mcmc2)
-stan_rhat
-stan_diag
-stan_mcse
-stan_ac
-stan_trace(fit.mcmc2, pars=c("beta[2]"))
+stan_rhat(fit.mcmc2, pars=c("alphaf", "alphad"))
+stan_ess(fit.mcmc2, pars=c("alphaf", "alphad"))
+stan_mcse(fit.mcmc2, pars=c("alphaf", "alphad"))
+stan_ac(fit.mcmc2, pars=c("alphaf", "alphad"))
+stan_trace(fit.mcmc2, pars=c("alphaf", "alphad"))
 
 # ---- analysis_gdsc_res2 ----
 suppressWarnings(suppressMessages(library(sp)))
