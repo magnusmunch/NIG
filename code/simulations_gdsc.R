@@ -203,16 +203,17 @@ H <- length(alphad)
 shape <- 3
 rate <- 2
 lambdad <- 10
-Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
+Z <- unname(model.matrix(~ factor(sort(c(rep(1:H, each=D %/% H), 
+                                         rep(1:(D %% H), (D %% H)!=0))))))
 x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
 methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune")
 control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                       epsilon.vb=1e-3, maxit.eb=1, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
+control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=1, 
                        trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
 
 # setup cluster
@@ -222,7 +223,7 @@ if(ncores > 1) {
 } else {
   registerDoSEQ()
 }
-res <- foreach(r=1:nreps, .packages=packages) %dopar% {
+res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
   cat("\r", "rep", r)
   set.seed(2020 + r)
   
@@ -367,7 +368,8 @@ rate <- 2
 lambdaf <- 1
 lambdad <- 1
 C <- replicate(D, list(unname(model.matrix(~ factor(rep(1:G, each=p/G))))))
-Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
+Z <- unname(model.matrix(~ factor(sort(c(rep(1:H, each=D %/% H), 
+                                         rep(1:(D %% H), (D %% H)!=0))))))
 x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
@@ -548,7 +550,8 @@ lambdaf <- 1
 lambdad <- 1
 fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1) # fraction of ext. data permuted
 C <- replicate(D, list(unname(model.matrix(~ factor(rep(1:G, each=p/G))))))
-Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
+Z <- unname(model.matrix(~ factor(sort(c(rep(1:H, each=D %/% H), 
+                                         rep(1:(D %% H), (D %% H)!=0))))))
 x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
@@ -739,7 +742,8 @@ rate <- 2
 lambdaf <- 1
 lambdad <- 1
 C <- replicate(D, list(unname(model.matrix(~ factor(rep(1:G, each=p/G))))))
-Z <- unname(model.matrix(~ factor(rep(1:H, each=D/H))))
+Z <- unname(model.matrix(~ factor(sort(c(rep(1:H, each=D %/% H), 
+                                         rep(1:(D %% H), (D %% H)!=0))))))
 
 # estimation settings
 methods <- c("NIG", "MCMC")
