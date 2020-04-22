@@ -48,7 +48,7 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -80,7 +80,7 @@ par(opar)
 
 # ---- simulations_gdsc_est2 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
+res2 <- read.table("results/simulations_gdsc_res2.2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp

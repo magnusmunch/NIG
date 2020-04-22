@@ -830,7 +830,7 @@ psel <- Reduce("rbind", lapply(res, "[[", "psel"))
 rownames(psel) <- paste0("psel.", rownames(psel))
 
 res <- rbind(pmse, psel)
-write.table(res, file="results/analysis_gdsc_res4.txt")
+write.table(res1, file="results/analysis_gdsc_res4.txt")
 
 ################################################################################
 ############################### computation times ##############################
