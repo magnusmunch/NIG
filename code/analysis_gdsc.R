@@ -12,8 +12,7 @@ sapply(packages, library, character.only=TRUE)
 nfolds <- 10
 
 # number of cores to use
-ncores <- 1
-# ncores <- min(100, nfolds)
+ncores <- min(100, nfolds)
 
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
