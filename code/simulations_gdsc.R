@@ -535,24 +535,31 @@ res <- foreach(q=fracs) %:%
 stopCluster(cl=cl)
 
 # prepare and save results table
-res2 <- Reduce("rbind", lapply(res, function(r) {
+res2.1 <- Reduce("rbind", lapply(res, function(r) {
   emse <- Reduce("rbind", lapply(r, "[[", "emse"))
   emsel <- Reduce("rbind", lapply(r, "[[", "emsel"))
   emseh <- Reduce("rbind", lapply(r, "[[", "emseh"))
+  rbind(emse, emsel, emseh)}))
+res2.2 <- Reduce("rbind", lapply(res, function(r) {
   pmse <- Reduce("rbind", lapply(r, "[[", "pmse"))
   pmset <- Reduce("rbind", lapply(r, "[[", "pmset"))
   est <- Reduce("rbind", lapply(r, "[[", "est"))
-  rbind(emse, emsel, emseh, pmse, pmset, est)}))
+  rbind(pmse, pmset, est)}))
+colnames(res2.1) <- colnames(res2.2) <- c("nig1", "nig2", "ridge1", "lasso1")
 
-colnames(res2) <- c("nig1", "nig2", "ridge1", "lasso1")
-rownames(res2) <- 
-  paste0(rep(paste0("frac", fracs), each=5*D*nreps + 10*nreps), ".",
-         c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
-                      each=D*nreps),
-                  rep(rep(paste0(".drug", c(1:D)), nreps), 5)),
+rownames(res2.1) <- 
+  paste0(rep(paste0("frac", format(round(fracs, 2))), each=3*D*nreps), ".",
+         paste0(rep(c("emse", "emsel", "emseh"), each=D*nreps),
+                rep(rep(paste0(".drug", c(1:D)), nreps), 3)))
+rownames(res2.2) <- 
+  paste0(rep(paste0("frac", format(round(fracs, 2))), 
+             each=2*D*nreps + 10*nreps), ".",
+         c(paste0(rep(c("pmse", "pmset"), each=D*nreps),
+                  rep(rep(paste0(".drug", c(1:D)), nreps), 2)),
            rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                  "lambdaf", "lambdad"), times=nreps)))
-write.table(res2, file="results/simulations_gdsc_res4.txt")
+write.table(res2.1, file="results/simulations_gdsc_res4.1.txt")
+write.table(res2.2, file="results/simulations_gdsc_res4.2.txt")
 
 ################################################################################
 ################################# simulation 5 #################################
