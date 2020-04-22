@@ -1,6 +1,16 @@
 # Normal inverse Gaussian regression
 All commands below assume that the working directory is the NIG project folder.
 
+## packages
+required R packages, available from CRAN: 
+* knitr 
+* kableExtra
+* gdata
+* sp
+* GeneralizedHyperbolic
+available from bioconductor:
+* biomaRt
+
 ## Code
 * R code files are in code folder
 * GDSC data based simulations are in code/simulations_gdsc.R

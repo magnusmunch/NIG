@@ -4,8 +4,7 @@
 ncores <- 100
 
 ### libraries
-packages <- c("foreach", "doParallel", "NIG", "statmod", "glmnet", 
-              "xtune", "rstan")
+packages <- c("foreach", "doParallel", "NIG", "statmod", "glmnet", "rstan")
 sapply(packages, library, character.only=TRUE)
 
 ### load and preprocess data
@@ -18,10 +17,8 @@ nreps <- 100
 ################################# simulation 1 #################################
 ################################################################################
 ### simulation settings
-# D <- 100
 D <- length(resp)
 p <- 100
-# n <- 100
 n <- floor(nrow(expr$expr))/2
 ntest <- nrow(expr$expr) - n
 alphaf <- c(1, 1, 3, 7)
@@ -34,12 +31,10 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
-methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
-                       maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
+control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                maxit.post=100, maxit.block=0)
+
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -79,40 +74,27 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
                      rep(1:(n %% nfolds), (n %% nfolds)!=0)))
 
   # fitting models
-  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain, 
+  fit.nig1 <- nig(x=rep(list(xtrain), D), y=ytrain, 
                         C=replicate(D, list(matrix(rep(1, p)))), 
-                        Z=NULL, full.post=TRUE, control=control.semnig)
-  fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=NULL, 
-                        full.post=TRUE, control=control.semnig)
+                        Z=NULL, full.post=TRUE, control=control)
+  fit.nig2 <- nig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=NULL, 
+                        full.post=TRUE, control=control)
 
   # standard penalized methods
-  fit.lasso1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
-              foldid=foldid)})
   fit.ridge1 <- lapply(1:D, function(d) {
     cv.glmnet(xtrain, ytrain[[d]], alpha=0, intercept=FALSE, standardize=TRUE,
               foldid=foldid)})
-  
-  # empirical bayes penalized methods
-  fit.xtune1 <- lapply(1:D, function(d) {
-    xtune(xtrain, ytrain[[d]], C[[d]][, -1], family="linear", method="ridge", 
-          message=FALSE, control=list(intercept=FALSE))})
-  fit.ebridge1 <- ebridge(xtrain, ytrain, lapply(C, function(s) {s[, -1]}), 
-                          NULL, foldid=rep(list(foldid), D), 
-                          hyper=list(lambda=1/sqrt(n*sapply(
-                            fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
-                          control=control.ebridge)
+  fit.lasso1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
+              foldid=foldid)})
   
   # estimates
-  best <- list(semnig1=Reduce("cbind", fit.semnig1$vb$mpost$beta), 
-               semnig2=Reduce("cbind", fit.semnig2$vb$mpost$beta),
+  best <- list(nig1=Reduce("cbind", fit.nig1$vb$mpost$beta), 
+               nig2=Reduce("cbind", fit.nig2$vb$mpost$beta),
                ridge1=sapply(fit.ridge1, function(s) {
                  coef(s, s="lambda.min")[-1, 1]}),
                lasso1=sapply(fit.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=sapply(fit.xtune1, function(s) {
-                 unname(s$beta.est[-1, ])}),
-               ebridge1=Reduce("cbind", fit.ebridge1$beta1))
+                 coef(s, s="lambda.min")[-1, 1]}))
   
   # predictions
   pred <- lapply(best, function(b) {xtest %*% b})
@@ -135,31 +117,11 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     colMeans((s - Reduce("cbind", ytrain))^2)})
   
   # save alpha estimates
-  est <- cbind(c(fit.semnig1$eb$alphaf, rep(NA, 3), fit.semnig1$eb$lambdaf),
-               c(fit.semnig2$eb$alphaf, fit.semnig2$eb$lambdaf),
-               rep(NA, 5), rep(NA, 5),
-               c(colMeans(-t(sapply(fit.xtune1, "[[", "alpha.est"))), NA),
-               c(NA, fit.ebridge1$alphaf, NA))
-
-  # calculate ELBO and conditional predictive ordinate for semnig models
-  # elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
-  #                fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
-  #                rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
-  # 
-  # elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-  #                        Reduce("cbind", ytest)),
-  #               new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-  #                        Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
-  #               rep(NA, D), rep(NA, D))
-
-  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig1)),
-  #               colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
-  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  est <- cbind(c(fit.nig1$eb$alphaf, rep(NA, 3), fit.nig1$eb$lambdaf),
+               c(fit.nig2$eb$alphaf, fit.nig2$eb$lambdaf),
+               rep(NA, 5), rep(NA, 5))
   
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est)
-       # , elbo=elbo, elbot=elbot, lpml=lpml)
 }
 stopCluster(cl=cl)
 
@@ -169,33 +131,22 @@ emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
 emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
 pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-# elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
-# elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
   
-
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, 
-              # elbo, elbot, lpml, 
-              est)
-colnames(res2) <- c(methods)
-rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"
-                                 # , "elbo", "elbot", "lpml"
-                                 ), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 
-                               # 8
-                               5)),
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, est)
+colnames(res2) <- c("nig1", "nig2", "ridge1", "lasso1")
+rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                               each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 5)),
                     rep(c(paste0("alphaf", 0:3), "lambdaf"), times=nreps))
-write.table(res2, file="results/simulations_gdsc_res1.2.txt")
+write.table(res2, file="results/simulations_gdsc_res1.txt")
 
 ################################################################################
 ################################# simulation 2 #################################
 ################################################################################
 ### simulation settings
-# D <- 100
 D <- length(resp)
 p <- 100
-# n <- 100
 n <- floor(nrow(expr$expr))/2
 ntest <- nrow(expr$expr) - n
 alphad <- c(1, 1, 3, 7)
@@ -209,12 +160,9 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
-methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
-                       maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
+control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                maxit.post=100, maxit.block=0)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -252,34 +200,27 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
                      rep(1:(n %% nfolds), (n %% nfolds)!=0)))
   
   # fitting models
-  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain,
+  fit.nig1 <- nig(x=rep(list(xtrain), D), y=ytrain,
                         C=NULL, Z=matrix(rep(1, D)), full.post=TRUE,
-                        control=control.semnig)
-  fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=NULL, Z=Z, 
-                        full.post=TRUE, control=control.semnig)
+                        control=control)
+  fit.nig2 <- nig(x=rep(list(xtrain), D), y=ytrain, C=NULL, Z=Z, 
+                        full.post=TRUE, control=control)
   
   # standard penalized methods
-  fit.lasso1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
-              foldid=foldid)})
   fit.ridge1 <- lapply(1:D, function(d) {
     cv.glmnet(xtrain, ytrain[[d]], alpha=0, intercept=FALSE, standardize=TRUE,
               foldid=foldid)})
-  
-  # empirical bayes penalized methods
-  fit.xtune1 <- lapply(1:D, function(d) {
-    xtune(xtrain, ytrain[[d]], NULL, family="linear", method="ridge", 
-          message=FALSE, control=list(intercept=FALSE))})
+  fit.lasso1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
+              foldid=foldid)})
   
   # estimates
-  best <- list(semnig1=Reduce("cbind", fit.semnig1$vb$mpost$beta), 
-               semnig2=Reduce("cbind", fit.semnig2$vb$mpost$beta),
+  best <- list(nig1=Reduce("cbind", fit.nig1$vb$mpost$beta), 
+               nig2=Reduce("cbind", fit.nig2$vb$mpost$beta),
                ridge1=sapply(fit.ridge1, function(s) {
                  coef(s, s="lambda.min")[-1, 1]}),
                lasso1=sapply(fit.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=sapply(fit.xtune1, function(s) {
-                 unname(s$beta.est[-1, ])}))
+                 coef(s, s="lambda.min")[-1, 1]}))
   
   # predictions
   pred <- lapply(best, function(b) {xtest %*% b})
@@ -302,33 +243,11 @@ res <- foreach(r=1:nreps, .packages=packages, .errorhandling="pass") %dopar% {
     colMeans((s - Reduce("cbind", ytrain))^2)})
   
   # save alpha estimates
-  est <- cbind(c(fit.semnig1$eb$alphad, rep(NA, 3), fit.semnig1$eb$lambdad),
-               c(fit.semnig2$eb$alphad, fit.semnig2$eb$lambdad),
-               rep(NA, 5), rep(NA, 5),
-               c(mean(-t(sapply(fit.xtune1, "[[", "alpha.est"))), 
-                 rep(NA, 4)))
+  est <- cbind(c(fit.nig1$eb$alphad, rep(NA, 3), fit.nig1$eb$lambdad),
+               c(fit.nig2$eb$alphad, fit.nig2$eb$lambdad),
+               rep(NA, 5), rep(NA, 5))
   
-  # calculate ELBO and conditional predictive ordinate for semnig models
-  elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
-                 fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
-                 rep(NA, D), rep(NA, D), rep(NA, D))
-  
-  elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)),
-                new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
-                rep(NA, D))
-  
-  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig1)),
-  #               colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
-  #               rep(NA, D), rep(NA, D), rep(NA, D))
-  
-  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot
-       # , lpml=lpml
-       )
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est)
 }
 stopCluster(cl=cl)
 
@@ -338,33 +257,22 @@ emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
 emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
 pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
-elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
 
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
-              # lpml, 
-              est)
-colnames(res2) <- c(methods)
-rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot"
-                                 # , "lpml"
-                                 ), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 
-                               7)),
-                               # 8)),
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, est)
+colnames(res2) <- c("nig1", "nig2", "ridge1", "lasso1")
+rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                               each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 5)),
                     rep(c(paste0("alphad", 0:3), "lambdad"), times=nreps))
-write.table(res2, file="results/simulations_gdsc_res2.2.txt")
+write.table(res2, file="results/simulations_gdsc_res2.txt")
 
 ################################################################################
 ################################# simulation 3 #################################
 ################################################################################
 ### simulation settings
-# D <- 100
 D <- length(resp)
 p <- 100
-# n <- 100
 n <- floor(nrow(expr$expr))/2
 ntest <- nrow(expr$expr) - n
 alphaf <- c(1, 1, 3, 7)
@@ -382,13 +290,9 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
-methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
-                       maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
-control.stan <- list(verbose=FALSE, show_messages=FALSE)
+control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                maxit.post=100, maxit.block=0)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -427,43 +331,29 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
   foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds),
                      rep(1:(n %% nfolds), (n %% nfolds)!=0)))
   
-  
   # fitting models
-  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain, 
+  fit.nig1 <- nig(x=rep(list(xtrain), D), y=ytrain, 
                         C=replicate(D, list(matrix(rep(1, p)))), 
                         Z=matrix(rep(1, D)), full.post=TRUE, 
-                        control=control.semnig)
-  fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=Z, 
-                        full.post=TRUE, control=control.semnig)
+                        control=control)
+  fit.nig2 <- nig(x=rep(list(xtrain), D), y=ytrain, C=C, Z=Z, 
+                        full.post=TRUE, control=control)
   
   # standard penalized methods
-  fit.lasso1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
-              foldid=foldid)})
   fit.ridge1 <- lapply(1:D, function(d) {
     cv.glmnet(xtrain, ytrain[[d]], alpha=0, intercept=FALSE, standardize=TRUE,
               foldid=foldid)})
-  
-  # empirical bayes penalized methods
-  fit.xtune1 <- lapply(1:D, function(d) {
-    xtune(xtrain, ytrain[[d]], C[[d]][, -1], family="linear", method="ridge", 
-          message=FALSE, control=list(intercept=FALSE))})
-  fit.ebridge1 <- ebridge(xtrain, ytrain, lapply(C, function(s) {s[, -1]}), 
-                          Z[, -1], foldid=rep(list(foldid), D), 
-                          hyper=list(lambda=1/sqrt(n*sapply(
-                            fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
-                          control=control.ebridge)
+  fit.lasso1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
+              foldid=foldid)})
   
   # estimates
-  best <- list(semnig1=Reduce("cbind", fit.semnig1$vb$mpost$beta), 
-               semnig2=Reduce("cbind", fit.semnig2$vb$mpost$beta),
+  best <- list(nig1=Reduce("cbind", fit.nig1$vb$mpost$beta), 
+               nig2=Reduce("cbind", fit.nig2$vb$mpost$beta),
                ridge1=sapply(fit.ridge1, function(s) {
                  coef(s, s="lambda.min")[-1, 1]}),
                lasso1=sapply(fit.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=sapply(fit.xtune1, function(s) {
-                 unname(s$beta.est[-1, ])}),
-               ebridge1=Reduce("cbind", fit.ebridge1$beta1))
+                 coef(s, s="lambda.min")[-1, 1]}))
   
   # predictions
   pred <- lapply(best, function(b) {xtest %*% b})
@@ -486,36 +376,13 @@ res <- foreach(r=1:nreps, .packages=packages) %dopar% {
     colMeans((s - Reduce("cbind", ytrain))^2)})
   
   # save alpha estimates
-  est <- cbind(c(fit.semnig1$eb$alphaf, rep(NA, 3), fit.semnig1$eb$alphad, 
-                 rep(NA, 3), fit.semnig1$eb$lambdaf, fit.semnig1$eb$lambdad),
-               c(fit.semnig2$eb$alphaf, fit.semnig2$eb$alphad, 
-                 fit.semnig2$eb$lambdaf, fit.semnig2$eb$lambdad),
-               rep(NA, 10), rep(NA, 10),
-               c(colMeans(-t(sapply(fit.xtune1, "[[", "alpha.est"))), 
-                 rep(NA, 6)),
-               c(NA, fit.ebridge1$alphaf, rep(NA, 6)))
+  est <- cbind(c(fit.nig1$eb$alphaf, rep(NA, 3), fit.nig1$eb$alphad, 
+                 rep(NA, 3), fit.nig1$eb$lambdaf, fit.nig1$eb$lambdad),
+               c(fit.nig2$eb$alphaf, fit.nig2$eb$alphad, 
+                 fit.nig2$eb$lambdaf, fit.nig2$eb$lambdad),
+               rep(NA, 10), rep(NA, 10))
   
-  # calculate ELBO and conditional predictive ordinate for semnig models
-  elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
-                 fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
-                 rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
-  
-  elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)),
-                new.elbo(fit.semnig1, replicate(D, list(xtest)), 
-                         Reduce("cbind", ytest)), rep(NA, D), rep(NA, D), 
-                rep(NA, D), rep(NA, D))
-  
-  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig1)),
-  #               colMeans(logcpo(replicate(D, list(xtest)), 
-  #                               Reduce("cbind", ytest), n, fit.semnig2)), 
-  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
-  
-  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est, 
-       elbo=elbo, elbot=elbot
-       # , lpml=lpml
-       )
+  list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est)
 }
 stopCluster(cl=cl)
 
@@ -525,34 +392,23 @@ emsel <- Reduce("rbind", lapply(res, "[[", "emsel"))
 emseh <- Reduce("rbind", lapply(res, "[[", "emseh"))
 pmse <- Reduce("rbind", lapply(res, "[[", "pmse"))
 pmset <- Reduce("rbind", lapply(res, "[[", "pmset"))
-elbo <- Reduce("rbind", lapply(res, "[[", "elbo"))
-elbot <- Reduce("rbind", lapply(res, "[[", "elbot"))
-# lpml <- Reduce("rbind", lapply(res, "[[", "lpml"))
 est <- Reduce("rbind", lapply(res, "[[", "est"))
 
-res2 <- rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
-              # lpml, 
-              est)
-colnames(res2) <- c(methods)
-rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                                 "elbo", "elbot"
-                                 # , "lpml"
-                                 ), each=D*nreps),
-                           rep(rep(paste0(".drug", c(1:D)), nreps), 
-                               7)),
-                               # 8)),
+res2 <- rbind(emse, emsel, emseh, pmse, pmset, est)
+colnames(res2) <- c("nig1", "nig2", "ridge1", "lasso1")
+rownames(res2) <- c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                               each=D*nreps),
+                           rep(rep(paste0(".drug", c(1:D)), nreps), 5)),
                     rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                           "lambdaf", "lambdad"), times=nreps))
-write.table(res2, file="results/simulations_gdsc_res3.2.txt")
+write.table(res2, file="results/simulations_gdsc_res3.txt")
 
 ################################################################################
 ################################# simulation 4 #################################
 ################################################################################
 ### simulation settings
-# D <- 100
 D <- length(resp)
 p <- 100
-# n <- 100
 n <- floor(nrow(expr$expr))/2
 ntest <- nrow(expr$expr) - n
 alphaf <- c(1, 1, 3, 7)
@@ -571,12 +427,9 @@ x <- scale(expr$expr[, order(-apply(expr$expr, 2, sd))[1:p]])
 
 # estimation settings
 nfolds <- 10
-methods <- c("NIG-", "NIG", "ridge", "lasso", "xtune", "ebridge")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
-                       epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
-                       maxit.post=100, maxit.block=0)
-control.ebridge <-list(epsilon=sqrt(.Machine$double.eps), maxit=500, 
-                       trace=FALSE, glmnet.fit2=FALSE, beta2=FALSE)
+control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+                epsilon.vb=1e-3, maxit.eb=500, maxit.vb=1, 
+                maxit.post=100, maxit.block=0)
 
 # setup cluster
 cl <- makeCluster(ncores)
@@ -627,41 +480,27 @@ res <- foreach(q=fracs) %:%
   Ztilde[ids, ] <- Ztilde[ids, ][sample(1:(q*D)), ]
   
   # fitting models
-  fit.semnig1 <- semnig(x=rep(list(xtrain), D), y=ytrain,
-                        C=replicate(D, list(matrix(rep(1, p)))),
-                        Z=matrix(rep(1, D)), full.post=TRUE,
-                        control=control.semnig)
-  fit.semnig2 <- semnig(x=rep(list(xtrain), D), y=ytrain, C=Ctilde, Z=Ztilde,
-                        full.post=TRUE, control=control.semnig)
+  fit.nig1 <- nig(x=rep(list(xtrain), D), y=ytrain,
+                  C=replicate(D, list(matrix(rep(1, p)))),
+                  Z=matrix(rep(1, D)), full.post=TRUE, control=control)
+  fit.nig2 <- nig(x=rep(list(xtrain), D), y=ytrain, C=Ctilde, Z=Ztilde,
+                  full.post=TRUE, control=control)
 
   # standard penalized methods
-  fit.lasso1 <- lapply(1:D, function(d) {
-    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
-              foldid=foldid)})
   fit.ridge1 <- lapply(1:D, function(d) {
     cv.glmnet(xtrain, ytrain[[d]], alpha=0, intercept=FALSE, standardize=TRUE,
               foldid=foldid)})
-
-  # empirical bayes penalized methods
-  fit.xtune1 <- lapply(1:D, function(d) {
-    xtune(xtrain, ytrain[[d]], C[[d]][, -1], family="linear", method="ridge",
-          message=FALSE, control=list(intercept=FALSE))})
-  fit.ebridge1 <- ebridge(xtrain, ytrain, lapply(C, function(s) {s[, -1]}),
-                          Z[, -1], foldid=rep(list(foldid), D),
-                          hyper=list(lambda=1/sqrt(n*sapply(
-                            fit.ridge1, "[[", "lambda.min")), zeta=0, nu=0),
-                          control=control.ebridge)
+  fit.lasso1 <- lapply(1:D, function(d) {
+    cv.glmnet(xtrain, ytrain[[d]], intercept=FALSE, standardize=TRUE,
+              foldid=foldid)})
 
   # estimates
-  best <- list(semnig1=Reduce("cbind", fit.semnig1$vb$mpost$beta),
-               semnig2=Reduce("cbind", fit.semnig2$vb$mpost$beta),
+  best <- list(nig1=Reduce("cbind", fit.nig1$vb$mpost$beta),
+               nig2=Reduce("cbind", fit.nig2$vb$mpost$beta),
                ridge1=sapply(fit.ridge1, function(s) {
                  coef(s, s="lambda.min")[-1, 1]}),
                lasso1=sapply(fit.lasso1, function(s) {
-                 coef(s, s="lambda.min")[-1, 1]}),
-               xtune1=sapply(fit.xtune1, function(s) {
-                 unname(s$beta.est[-1, ])}),
-               ebridge1=Reduce("cbind", fit.ebridge1$beta1))
+                 coef(s, s="lambda.min")[-1, 1]}))
 
   # predictions
   pred <- lapply(best, function(b) {xtest %*% b})
@@ -684,35 +523,13 @@ res <- foreach(q=fracs) %:%
     colMeans((s - Reduce("cbind", ytrain))^2)})
 
   # save alpha estimates
-  est <- cbind(c(fit.semnig1$eb$alphaf, rep(NA, 3), fit.semnig1$eb$alphad,
-                 rep(NA, 3), fit.semnig1$eb$lambdaf, fit.semnig1$eb$lambdad),
-               c(fit.semnig2$eb$alphaf, fit.semnig2$eb$alphad,
-                 fit.semnig2$eb$lambdaf, fit.semnig2$eb$lambdad),
-               rep(NA, 10), rep(NA, 10),
-               c(colMeans(-t(sapply(fit.xtune1, "[[", "alpha.est"))),
-                 rep(NA, 6)),
-               c(NA, fit.ebridge1$alphaf, rep(NA, 6)))
-
-  # calculate ELBO and conditional predictive ordinate for semnig models
-  elbot <- cbind(fit.semnig1$seq.elbo[nrow(fit.semnig1$seq.elbo), ],
-                 fit.semnig2$seq.elbo[nrow(fit.semnig2$seq.elbo), ],
-                 rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
-
-  elbo <- cbind(new.elbo(fit.semnig1, replicate(D, list(xtest)),
-                         Reduce("cbind", ytest)),
-                new.elbo(fit.semnig1, replicate(D, list(xtest)),
-                         Reduce("cbind", ytest)), rep(NA, D), rep(NA, D),
-                rep(NA, D), rep(NA, D))
-
-  # lpml <- cbind(colMeans(logcpo(replicate(D, list(xtest)),
-  #                               Reduce("cbind", ytest), n, fit.semnig1)),
-  #               colMeans(logcpo(replicate(D, list(xtest)),
-  #                               Reduce("cbind", ytest), n, fit.semnig2)),
-  #               rep(NA, D), rep(NA, D), rep(NA, D), rep(NA, D))
+  est <- cbind(c(fit.nig1$eb$alphaf, rep(NA, 3), fit.nig1$eb$alphad,
+                 rep(NA, 3), fit.nig1$eb$lambdaf, fit.nig1$eb$lambdad),
+               c(fit.nig2$eb$alphaf, fit.nig2$eb$alphad,
+                 fit.nig2$eb$lambdaf, fit.nig2$eb$lambdad),
+               rep(NA, 10), rep(NA, 10))
 
   list(emse=emse, emsel=emsel, emseh=emseh, pmse=pmse, pmset=pmset, est=est,
-       elbo=elbo, elbot=elbot, 
-       # lpml=lpml, 
        q=q)
 }
 stopCluster(cl=cl)
@@ -724,38 +541,25 @@ res2 <- Reduce("rbind", lapply(res, function(r) {
   emseh <- Reduce("rbind", lapply(r, "[[", "emseh"))
   pmse <- Reduce("rbind", lapply(r, "[[", "pmse"))
   pmset <- Reduce("rbind", lapply(r, "[[", "pmset"))
-  elbo <- Reduce("rbind", lapply(r, "[[", "elbo"))
-  elbot <- Reduce("rbind", lapply(r, "[[", "elbot"))
-  # lpml <- Reduce("rbind", lapply(r, "[[", "lpml"))
   est <- Reduce("rbind", lapply(r, "[[", "est"))
-  rbind(emse, emsel, emseh, pmse, pmset, elbo, elbot, 
-        # lpml, 
-        est)}))
+  rbind(emse, emsel, emseh, pmse, pmset, est)}))
 
-colnames(res2) <- c(methods)
+colnames(res2) <- c("nig1", "nig2", "ridge1", "lasso1")
 rownames(res2) <- 
-  paste0(rep(paste0("frac", fracs), each=
-               # 8
-               7*D*nreps + 10*nreps), ".",
-         c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset", 
-                        "elbo", "elbot"
-                        # , "lpml"
-                        ), each=D*nreps),
-                  rep(rep(paste0(".drug", c(1:D)), nreps), 
-                      7)),
-                      # 8)),
+  paste0(rep(paste0("frac", fracs), each=5*D*nreps + 10*nreps), ".",
+         c(paste0(rep(c("emse", "emsel", "emseh", "pmse", "pmset"), 
+                      each=D*nreps),
+                  rep(rep(paste0(".drug", c(1:D)), nreps), 5)),
            rep(c(paste0("alphaf", 0:3), paste0("alphad", 0:3), 
                  "lambdaf", "lambdad"), times=nreps)))
-write.table(res2, file="results/simulations_gdsc_res4.2.txt")
+write.table(res2, file="results/simulations_gdsc_res4.txt")
 
 ################################################################################
 ################################# simulation 5 #################################
 ################################################################################
 ### simulation settings
-# D <- 100
 D <- length(resp)
 p <- 100
-# n <- 100
 n <- floor(nrow(expr$expr))/2
 ntest <- nrow(expr$expr) - n
 alphaf <- c(1, 1, 3, 7)
@@ -772,7 +576,7 @@ Z <- unname(model.matrix(~ factor(sort(c(rep(1:H, each=D %/% H),
 
 # estimation settings
 methods <- c("NIG", "MCMC")
-control.semnig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
+control.nig <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5, 
                        epsilon.vb=1e-3, maxit.eb=2000, maxit.vb=1, 
                        maxit.post=100, maxit.block=0)
 control.stan <- list(verbose=FALSE, show_messages=FALSE, iter=3000, 
@@ -796,17 +600,17 @@ y <- lapply(1:D, function(d) {
 
 # fitting models
 ct <- proc.time()[3]
-fit.semnig1 <- semnig(x=rep(list(x), D), y=y, C=C, Z=Z, 
-                      full.post=TRUE, control=control.semnig)
-time.semnig1 <- proc.time()[3] - ct
+fit.nig1 <- nig(x=rep(list(x), D), y=y, C=C, Z=Z, 
+                      full.post=TRUE, control=control.nig)
+time.nig1 <- proc.time()[3] - ct
 ct <- proc.time()[3]
 fit.mcmc1 <- lapply(1:D, function(d) {
   sampling(stanmodels$nig, 
            data=list(p=p, n=n, x=x, y=y[[d]], 
-                     phi=1/as.numeric(C[[d]] %*% fit.semnig1$eb$alphaf),
-                     chi=1/as.numeric(Z[d, ] %*% fit.semnig1$eb$alphad),
-                     lambdaf=fit.semnig1$eb$lambdaf, 
-                     lambdad=fit.semnig1$eb$lambdad), 
+                     phi=1/as.numeric(C[[d]] %*% fit.nig1$eb$alphaf),
+                     chi=1/as.numeric(Z[d, ] %*% fit.nig1$eb$alphad),
+                     lambdaf=fit.nig1$eb$lambdaf, 
+                     lambdad=fit.nig1$eb$lambdad), 
            iter=control.stan$iter, warmup=control.stan$warmup, 
            chains=control.stan$chains,
            verbose=control.stan$verbose, 
@@ -828,25 +632,27 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
                       show_messages=control.stan$show_messages,
                       sample_file="results/simulations_gdsc_fit5_mcmc2.txt")
 time.mcmc2 <- proc.time()[3] - ct
-save(fit.semnig1, fit.mcmc1, fit.mcmc2, 
+save(fit.nig1, fit.mcmc1, fit.mcmc2, 
      file="results/simulations_gdsc_fit5.Rdata")
-load(file="results/simulations_gdsc_fit5.Rdata")
+post.nig1 <- list(mu=fit.nig1$vb$mu, Sigma=fit.nig1$vb$Sigma)
+save(post.nig1, file="results/simulations_gdsc_fit5_nig1.Rdata")
 
-post.semnig1 <- list(mu=fit.semnig1$vb$mu, Sigma=fit.semnig1$vb$Sigma)
-save(post.semnig1, file="results/simulations_gdsc_fit5_semnig1.Rdata")
-save(fit.semnig1, file="results/simulations_gdsc_fit5_semnig1.Rdata")
-
-post.semnig1 <- list(mu=fit.semnig1$vb$mu, 
-                     Sigma=fit.semnig1$vb$Sigma)
-post.mcmc1 <- lapply(fit.mcmc1[D/H*(c(1:H) - 1) + 1], extract, 
-                     pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
+post.nig1 <- list(mu=fit.nig1$vb$mu, 
+                     Sigma=fit.nig1$vb$Sigma)
+post.mcmc1 <- lapply(fit.mcmc1[
+  sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})], 
+  extract, pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
 post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
                                         "lambdaf", "lambdad"))
-post.mcmc2 <- list(beta=lapply(split(as.data.frame(t(post.mcmc2$beta)), 
-                                     rep(1:D, each=p))[D/H*(c(1:H) - 1) + 1],
-                               function(s) {
-                                 unname(as.matrix(s)[p/G*(c(1:G) - 1) + 1, ])}),
-                   alphaf=t(post.mcmc2$alphaf), alphad=t(post.mcmc2$alphad),
-                   lambdaf=t(post.mcmc2$lambdaf), lambdad=t(post.mcmc2$lambdad))
-save(time.semnig1, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, post.semnig1, 
-     file="results/simulations_gdsc_res5.2.Rdata")
+# post.mcmc2$beta[, (which(!duplicated(colSums(t(Z)*c(0:(H - 1))) + 1)) - 1)*p + 1]
+# p*sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]}) 
+post.mcmc2 <- list(beta=lapply(split(
+  as.data.frame(t(post.mcmc2$beta)), rep(1:D, each=p))[
+    sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})],
+  function(s) {
+    unname(as.matrix(s)[p/G*(c(1:G) - 1) + 1, ])}),
+  alphaf=t(post.mcmc2$alphaf), alphad=t(post.mcmc2$alphad),
+  lambdaf=t(post.mcmc2$lambdaf), lambdad=t(post.mcmc2$lambdad))
+save(time.nig1, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, post.nig1, 
+     file="results/simulations_gdsc_res5.Rdata")
+

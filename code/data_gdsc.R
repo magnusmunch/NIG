@@ -8,14 +8,9 @@ library(gdata)
 ensembl <- useMart(biomart="ensembl", dataset="hsapiens_gene_ensembl")
 
 ################################ response data #################################
-# loading the data either from a local file or from the GDSC website
-if(file.exists("data/v17.3_fitted_dose_response.csv")) {
-  resp <- read.table("data/v17.3_fitted_dose_response.csv", header=TRUE,
-                     sep=",", stringsAsFactors=FALSE)
-} else {
-  resp <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/v17.3_fitted_dose_response.xlsx",
-                     header=TRUE, sep=",", stringsAsFactors=FALSE)
-}
+# loading the data
+resp <- read.table("data/v17.3_fitted_dose_response.csv", header=TRUE,
+                   sep=",", stringsAsFactors=FALSE)
 
 # take average IC50 if more than one measurement for drug cell line combination
 resp.temp <- aggregate(LN_IC50 ~ COSMIC_ID + CELL_LINE_NAME + DRUG_NAME,
@@ -37,37 +32,15 @@ rm(resp, resp.temp)
 
 #################################### drugs #####################################
 # reading in the preformatted list of compounds
-if(file.exists("data/Screened_Compounds.xlsx")) {
-  drug1 <- read.xls("data/Screened_Compounds.xlsx",
-                    stringsAsFactors=FALSE)
-} else {
-  drug1 <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Screened_Compounds.xlsx",
-                    stringsAsFactors=FALSE)
-}
+drug1 <- read.xls("data/Screened_Compounds.xlsx", stringsAsFactors=FALSE)
 
 # reading in the curent list of compounds
-if(length(list.files(path="data", patt="Drug_list")) > 0) {
-  drug2 <- read.table(paste0("data/", list.files(path="data",
-                                                 patt="Drug_list")[1]),
-                      header=TRUE, sep=",", quote='"', stringsAsFactors=FALSE)
-} else {
-  drug2 <- read.table("https://www.cancerrxgene.org/translation/drug_list?list=all&sEcho=6&iColumns=6&sColumns=&iDisplayStart=50&iDisplayLength=10&mDataProp_0=0&mDataProp_1=1&mDataProp_2=2&mDataProp_3=3&mDataProp_4=4&mDataProp_5=5&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=true&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&iSortCol_0=0&sSortDir_0=asc&iSortingCols=1&bSortable_0=true&bSortable_1=true&bSortable_2=true&bSortable_3=true&bSortable_4=true&bSortable_5=true&export=csv",
-                      header=TRUE, sep=",", quote='"', stringsAsFactors=FALSE)
-}
+drug2 <- read.table("data/Drug_listTue Jun 25 15_19_34 2019.csv",
+                    header=TRUE, sep=",", quote='"', stringsAsFactors=FALSE)
 
 # load data from "A landscape of pharmacogenomic interaction in cancer" analysis
-if(file.exists("data/TableS1F.xlsx")) {
-  drug3 <- read.xls("data/TableS1F.xlsx", stringsAsFactors=FALSE, skip=1)[, -9]
-} else {
-  drug3 <- read.xls("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/suppData/TableS1F.xlsx",
-                    stringsAsFactors=FALSE, skip=1)[, -9]
-}
-if(file.exists("data/TableS1G.xlsx")) {
-  drug4 <- read.xls("data/TableS1G.xlsx", stringsAsFactors=FALSE, skip=1)[, 1:5]
-} else {
-  drug4 <- read.xls("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/suppData/TableS1G.xlsx",
-                    stringsAsFactors=FALSE, skip=1)[, 1:5]
-}
+drug3 <- read.xls("data/TableS1F.xlsx", stringsAsFactors=FALSE, skip=1)[, -9]
+drug4 <- read.xls("data/TableS1G.xlsx", stringsAsFactors=FALSE, skip=1)[, 1:5]
 drug4$Cluster.identifier <- sapply(1:nrow(drug4), function(s) {
   if(is.na(drug4$Cluster.identifier[s])) {
     drug4$Cluster.identifier[c(1:s)][tail(which(!is.na(drug4$Cluster.identifier[
@@ -77,19 +50,11 @@ drug4$Cluster.identifier <- sapply(1:nrow(drug4), function(s) {
   }})
 
 # retrieve gene lists of all reactome pathways
-if(file.exists("data/Ensembl2Reactome_All_Levels.txt")) {
-  mapid <- read.table("data/Ensembl2Reactome_All_Levels.txt",
-                      comment.char="", sep="\t", quote="",
-                      col.names=c("ensemblid", "reactomeid", "url", "name", 
-                                  "evidencecode", "species"),
-                      header=TRUE, stringsAsFactors=FALSE)
-} else {
-  mapid <- read.table("https://reactome.org/download/current/Ensembl2Reactome_All_Levels.txt",
-                      comment.char="", sep="\t", quote="",
-                      col.names=c("ensemblid", "reactomeid", "url", "name",
-                                  "evidencecode", "species"),
-                      header=TRUE, stringsAsFactors=FALSE)
-}
+mapid <- read.table("data/Ensembl2Reactome_All_Levels.txt",
+                    comment.char="", sep="\t", quote="",
+                    col.names=c("ensemblid", "reactomeid", "url", "name", 
+                                "evidencecode", "species"),
+                    header=TRUE, stringsAsFactors=FALSE)
 
 # combining and removing double drugs and rescreens
 drug <- merge(merge(merge(drug1, drug2, by.x="DRUG_ID", by.y="drug_id",
@@ -352,11 +317,10 @@ expr1 <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
                     header=FALSE, stringsAsFactors=FALSE, skip=1)
 expr2 <- read.table("data/sanger1018_brainarray_ensemblgene_rma.txt.gz",
                     header=FALSE, stringsAsFactors=FALSE, nrows=1)
-# expr1 <- read.table("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/sanger1018_brainarray_ensemblgene_rma.txt.gz", 
-#                     header=TRUE, stringsAsFactors=FALSE)
-# expr1 <- read.table("https://www.cancerrxgene.org/gdsc1000/GDSC1000_WebResources//Data/preprocessed/Cell_line_RMA_proc_basalExp.txt.zip",
-#                     header=TRUE, stringsAsFactors=FALSE, sep="\t", dec=",", 
-#                     colClasses="character", nrows=1)
+
+# Cancer Gene Census (https://cancer.sanger.ac.uk/census)
+census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
+                     stringsAsFactors=FALSE, sep=",", quote='"')
 
 # cell lines in rows and genes in columns
 expr.temp <- t(expr1[, -1])
@@ -387,10 +351,6 @@ is_target <- lapply(1:nrow(drug.prep), function(d) {
   s})
 names(is_target) <- drug.prep$name
 
-# Cancer Gene Census (https://cancer.sanger.ac.uk/census)
-census <- read.table("data/Census_allFri Feb 21 14_49_10 2020.csv", header=TRUE,
-                     stringsAsFactors=FALSE, sep=",", quote='"')
-
 # cancer gene census cleaning
 cancergenes <- strsplit(census$Synonyms, ",")
 cancergenes <- sapply(cancergenes, function(s) {
@@ -417,13 +377,8 @@ rm(cancergenes, census, expr1, expr2, expr, expr.temp, in_pathway,
    is_cancergene, is_target, query, duprows, mat)
 
 ################################# cell lines ###################################
-if(file.exists("data/Cell_Lines_Details.xlsx")) {
-  cell <- read.xls("data/Cell_Lines_Details.xlsx",
-                   stringsAsFactors=FALSE)
-} else {
-  cell <- read.xls("ftp://ftp.sanger.ac.uk/pub/project/cancerrxgene/releases/current_release/Cell_Lines_Details.xlsx",
-                   stringsAsFactors=FALSE)
-}
+cell <- read.xls("data/Cell_Lines_Details.xlsx",
+                 stringsAsFactors=FALSE)
 rm(cell)
 
 ################################## mutations ###################################

@@ -1,4 +1,4 @@
-# single VB update in NIG model with unpenalized covariates (tested)
+# single VB update in NIG model with unpenalized covariates
 .single.vb.update.unp <- function(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
                                   lambdad, y, xu, xr, yty, n, u, r, var.scale) {
   
@@ -33,7 +33,7 @@
   return(out)
 }
 
-# single VB update in NIG model (tested)
+# single VB update in NIG model
 .single.vb.update <- function(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
                               lambdad, y, x, ytx, yty, n, p, var.scale) {
   

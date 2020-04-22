@@ -18,7 +18,7 @@ test_that("low dim. vb update", {
   
   # implemented function
   test.vb <- .single.vb.update(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
-                               lambdad, y, x, ytx, yty, n, p)
+                               lambdad, y, x, ytx, yty, n, p, 1)
   
   # actual calculation (see supplement)
   Sigma <- solve(t(x) %*% x + gold*diag(bold))/aold
@@ -64,7 +64,7 @@ test_that("high dim. vb update", {
   
   # implemented function
   test.vb <- .single.vb.update(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
-                               lambdad, y, x, ytx, yty, n, p)
+                               lambdad, y, x, ytx, yty, n, p, 1)
   
   # actual calculation (see supplement)
   Sigma <- solve(t(x) %*% x + gold*diag(bold))/aold
@@ -112,7 +112,7 @@ test_that("low dim. vb update", {
   
   # implemented function
   test.vb <- .single.vb.update.unp(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
-                                   lambdad, y, xu, xr, yty, n, u, r)
+                                   lambdad, y, xu, xr, yty, n, u, r, 1)
   
   # actual calculation (see supplement)
   hold <- c(rep(0, u), bold)
@@ -162,7 +162,7 @@ test_that("high dim. vb update", {
   
   # implemented function
   test.vb <- .single.vb.update.unp(aold, bold, gold, Calphaf, Zalphad, lambdaf, 
-                                   lambdad, y, xu, xr, yty, n, u, r)
+                                   lambdad, y, xu, xr, yty, n, u, r, 1)
   
   # actual calculation (see supplement)
   hold <- c(rep(0, u), bold)

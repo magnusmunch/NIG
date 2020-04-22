@@ -1,4 +1,4 @@
 library(testthat)
-library(cambridge)
+library(NIG)
 
-test_check("cambridge")
+test_check("NIG")

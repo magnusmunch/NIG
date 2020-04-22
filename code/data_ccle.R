@@ -213,4 +213,5 @@ expr.prep <- expr.temp
 rm(did, expr, expr.temp)
 
 ################################# expression ###################################
+rm(ensembl)
 save(expr.prep, resp.prep, file="data/data_ccle_dat1.Rdata")

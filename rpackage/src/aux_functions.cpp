@@ -7,72 +7,7 @@
 using namespace Rcpp;
 using namespace arma;
 
-// function to optimise in EBridge with one x (not tested)
-// [[Rcpp::export(".f.optim.mat")]]
-double f_optim_mat(arma::vec alpha, arma::vec lambda, double nu, double zeta,
-                   arma::mat Cmat, arma::mat Z, arma::vec n, int p, int D,
-                   List idsel, int G, int H, List y, arma::mat x,
-                   arma::vec yty, bool Zpres) {
-  
-  arma::vec gamma = exp(0.5*Cmat*alpha.head(G));
-  arma::vec tau = ones<vec>(D);
-  if(Zpres) {
-    tau = exp(0.5*Z*alpha.tail(H));
-  }
-  
-  double out=0.0;
-  for(int d=0; d<D; d++) {
-    arma::rowvec mat1(n(d));
-    arma::mat mat2(n(d), n(d));
-    arma::uvec cidsel = idsel[d];
-    arma::mat cx = x.rows(cidsel - 1);
-    arma::vec cy = y[d];
-
-    mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
-      gamma.subvec(d*p, (d + 1)*p - 1).t()));
-    mat1 = cy.t()*mat2;
-    mat2.diag() += 1;
-    out += -0.5*real(log_det(mat2))  -
-      (n(d)/2 + nu)*log(zeta + 0.5*yty(d) - 0.5*as_scalar(mat1*cy) +
-      0.5*as_scalar(mat1*mat2.i()*mat1.t()));
-  }
-  return out;
-}
-
-// function to optimise in EBridge with multiple x (not tested)
-// [[Rcpp::export(".f.optim.list")]]
-double f_optim_list(arma::vec alpha, arma::vec lambda, double nu, double zeta,
-                    arma::mat Cmat, arma::mat Z, arma::vec n, arma::vec p, 
-                    int D, int G, int H, List y, List x, arma::vec yty,
-                    bool Zpres) {
-  
-  arma::vec gamma = exp(0.5*Cmat*alpha.head(G));
-  arma::vec tau = ones<vec>(D);
-  if(Zpres) {
-    tau = exp(0.5*Z*alpha.tail(H));
-  }
-  arma::vec cp(D + 1);
-  cp.subvec(1, D) = cumsum(p);
-  cp(0) = 0;
-  double out=0.0;
-  for(int d=0; d<D; d++) {
-    arma::rowvec mat1(n(d)); 
-    arma::mat mat2(n(d), n(d));
-    arma::mat cx = x[d];
-    arma::vec cy = y[d];
-
-    mat2 = cx*trans(cx.each_row() % square(lambda(d)*tau(d)*
-      gamma.subvec(cp(d), cp(d + 1) - 1).t()));
-    mat1 = cy.t()*mat2;
-    mat2.diag() += 1;
-    out += -0.5*real(log_det(mat2)) -
-      (n(d)/2 + nu)*log(zeta + 0.5*yty(d) - 0.5*as_scalar(mat1*cy) + 
-      0.5*as_scalar(mat1*mat2.i()*mat1.t()));
-  }
-  return out;
-}
-
-// calculate full covariance with unpenalized covariates (tested)
+// calculate full covariance with unpenalized covariates
 // [[Rcpp::export(".Sigma.unp")]]
 arma::mat Sigma_unp(double aold, arma::vec bold, arma::mat xu, arma::mat xr,
                     int u, int r) {
@@ -103,7 +38,7 @@ arma::mat Sigma_unp(double aold, arma::vec bold, arma::mat xu, arma::mat xr,
   return Sigma;
 }
 
-// calculate full covariance (tested)
+// calculate full covariance
 // [[Rcpp::export(".Sigma")]]
 arma::mat Sigma(double aold, arma::vec bold, arma::mat x) {
   arma::vec hinv = 1/bold;
@@ -117,7 +52,7 @@ arma::mat Sigma(double aold, arma::vec bold, arma::mat x) {
   return Sigma;
 }
 
-// calculates the auxiliary variables with unpenalized variables (tested)
+// calculates the auxiliary variables with unpenalized variables
 // [[Rcpp::export(".aux.var.unp")]]
 List aux_var_unp(double aold, arma::vec bold, arma::vec y, arma::mat xu, 
                  arma::mat xr, int u, int r) {
@@ -183,7 +118,7 @@ List aux_var_unp(double aold, arma::vec bold, arma::vec y, arma::mat xu,
                       Named("ldetSigma") = ldetSigma);
 }
 
-// calculates the auxiliary variables (tested)
+// calculates the auxiliary variables
 // [[Rcpp::export(".aux.var")]]
 List aux_var(double aold, arma::vec bold, arma::vec y, arma::mat x, 
              arma::rowvec ytx) {

@@ -1,4 +1,4 @@
-# update EB parameters (not tested)
+# update EB parameters
 .eb.updated <- function(f, g, Z, D, lambdad=NULL) {
   
   # eb parameters
@@ -31,7 +31,7 @@
   return(out)
 }
 
-# update EB parameters (not tested)
+# update EB parameters
 .eb.updatef <- function(e, b, Cmat, p, D, lambdaf=NULL) {
   
   # eb parameters

@@ -1,9 +1,9 @@
-# function to integrate for cpo calculation (not tested)
+# function to integrate for cpo calculation
 .f.int.cpo <- function(x, xtSigmax, n, p, zeta, y, xtmu) {
   ((y - x)^2/(2*zeta) + 1)^(-(n + p + 1)/2)*exp(-(x - xtmu)^2/(2*xtSigmax))
 }
 
-# ELBO (not tested)
+# ELBO
 .single.elbo <- function(p, n, zeta, yty, aux, g, b, delta, eta, lambdaf, 
                          lambdad, Zalphad, Calphaf) {
   
@@ -36,64 +36,4 @@ ratio_besselK <- function(x, nu) {
     val <- 1/(val + 2*(res + i)/x)
   }
   return(val)
-}
-
-# cross-validate the hyperparameters of a single equation's MAP
-.cv.single.semnig <- function(x, y, nfolds=10, foldid=NULL, seed=NULL,
-                              phi, chi, lambdaf, lambdad, type.measure="mse",
-                              control=list(trace=FALSE)) {
-  if(!is.null(seed)) {
-    set.seed(seed)
-  }
-  
-  n <- nrow(x)
-  p <- ncol(x)
-  if(is.null(foldid)) {
-    foldid <- sample(c(rep(1:nfolds, each=n %/% nfolds), 
-                       rep(1:(n %% nfolds), (n %% nfolds)!=0)))
-  }
-  par.grid <- expand.grid(phi=phi, chi=chi, lambdaf=lambdaf, lambdad=lambdad)
-  
-  cv.grid <- matrix(NA, ncol=nrow(par.grid), nrow=nfolds)
-  for(l in 1:nrow(par.grid)) {
-    if(control$trace) {
-      cat("\r", "iteration ", l, " of ", nrow(par.grid))
-    }
-    for(r in 1:nfolds) {
-      
-      # split data
-      ntrain <- sum(foldid!=r)
-      xtrain <- scale(as.matrix(x[foldid!=r, ], nrow=ntrain))
-      ytrain <- scale(y[foldid!=r], scale=FALSE)[, 1]
-      ntest <- sum(foldid==r)
-      xtest <- scale(as.matrix(x[foldid==r, ], nrow=ntest))
-      ytest <- scale(y[foldid==r], scale=FALSE)[, 1]
-      
-      # fit model to training data
-      fit <- rstan::optimizing(stanmodels$nig, 
-                               data=list(p=p, n=ntrain, x=xtrain, y=ytrain, 
-                                         phi=rep(par.grid[l, "phi"], p), 
-                                         lambdaf=par.grid[l, "lambdaf"], 
-                                         chi=par.grid[l, "chi"], 
-                                         lambdad=par.grid[l, "lambdad"]))
-      best <- fit$par[names(fit$par) %in% paste0("beta[", 1:p, "]")]
-      pred <- as.numeric(xtest %*% best)
-      if(type.measure=="mse") {
-        cv.grid[r, l] <- mean((ytest - pred)^2)
-      }
-    }  
-  }
-  cv.mean <- colMeans(cv.grid)
-  id.min <- which.min(cv.mean)
-  par.min <- setNames(as.numeric(par.grid[id.min, ]), 
-                      c("phi", "chi", "lambdaf", "lambdad"))
-  fit <- rstan::optimizing(stanmodels$nig, 
-                           data=list(p=p, n=n, x=x, y=y, 
-                                     phi=rep(par.min["phi"], p), 
-                                     lambdaf=par.min["lambdaf"], 
-                                     chi=par.min["chi"], 
-                                     lambdad=par.min["lambdad"]))
-  out <- list(cvm=cv.mean, cvmat=cv.grid, id.min=id.min, par.min=par.min,
-              par.grid=par.grid, fit=fit)
-  return(out)
 }

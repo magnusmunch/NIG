@@ -3,13 +3,9 @@
 exportPattern("^[[:alpha:]]+")
 
 import(stats)
-importFrom(gsl, bessel_lnKnu)
-import(Rcpp)
 import(methods)
+import(Rcpp)
+importFrom(gsl, bessel_lnKnu)
 importFrom(rstan, sampling, optimizing)
-import(rstantools)
-importFrom(GeneralizedHyperbolic, rgig)
-importFrom(mvtnorm, rmvnorm)
-importFrom(glmnet, glmnet, cv.glmnet)
 
 useDynLib(NIG, .registration=TRUE)

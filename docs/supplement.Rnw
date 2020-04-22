@@ -5,6 +5,7 @@ opts_chunk$set(fig.align='center', fig.path="../figs/",
                echo=FALSE, cache=FALSE, message=FALSE, fig.pos='!ht')
 knit_hooks$set(document=function(x) {
   sub('\\usepackage[]{color}', '\\usepackage{xcolor}', x, fixed=TRUE)})
+options(knitr.kable.NA="", digits=3)
 @
 
 % read figure code
@@ -16,7 +17,8 @@ read_chunk("code/figures.R")
 \usepackage{bm,amsmath,amssymb,amsthm,amsfonts,graphics,graphicx,epsfig,
 rotating,caption,subcaption,natbib,appendix,titlesec,multicol,hyperref,verbatim,
 bbm,algorithm,algpseudocode,pgfplotstable,threeparttable,booktabs,mathtools,
-dsfont,parskip}
+dsfont,parskip,xr}
+\externaldocument[md-]{manuscript}
 
 % vectors and matrices
 \newcommand{\bbeta}{\bm{\beta}}
@@ -108,8 +110,8 @@ dsfont,parskip}
 \pgfplotsset{compat=1.16}
 \setlength{\evensidemargin}{.5cm} \setlength{\oddsidemargin}{.5cm}
 \setlength{\textwidth}{15cm}
-\title{Supplementary material to: Drug sensitivity prediction with normal 
-inverse Gaussian shrinkage informed by external data}
+\title{Drug sensitivity prediction with normal inverse Gaussian shrinkage 
+informed by external data}
 \date{\today}
 \author{Magnus M. M\"unch$^{1,2}$\footnote{Correspondence to: 
 \href{mailto:m.munch@amsterdamumc.nl}{m.munch@amsterdamumc.nl}}, Mark A. van de 
@@ -164,6 +166,41 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	  \frac{\phi}{\lambda_{\text{feat}}} + \frac{\chi}{\lambda_{\text{drug}}}\) + 
 	  3.
 	\end{align*}
+	
+	\section{Hyperparameter settings}\label{sec:hyperparameters}
+	For the NIG shrinkage weights prior in Figure \ref{md-fig:dens_kappa}a the 
+	following hyperparameter settings (in terms of the inverse Gaussian prior) 
+	were used: $\lambda=1$, $\phi=10$ (solid),
+	$\lambda=0.1$, $\phi=10$ (dashed), and $\lambda=1$, $\phi=1$ (dotted).
+	The Student`s $t$ prior on the regression parameters $\beta_{jd}$ arises if
+	$\gamma_{jd}^2 \sim \Gamma^{-1}(a,b)$, with $\Gamma^{-1}(a,b)$ an inverse
+	Gamma distribution with shape $a$ and scale $b$. Figure 
+	\ref{md-fig:dens_kappa}b is then obtained by setting: $a=0.9$, $b=1.3$ 
+	(solid), $a=1$, $b=4$ (dashed), and $a=1$, $b=0.2$ (dotted).
+	The lasso prior results from an exponential prior on $\gamma_{jd}^2$. To
+	create Figure \ref{md-fig:dens_kappa}c the following settings were
+	used for exponential rate $\lambda$: $\lambda=1$ (solid), $\lambda=0.2$ 
+	(dashed), and $\lambda=0.1$ (dotted).
+	
+	\section{Jeffrey's prior}\label{sec:jeffreysprior}
+	We parametrise the data with a Gaussian distribution with unknown mean and 
+	variance, i.e., $y_i \sim \mathcal{N} (\mu, \sigma^2)$. This results in the
+	following Hessian (matrix of second derivatives) of the log density:
+	$$
+	\mathbf{H}(\log f(y_i | \mu, \sigma^2)) = \begin{bmatrix}
+	-\frac{1}{\sigma^2} & y_i - \mu \\
+	y_i - \mu & \frac{1}{2\sigma^4} - \frac{(y_i - \mu)^2}{\sigma^6}.
+	\end{bmatrix}
+	$$
+	Jeffreys prior \cite[]{jeffreys_invariant_1946} is now found as:
+	$$
+	\pi(\mu, \sigma^2) \propto |\mathcal{I}(\mu, \sigma^2)|^{1/2} = 
+	|-\E (\mathbf{H})|^{1/2} = \begin{vmatrix}
+	\frac{1}{\sigma^2} & 0 \\
+	0 & \frac{1}{2\sigma^4}
+	\end{vmatrix}^{1/2} \propto 1/\sigma^3,
+	$$
+	where $\mathcal{I}(\theta)$ denotes the Fisher information of $\theta$.
 	
 	\section{Variational Bayes derivations}\label{sec:vbderivations}
 	For clarity we have indexed the variational 
@@ -255,11 +292,11 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \bigg\}.
   \end{align*}
   If we fill in the expectations and variances, we arrive at the estimating
-  equations in MD equations (3).
+  equations in MD equations (\ref{md-eq:vbequations}).
 	
   \section{Evidence lower bound}\label{sec:elbo}
   The evidence lower bound that is maximised during the iterations is: 
-  $\text{ELBO}^{(l)}=\text{ELBO}_d^{(l)}$, with:
+  $\text{ELBO}^{(l)}=\sum_{d=1}^D \text{ELBO}_d^{(l)}$, with:
   \begin{align*}
     \text{ELBO}&^{(l)}_d \\
     & = -\frac{n+p+1}{2} \log \pi + \frac{p+1-n}{2}\log 2 + \frac{n+1}{2} + p
@@ -292,8 +329,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   $e_{jd}$, $b_{jd}$, $g_d$, and $f_d$, which in turn depend on the quantities 
   $\diag(\bSigma_d)$, $\bmu_{d}$, $\y_d \tr \X \bmu_d$, 
   $\trace(\X \tr \X \bSigma_d)$, $\bmu_d \tr \X \tr \X \bmu_d$,
-  $g_d \cdot \trace[\diag(b_{jd})\bSigma_d]$, and $g_d \cdot \bmu_d \tr 
-  \diag(b_{jd}) \bmu_d$.
+  $g_d\trace[\diag(b_{jd})\bSigma_d]$, and $g_d\bmu_d \tr \diag(b_{jd}) \bmu_d$.
   Let $\mathbf{H}_d=g_d \diag[(b_{jd}^{(h)})^{-1}]$. Then, the first two
   quantities are efficiently calculated as:
   \begin{subequations}\label{eq:complexity1}
@@ -318,7 +354,8 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
     \X \tr \} \mathbf{1}_{n \times 1}.
   \end{align}
   Both (\ref{eq:complexity1}) and (\ref{eq:complexity2}) are operations of
-  complexity $\mathcal{O}(pn^2)$.
+  complexity $\mathcal{O}(pn^2)$ instead of $\mathcal{O}(p^3)$ for naive
+  calculation.
   
   \section{Ratios of modified Bessel functions}\label{sec:ratiosmodifiedbessels}
   Ratios of modified Bessel functions of the second kind 
@@ -343,8 +380,9 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       & \text{for } p \text{ odd}.
     \end{cases}
   \end{align*} 
-  The ratio $K_0(x)/K_1(x)$ is well-behaved, so that it may be computed
-  without numerical issues.
+  The ratio $K_0(x)/K_1(x)$ is well-behaved, so that an 
+  arbitrary ratio $K_{\alpha - 1}(x)/K_{\alpha}(x)$ may be calculated as
+  a sequence of numerically stable scalar sums, products and inverses.
   
   \section{Empirical Bayes}\label{sec:eb}
   For the feature scale parameter $\lambda_{\text{feat}}$ updates to be 
@@ -360,7 +398,7 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   which holds if all summands in the left-hand side of (\ref{eq:inequality})
   are non-negative.
   
-  Next, we note that through Jensen's inequality 
+  We note that through Jensen's inequality 
   $e_{jd}^{-1}=\E(\gamma_{jd}^{2})^{-1} \leq \E(\gamma_{jd}^{-2})=b_{jd}$,
   we may lowerbound the summands in left-hand side of (\ref{eq:inequality}):
   $$
@@ -376,11 +414,11 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   Similar reasoning holds for the drug scale parameter $\lambda_{\text{drug}}$.
   
   \section{Gibbs sampler}\label{sec:gibbssampler}
-  MCMC samples from the posterior corresponding to MD model 
-  (2) may be generated for each equation independently.
+  MCMC samples from the posterior corresponding to model 
+  (\ref{md-eq:prior}) may be generated for each equation independently.
   MCMC samples may be generated by iteratively sampling the following 
   conditional distributions:
-  \begin{subequations}
+  \begin{subequations}\label{eq:gibbssampler}
     \begin{align}
       \bm{\beta}_d | \bgamma_d^2, \sigma_d^2, \tau_d^2, \y_d & \sim 
       \mathcal{N}_p (\bm{\mu}_d, \bm{\Sigma}_d), \label{eq:betasample} \\
@@ -391,23 +429,20 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
       \y_d \label{eq:musample}, \\
       \gamma_{jd}^2 | \beta_{jd}, \sigma_d^2, \tau_d^2, \y &
       \sim \mathcal{GIG}
-      \(-1, \lambda_{\text{feat}}/ \phi_{jd}^{2}, \delta_{jd}\), \nonumber \\
+      \(-1, \lambda_{\text{feat}}/ \phi_{jd}^{2}, \delta_{jd}\), \\
       \text{with } & \delta_{jd} = \sigma_d^{-2} \tau_d^{-2} \beta_{jd}^2 + 
       \lambda_{\text{feat}}, \nonumber \\
       \tau_d^2 | \bm{\beta}_d, \sigma_d^2, \bgamma_{d}^2, \y & \sim
       \mathcal{GIG}
       \(-\frac{p+1}{2}, \lambda_{\text{drug}}/ \chi_{d}^{2}, \eta_d\), 
-      \nonumber \\
+      \\
       \text{with } & \eta_d = \sigma_d^{-2} \sum_{j=1}^p \gamma_{jd}^{-2}
-      \beta_{jd}^2 + \lambda_{\text{drug}}, \nonumber \\
+      \beta_{jd}^2 + \lambda_{\text{drug}}, \\
       \sigma_d^2 | \bm{\beta}_d, \bgamma_d^2, \tau_d^2, \y & \sim \Gamma^{-1} 
-      \(\frac{n + p + 1}{2}, \zeta_d\), \nonumber \\
-      \text{with } & \zeta_d = \frac{1}{2} \bigg[\mathbf{y} \tr \mathbf{y} -
-      2 \mathbf{y} \tr \X \bm{\mu} + \trace ( \X \tr \X \bm{\Sigma}) + 
-      (\bm{\mu}) \tr \X \tr \X \bm{\mu} + 
-      \tau^{-2}_d \trace (\diag(\gamma_{jd}^{-2}) \bm{\Sigma}) \nonumber \\
-      & \,\,\,\,\,\,\,\,\,\, + \tau_d^{-2} (\bm{\mu}) \tr 
-      \diag(\gamma_{jd}^{-2}) \bm{\mu}\bigg]. \nonumber
+      \(\frac{n + p + 1}{2}, \zeta_d\), \\
+      \text{with } & \zeta_d = \frac{1}{2} \[\mathbf{y}_d \tr \mathbf{y}_d -
+      2 \mathbf{y}_d \tr \X \bm{\beta}_d + \bm{\beta}_d \X \tr \X \bm{\beta}_d + 
+      \tau^{-2}_d \bm{\beta}_d \tr \diag(\gamma_{jd}^{-2}) \bm{\beta}_d) \]. 
     \end{align}
   \end{subequations}
   In high dimensional space, the $p \times p$ matrix inversions in 
@@ -416,9 +451,250 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
   a method to sample from (\ref{eq:betasample}) without explicit calculation
   of this inverse, thereby offering a siginifcant speed-up compared to naive
   sampling.
+  
+  Sampling from (\ref{eq:gibbssampler}) either requires estimating 
+  (as in \ref{md-sec:empiricalbayes}) or specifying 
+  hyperparameters
+  $\bm{\alpha}_{\text{feat}}$, $\bm{\alpha}_{\text{drug}}$, 
+  $\lambda_{\text{feat}}$, and $\lambda_{\text{drug}}$, or to endow them with
+  and extra layer of hyperpriors. In general, specifying them requires 
+  rarely available, detailed subject knowledge, so we may resort to endowing 
+  them with hyperpriors (as in \cite{upadhyay_bayesian_1996}):
+  \begin{align*}
+    \bm{\alpha}_{\text{feat},g} | \lambda_{\text{feat}} & \sim 
+    \mathcal{N}(0, \nu_{\text{feat}}^2/\lambda_{\text{feat}}), \\
+    \bm{\alpha}_{\text{drug},h} | \lambda_{\text{drug}} & \sim 
+    \mathcal{N}(0, \nu_{\text{drug}}^2/\lambda_{\text{drug}}), \\
+    \lambda_{\text{feat}} & \sim \Gamma(\kappa_{\text{feat}}, 
+    \xi_{\text{feat}}), \\
+    \lambda_{\text{drug}} & \sim \Gamma(\kappa_{\text{drug}}, 
+    \xi_{\text{drug}}),
+  \end{align*}
+  with hyperparameters $\nu_{\text{feat}}^2$, $\nu_{\text{drug}}^2$, 
+  $\kappa_{\text{feat}}$, $\xi_{\text{feat}}$, $\kappa_{\text{drug}}$, and
+  $\xi_{\text{drug}}$. Improper, flat priors occur if we let 
+  $\nu_{\text{feat}}, \nu_{\text{drug}} \to \infty$ and 
+  $\kappa_{\text{feat}}, \kappa_{\text{drug}}, \xi_{\text{feat}}, 
+  \xi_{\text{drug}} \to 0$. The corresponding full conditionals are
+  given by:
+  \begin{align*}
+    \bm{\alpha}_{\text{feat}} | \lambda_{\text{feat}}, \bm{\Gamma} & \sim 
+    \mathcal{N} \( \mathbf{m}_{\text{feat}}, \mathbf{S}_{\text{feat}} \) \\
+    \text{with } & \mathbf{S}_{\text{feat}} = \lambda_{\text{feat}}^{-1} 
+    [\mathbf{C} \tr \diag(\gamma_{jd}^2) \mathbf{C} +
+    \nu_{\text{feat}}^{-2} \I_G]^{-1}, \\
+    \text{and } & \mathbf{m}_{\text{feat}} = [\mathbf{C} \tr 
+    \diag(\gamma_{jd}^2) \mathbf{C} + \nu_{\text{feat}}^{-2} \I_G]^{-1}
+    \mathbf{C} \tr \mathbf{1}_{pD \times 1}, \\
+    \bm{\alpha}_{\text{drug}} | \lambda_{\text{drug}}, \bm{\tau} & \sim 
+    \mathcal{N} \(\textbf{m}_{\text{drug}}, \mathbf{S}_{\text{drug}} \), \\
+    \text{with } & \mathbf{S}_{\text{drug}} = \lambda_{\text{drug}}^{-1} 
+    [\mathbf{Z} \tr \diag(\tau_{d}^2) \mathbf{Z} +
+    \nu_{\text{drug}}^{-2} \I_H]^{-1}, \\
+    \text{and } & \mathbf{m}_{\text{drug}} = [\mathbf{Z} \tr 
+    \diag(\tau_{d}^2) \mathbf{Z} + \nu_{\text{drug}}^{-2} \I_H]^{-1}
+    \mathbf{Z} \tr \mathbf{1}_{D \times 1}, \\
+    \lambda_{\text{feat}} | \bm{\alpha}_{\text{feat}}, \bm{\Gamma} & 
+    \sim \Gamma \(\frac{pD}{2} + \kappa_{\text{feat}}, 
+    \upsilon_{\text{feat}}\), \\
+    \text{with } & \upsilon_{\text{feat}} =\frac{1}{2} 
+    \[\mathbf{C} \bm{\alpha}_{\text{feat}} - \diag(\gamma_{jd}^{-2}) 
+    \mathbf{1}_{pD \times 1}\] \tr \diag(\gamma_{jd}^2) 
+    \[\mathbf{C} \bm{\alpha}_{\text{feat}} - 
+    \diag(\gamma_{jd}^{-2}) \mathbf{1}_{pD \times 1}\] + \xi_{\text{feat}}, \\
+    \lambda_{\text{drug}} | \bm{\alpha}_{\text{drug}}, \bm{\tau} & 
+    \sim \Gamma \(\frac{D}{2} + \kappa_{\text{drug}}, 
+    \upsilon_{\text{drug}} \), \\
+    \text{with } & \upsilon_{\text{drug}} =\frac{1}{2} 
+    \[\mathbf{Z} \bm{\alpha}_{\text{drug}} - \diag(\tau_{d}^{-2}) 
+    \mathbf{1}_{D \times 1}\] \tr \diag(\tau_{d}^2) 
+    \[\mathbf{Z} \bm{\alpha}_{\text{drug}} - 
+    \diag(\tau_{d}^{-2}) \mathbf{1}_{D \times 1}\] + \xi_{\text{drug}},
+  \end{align*}
+  which may be sampled together with (\ref{eq:gibbssampler}).
+  
+  \section{Simulations}\label{sec:simulations}
+<<simulation_gdsc>>=
+# simulation 1
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
 
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
+
+D <- 251
+nreps <- 100
+tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-1, ]
+
+tab1 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab1) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab1) <- c("NIG$_{\\text{f}}^-$", "NIG$_{\\text{f}}$", "ridge", 
+                    "lasso")
+
+# simulation 2
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
+
+D <- 251
+nreps <- 100
+tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-1, ]
+
+tab2 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab2) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab2) <- c("NIG$_{\\text{d}}^-$", "NIG$_{\\text{d}}$", "ridge", 
+                    "lasso")
+
+# simulation 3
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+tabm <- tabm3 <- aggregate(res, by=list(substr(rownames(res), 1, 5)), 
+                           FUN="mean")
+tabm <- t(tabm[tabm$Group.1 %in% c("emse.", "emseh", "emsel", "pmse."), -1])
+
+D <- 251
+nreps <- 100
+tabsd <- tabsd3 <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
+  apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-1, ]
+
+tab3 <- sapply(1:ncol(tabm), function(s) {
+  id <- which(tabm[, s]==min(tabm[, s], na.rm=TRUE))
+  out <- paste0(round(tabm[, s], 3), " (", round(tabsd[, s], 3), ")")
+  out[id] <- paste0("\\textbf{", out[id], "}")
+  out})
+colnames(tab3) <- c("$\\text{EMSE}_{\\text{total}}$", 
+                    "$\\text{EMSE}_{\\text{top}}$", 
+                    "$\\text{EMSE}_{\\text{bottom}}$", "$\\text{PMSE}$")     
+rownames(tab3) <- c("NIG$_{\\text{f+d}}^-$", 
+                    "NIG$_{\\text{f+d}}$", "ridge", "lasso")
+@	
+  The lasso and ridge models in this section were fit separately per drug, 
+  using the \texttt{R} package \texttt{glmnet} 
+  \cite[]{friedman_regularization_2010} with cross
+	validated penalty parameters. 
+	
+	Tables \ref{tab:simulations_gdsc_tab1}-\ref{tab:simulations_gdsc_tab3} 
+	display averaged estimation mean squared error (EMSE), and prediction mean
+	squared error (PMSE), calculated on independent test data, for simulation 
+	Scenarios 1-3. PMSE is calculated as in Section \ref{md-sec:gdsc} of the MD, 
+	while EMSE is calculated as: $\text{EMSE} = D^{-1} p^{-1} \sum_{d=1}^D 
+  \sum_{j=1}^p (\beta_{jd} - \hat{\beta}_{jd})^2$, with
+  $\hat{\beta}_{jd}$ the estimator for $\beta_{jd}$. In the NIG
+  models, that provide the full posteriors, the posterior mean 
+  $\E(\beta_{jd} | \mathbf{y}_d)$ is used as point estimate.
+	EMSE is further split into the contribution of the
+	bottom 10\% of the $\beta_{jd}$ in terms of size (in absolute value) and the 
+	top 10\% of the $\beta_{jd}$ in size.
+	
+	Focussing on estimation, we see that the NIG$_{\text{f}}$, NIG$_{\text{d}}$,
+	and NIG$_{\text{f}+\text{d}}$ models (depending on the Scenario),
+	that include the external covariates, outperform
+	the other methods in terms of EMSE and PMSE. The lower EMSEs confirm that the 
+	NIG models that include the external data (NIG$_{\text{f}}$, NIG$_{\text{d}}$,
+	and NIG$_{\text{f}+\text{d}}$) learn the underlying structure 
+	in the data better than the models that do not include the external data
+	(NIG$_{\text{f}}^-$, NIG$_{\text{d}}^-$, and NIG$_{\text{f}+\text{d}}^-$). 
+	Furthermore, as expected, the sparser models lasso and NIG are better able to
+	learn the $\beta_{jd}$ with larger magnitude, as seen from the lower
+	EMSE$_{\text{top}}$. On the other hand, ridge is better able to capture the
+	smaller $\beta_{jd}$, as evident from the lower EMSE$_{\text{bottom}}$.
+	Figure \ref{fig:simulations_gdsc_pmse4} shows that, as expected, the 
+	performance of the NIG$_{\text{f}+\text{d}}$ model deteriorates with 
+	increasing noise level in the external covariates and converges to the 
+	NIG$_{\text{f}+\text{d}}^-$ model performance.
+<<simulations_gdsc_tab1>>=
+kableExtra::kable_styling(knitr::kable(
+  tab1, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 1, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+<<simulations_gdsc_tab2>>=
+kableExtra::kable_styling(knitr::kable(
+  tab2, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 2, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+<<simulations_gdsc_tab3>>=
+kableExtra::kable_styling(knitr::kable(
+  tab3, align="r",
+  caption="Mean EMSE (separated for bottom and top 10\\% of $|\\hat{\\beta}_{jd}|$) and PMSE for simulation Scenario 3, estimated on test data (lowest in bold).", 
+  format="latex", booktabs=TRUE, escape=FALSE), 
+  latex_options=c("HOLD_position"))
+@
+<<simulations_gdsc_pmse4, fig.cap="(a) Mean EMSE, separated for (b) bottom and (c) top 10\\% of $|\\hat{\\beta}_{jd}|$, and (d) PMSE for simulation Scenario 4 versus the proportion of permuted  rows in the external data, estimated on test data.", out.width="100%", fig.asp=1>>= 
+@
+
+  Figure \ref{fig:simulations_gdsc_post5} shows instances of both MCMC and VB
+  $\beta_{jd}$ posteriors from simulation Scenario 3 for the 
+  NIG$_{\text{f}+\text{d}}$ model. 
+  The chosen $\beta_{jd}$ represent every combination of four drugs and four 
+  feature groups (for a total of 16 $\beta_{jd}$). The Figure shows that the
+  MCMC and variational posteriors are in agreement. This leads us to conclude
+  that the variational approximation to the posterior is quite accurate
+  in this Scenario. The simulation Scenario was setup to mimic the real GDSC 
+  data, so that we expect an accurate variational posterior in the real GDSC
+  data as well.
+<<simulations_gdsc_post5, fig.cap="Simulation results for Scenario 3: Samples from NIG$_{\\text{f}+\\text{d}}$ posterior with variational posterior superimposed (red line) for estimated hyperparameters (top row) $\\hat{\\chi}_1$, (second row) $\\hat{\\chi}_2$, (third row) $\\hat{\\chi}_3$, (bottom row) $\\hat{\\chi}_4$, (left column) $\\hat{\\phi}_1$, (second column) $\\hat{\\phi}_2$, (third column) $\\hat{\\phi}_3$, and (last column) $\\hat{\\phi}_4$.", out.width="100%", fig.asp=1>>= 
+@
+
+  For completeness, Figure \ref{fig:simulations_gdsc_res5} displays samples
+  from the full Bayesian NIG posterior, as introduced in Section 
+  \ref{sec:gibbssampler}. Unfortunately, we were not able to generate enough
+  samples for a reliable posterior using the Gibbs procedure as described in 
+  the Section. We generated the samples from the full Bayesian posterior using
+  stan through the R package \texttt{rstan} 
+  \cite[]{guo_rstan:_2018} (see \url{https://github.com/magnusmunch/NIG} for 
+  the implemented stan code).
+<<simulations_gdsc_res5, fig.cap="Simulation results for Scenario 3: Samples from full Bayesian NIG posteriors (see Section \\ref{sec:gibbssampler}) with true value superimposed (red line) for (top row) group 1, (second row) group 2, (third row) group 3, and (bottom row) group 4 for both features and drugs, and (left column) $\\bm{\\phi}$ and (second column) $\\bm{\\chi}$.", out.width="100%">>= 
+@
+
+  \section{GDSC data}\label{sec:gdsc}
+  the CPO for cell line $i$ and drug $d$ is calculated as 
+  $$
+  \text{CPO}_{id} = p(y_{id} | \bm{y}_{-id}) = 
+  \[\int_{\bm{\beta}_d} \int_{\sigma_d^2} \mathcal{L}(\y_{id} | 
+  \bm{\beta}_d, \sigma_d^2)^{-1} q(\bm{\beta}_d | \bm{y}_d) 
+  q(\sigma^2_d | \bm{y}_d) d\bm{\beta}_d \sigma_d^2\]^{-1}
+  $$ 
+  and is the Bayesian version of the leave-one-out cross-validated likelihood.
+  \cite{congdon_bayesian_2005} suggests as outlier cut-off 0.01
+  
   \bibliographystyle{author_short3}  
 	\bibliography{refs}
+	
+	\section*{Session info}
+
+<<r session-info, eval=TRUE, echo=TRUE, tidy=TRUE>>=
+devtools::session_info()
+@
 
 \end{document}
 	

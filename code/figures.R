@@ -48,7 +48,7 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -80,7 +80,7 @@ par(opar)
 
 # ---- simulations_gdsc_est2 ----
 suppressWarnings(suppressMessages(library(sp)))
-res2 <- read.table("results/simulations_gdsc_res2.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -179,7 +179,7 @@ est.chi <- 1/(sapply(0:3, function(s) {
     t(cbind(1, rbind(0, diag(3)))))
 x <- as.numeric(outer(1/(alphaf %*% t(cbind(1, rbind(0, diag(3))))),
                       1/(alphad %*% t(cbind(1, rbind(0, diag(3)))))))
-y <- apply(sapply(1:nrow(est1), function(s) {
+y <- apply(sapply(1:nrow(est.phi), function(s) {
   as.numeric(outer(est.phi[s, ], est.chi[s, ]))}), 1, mean)
 
 col <- bpy.colors(1, cutoff.tail=0.5)
@@ -190,6 +190,45 @@ opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
 plot(x, y, xlab=expression(V(beta)), 
      ylab=expression(hat(V)(beta)),
+     xlim=range(c(x, y)), ylim=range(c(x, y)), col=col[1], pch=pch[1],
+     cex=1.5, cex.lab=1.5, cex.axis=1.5, lwd=2)
+abline(a=0, b=1, col=col[1], lty=lty[1], cex=1.5, cex.lab=1.5, cex.axis=1.5,
+       lwd=2)
+par(opar)
+
+# ---- simulations_gdsc_kurt ----
+suppressWarnings(suppressMessages(library(sp)))
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
+temp <- res[, 1]
+res <- as.matrix(res[, -1])
+rownames(res) <- temp
+
+alphaf <- c(1, 1, 3, 7)
+alphad <- c(1, 1, 3, 7)
+est.phi <- 1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphaf", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))))
+est.chi <- 1/(sapply(0:3, function(s) {
+  res[rownames(res)==paste0("alphad", s), 2]}) %*% 
+    t(cbind(1, rbind(0, diag(3)))))
+lambdaf <- res[rownames(res)=="lambdaf", 2]
+lambdad <- res[rownames(res)=="lambdad", 2]
+x <- 3*as.numeric(outer(
+  as.numeric(1/(alphaf %*% t(cbind(1, rbind(0, diag(3)))))),
+  as.numeric(1/(alphad %*% t(cbind(1, rbind(0, diag(3)))))), 
+  FUN=function(X, Y) {X*Y + X + Y})) + 3
+y <- rowMeans(sapply(1:nrow(est.phi), function(s) {
+  3*as.numeric(outer(est.phi[s, ]/lambdaf[s], est.chi[s, ]/lambdad[s], 
+                     function(X, Y) {X*Y + X + Y})) + 3}))
+
+col <- bpy.colors(1, cutoff.tail=0.5)
+lty <- 3
+pch <- 1
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+plot(x, y, xlab=expression(K(beta)), 
+     ylab=expression(hat(K)(beta)),
      xlim=range(c(x, y)), ylim=range(c(x, y)), col=col[1], pch=pch[1],
      cex=1.5, cex.lab=1.5, cex.axis=1.5, lwd=2)
 abline(a=0, b=1, col=col[1], lty=lty[1], cex=1.5, cex.lab=1.5, cex.axis=1.5,
@@ -268,15 +307,19 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")[, -6]
-plotm <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"),
-                    frac=0, 
+D <- 251
+nreps <- 100
+fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
+measures <- c("emse", "emseh", "emsel", "pmse")
+
+tabm <- aggregate(res, by=list(substr(rownames(res), 1, 5)), FUN="mean")
+plotm <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"), frac=0, 
                     tabm[tabm$Group.1 %in% 
                            c("emse.", "emseh", "emsel", "pmse."), -1])
 
 tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
   apply(aggregate(res[substr(rownames(res), 1, 5)==s, ], 
-                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-c(1, 6), ]
+                  list(rep(1:nreps, each=D)), mean), 2, sd)})[-1, ]
 plotsd <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"),
                      frac=0, t(tabsd))
 
@@ -286,10 +329,6 @@ temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
 
-D <- nreps <- 100
-fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
-measures <- c("emse", "emseh", "emsel", "pmse")
-
 combns <- apply(expand.grid(paste0("frac", fracs), paste0(measures, ".")), 1, 
                 paste0, collapse=".")
 
@@ -297,14 +336,14 @@ plotm <- rbind(plotm, data.frame(
   measure=rep(measures, each=length(fracs)),
   frac=rep(fracs, length(measures)),
   t(sapply(combns, function(s) {
-    colMeans(res[substr(rownames(res), 1, nchar(s))==s, ])}))[, -5]))
+    colMeans(res[substr(rownames(res), 1, nchar(s))==s, ])}))))
 
 plotsd <- rbind(plotsd, data.frame(
   measure=rep(measures, each=length(fracs)),
   frac=rep(fracs, length(measures)),
   t(sapply(combns, function(s) {
     apply(aggregate(res[substr(rownames(res), 1, nchar(s))==s, ], 
-                    list(rep(1:nreps, each=D)), mean)[, -1], 2, sd)}))[, -5]))
+                    list(rep(1:nreps, each=D)), mean)[, -1], 2, sd)}))))
 
 col <- bpy.colors(6, cutoff.tail=0.3)
 labels1 <- c("NIG$_{\\text{f+d}}^-$", 
@@ -367,8 +406,8 @@ layout(matrix(c(1:(G*H)), nrow=H, ncol=G, byrow=TRUE))
 for(h in 1:H) {
   for(g in 1:G) {
     hi <- hist(post.mcmc1[[h]][[g]], breaks=40, plot=FALSE)
-    m <- post.semnig1$mu[g, h]
-    s <- post.semnig1$sigma[g, h]
+    m <- post.nig1$mu[g, h]
+    s <- post.nig1$sigma[g, h]
     ylim <- range(c(hi$density, dnorm(m, m, s)))
     plot(hi, freq=FALSE, ylim=ylim, xlab=expression(beta), 
          ylab=expression(paste("p(", beta, "|", bold(y), ")")), 
@@ -381,7 +420,6 @@ par(opar)
 
 # ---- simulations_gdsc_res5 ----
 load(file="results/simulations_gdsc_res5.Rdata")
-
 D <- 100
 p <- 100
 H <- 4
@@ -393,123 +431,60 @@ chi <- 1/as.numeric(cbind(1, rbind(0, diag(3))) %*% alphad)
 
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)),
-              nrow=4, ncol=4, byrow=TRUE))
+layout(matrix(c(1:8), nrow=4, ncol=2, byrow=TRUE))
 hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[1, ], freq=FALSE,
-     main="(a)", xlab=expression(phi), 
+     main="(a)", xlab=expression(phi[1]), 
      ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
      lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
 abline(v=phi[1], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad)[1, ], freq=FALSE,
+     main="(b)", xlab=expression(chi[1]), 
+     ylab=expression(paste("p(", chi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=chi[1], col=2)
 hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[2, ], freq=FALSE,
-     main="(b)", xlab=expression(phi), 
+     main="(c)", xlab=expression(phi[2]), 
      ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
      lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
 abline(v=phi[2], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad)[2, ], freq=FALSE,
+     main="(d)", xlab=expression(chi[2]), 
+     ylab=expression(paste("p(", chi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=chi[2], col=2)
 hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[3, ], freq=FALSE,
-     main="(c)", xlab=expression(phi), 
+     main="(e)", xlab=expression(phi[3]), 
      ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
      lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
 abline(v=phi[3], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad)[3, ], freq=FALSE,
+     main="(f)", xlab=expression(chi[3]), 
+     ylab=expression(paste("p(", chi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=chi[3], col=2)
 hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[4, ], freq=FALSE,
-     main="(d)", xlab=expression(phi), 
+     main="(g)", xlab=expression(phi[4]), 
      ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
      lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
 abline(v=phi[4], col=2)
+hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad)[4, ], freq=FALSE,
+     main="(h)", xlab=expression(chi[4]), 
+     ylab=expression(paste("p(", chi, "|", bold(y), ")")), breaks=40,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=chi[4], col=2)
 par(opar)
 
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2), rep(rep(c(3:4), each=2), 2)),
-              nrow=4, ncol=4, byrow=TRUE))
-hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[1, ], freq=FALSE,
-     main="(a)", xlab=expression(phi), 
-     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
-     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
-abline(v=phi[1], col=2)
-hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[2, ], freq=FALSE,
-     main="(b)", xlab=expression(phi), 
-     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
-     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
-abline(v=phi[2], col=2)
-hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[3, ], freq=FALSE,
-     main="(c)", xlab=expression(phi), 
-     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
-     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
-abline(v=phi[3], col=2)
-hist(1/(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf)[4, ], freq=FALSE,
-     main="(d)", xlab=expression(phi), 
-     ylab=expression(paste("p(", phi, "|", bold(y), ")")), breaks=40,
-     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
-abline(v=phi[4], col=2)
-par(opar)
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(c(rep(rep(c(1:2), each=2), 2)), nrow=2, ncol=4, byrow=TRUE))
-plot(chi, rowMeans(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphad))
-abline(a=0, b=1)
-plot(phi, rowMeans(cbind(1, rbind(0, diag(3))) %*% post.mcmc2$alphaf))
-abline(a=0, b=1)
-par(opar)
-
-test <- stan_model("rpackage/inst/stan/nig_full.stan")
-
-
-stan_rhat(fit.mcmc2, pars=c("alphaf", "alphad"))
-stan_ess(fit.mcmc2, pars=c("alphaf", "alphad"))
-stan_mcse(fit.mcmc2, pars=c("alphaf", "alphad"))
-stan_ac(fit.mcmc2, pars=c("alphaf", "alphad"))
-stan_trace(fit.mcmc2, pars=c("alphaf", "alphad"))
-
-# ---- analysis_gdsc_res2 ----
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/analysis_gdsc_res2.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
-pmse <- res[substr(rownames(res), 1, 4)=="pmse", ]
-mpmse <- aggregate(pmse, list(rownames(pmse)), FUN="mean")[, -1][, c(1:3, 6)]
-
-ylim1 <- range(1 - c(mpmse[, "semnig2"], mpmse[, "ridge1"]))
-ylim2 <- range(1 - c(mpmse[, "ebridge1"], mpmse[, "ridge1"]))
-
-col <- bpy.colors(3, cutoff.tail=0.2)
-
-opar <- par(no.readonly=TRUE)
-par(mar=opar$mar*c(1, 1.3, 1, 1))
-layout(matrix(rep(c(1:2), each=2), nrow=2, ncol=2, byrow=TRUE))
-plot(1 - mpmse[, "ridge1"], xlab="Drug", 
-     ylab="PMSE reduction", main="(a)",
-     cex=0.5, pch=16, ylim=ylim1, col=col[1])
-points(1 - mpmse[, "semnig2"], cex=0.5, pch=16, col=col[2])
-abline(v=order(abs(mpmse[, "ridge1"] - mpmse[, "semnig2"]), 
-               decreasing=TRUE)[c(1:5)], lty=2, 
-       col=col[as.numeric((mpmse[, "ridge1"] - mpmse[, "semnig2"] > 0) + 1)[
-         order(abs(mpmse[, "ridge1"] - mpmse[, "semnig2"]), 
-               decreasing=TRUE)[c(1:5)]]])
-abline(h=0, lty=3)
-legend("topleft", c("ridge", expression(NIG[f+d])), 
-       pch=16, col=col[c(1, 2)])
-
-plot(1 - mpmse[, "ridge1"], xlab="Drug", 
-     ylab="PMSE reduction", main="(b)",
-     cex=0.5, pch=16, ylim=ylim2, col=col[1])
-points(1 - mpmse[, "ebridge1"], cex=0.5, pch=16, col=col[3])
-abline(v=order(abs(mpmse[, "ridge1"] - mpmse[, "ebridge1"]), 
-               decreasing=TRUE)[c(1:5)], lty=2, 
-       col=col[as.numeric((mpmse[, "ridge1"] - mpmse[, "ebridge1"] > 0)*2 + 1)[
-         order(abs(mpmse[, "ridge1"] - mpmse[, "ebridge1"]), 
-               decreasing=TRUE)[c(1:5)]]])
-abline(h=0, lty=3)
-legend("topleft", c("ridge", "mxtune"), pch=16, col=col[c(1, 3)])
-
-par(opar)
+# ---- analysis_gdsc_cpo ----
+load(file="data/data_gdsc_dat1.Rdata")
+load("results/analysis_gdsc_cpo1.Rdata")
+hist(exp(unlist(lcpo.nig2)), freq=FALSE, breaks=100)
+abline(v=0.01)
 
 ################################################################################
 ################################# presentation #################################
 ################################################################################
 # ---- dens_beta_prior1 ---- 
-library(GeneralizedHyperbolic)
+suppressWarnings(suppressMessages(library(GeneralizedHyperbolic)))
 dprior <- function(x, lambda, theta, sigma) {
   dnig(x, 0, sigma*sqrt(lambda), sqrt(lambda/(theta*sigma)), 0)
 }
