@@ -36,12 +36,10 @@
 *.so
 *.tex
 *.toc
-*.xlsx
 .DS_Store
 
-
-/misc
 /data
+/misc
 /submission
 /revision
 .Rproj.user
