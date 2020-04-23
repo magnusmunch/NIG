@@ -610,6 +610,7 @@ ct <- proc.time()[3]
 fit.nig1 <- nig(x=rep(list(x), D), y=y, C=C, Z=Z, 
                       full.post=TRUE, control=control.nig)
 time.nig1 <- proc.time()[3] - ct
+time.nig1.post <- fit.nig1$time[2]
 ct <- proc.time()[3]
 fit.mcmc1 <- lapply(1:D, function(d) {
   sampling(stanmodels$nig, 
@@ -660,6 +661,6 @@ post.mcmc2 <- list(beta=lapply(split(
     unname(as.matrix(s)[p/G*(c(1:G) - 1) + 1, ])}),
   alphaf=t(post.mcmc2$alphaf), alphad=t(post.mcmc2$alphad),
   lambdaf=t(post.mcmc2$lambdaf), lambdad=t(post.mcmc2$lambdad))
-save(time.nig1, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, post.nig1, 
-     file="results/simulations_gdsc_res5.Rdata")
+save(time.nig1, time.nig1.post, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, 
+     post.nig1, file="results/simulations_gdsc_res5.Rdata")
 

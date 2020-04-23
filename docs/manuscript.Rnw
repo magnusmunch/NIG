@@ -732,17 +732,14 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	
 	SM Section \ref{sm-sec:simulations} contains more 
 	simulation results for Scenarios 1-4 for
-	the NIG model and four alternative methods: frequentist (i) 
-	lasso and (ii) ridge models, and EB version of the ridge model: (iii) a
-	multivariate Bayesian extension of \texttt{xtune} 
-	\cite[]{ni_bayesian_2019} named mxtune, as introduced in SM Section 
-	\ref{sm-sec:mxtune}. Additionally, SM Section \ref{sm-sec:simulations} 
+	the NIG model and the (i) frequentist 
+	lasso and (ii) ridge models. Additionally, SM Section \ref{sm-sec:simulations} 
 	contains a comparison of MCMC and VB posteriors in simulation Scenario 3.
 	
 	\subsection{Results}
 <<simulation_gdsc>>=
 # simulation 1
-res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -757,7 +754,7 @@ se.lambdaf1 <- apply(res[rownames(res)=="lambdaf", c(1, 2)], 2, sd)
 lambdaf1 <- paste0(round(est.lambdaf1, 3), " (", round(se.lambdaf1, 3), ")")
 
 # simulation 2
-res <- read.table("results/simulations_gdsc_res2.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -772,7 +769,7 @@ se.lambdad2 <- apply(res[rownames(res)=="lambdad", c(1, 2)], 2, sd)
 lambdad2 <- paste0(round(est.lambdad2, 3), " (", round(se.lambdad2, 3), ")")
 
 # simulation 3
-res <- read.table("results/simulations_gdsc_res3.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -1178,22 +1175,20 @@ colnames(tab5.1) <- c("NIG$_{\\text{f}+\\text{d}}^-$",
                     "NIG$_{\\text{f}+\\text{d}}$", "ridge", "lasso")
 tab5.1 <- t(tab5.1)
 
-tab5.2 <- tab5[, c(4, 13, 14, 6:8, 10:12)]
-tabm5.2 <- tabm5[, c(4, 13, 14, 6:8, 10:12)]
+tab5.2 <- tab5[, c(4, 13:14, 10:12)]
+tabm5.2 <- tabm5[, c(4, 13:14, 10:12)]
 tab5.2 <- t(sapply(1:nrow(tab5.2), function(r) {
   id <- which(tabm5.2[r, ]==min(tabm5.2[r, ], na.rm=TRUE))
   out <- tab5.2[r, ]
   out[id] <- paste0("\\textbf{", out[id], "}")
   out}))
 rownames(tab5.2) <- paste0("analysis ", 1:nrow(tab5.2))
-colnames(tab5.2) <- c("lasso", "lasso(25)", "lasso(100)", 
-                      "NIG$_{\\text{f}+\\text{d}}+$DSS(lasso)",
+colnames(tab5.2) <- c("lasso($\\sim$50)$^*$", "lasso(25)", "lasso(100)", 
+                      "NIG$_{\\text{f}+\\text{d}}+$DSS($\\sim$50)$^*$",
                       "NIG$_{\\text{f}+\\text{d}}+$DSS(25)",
-                      "NIG$_{\\text{f}+\\text{d}}+$DSS(100)",
-                      "NIG$_{\\text{f}+\\text{d}}^-+$DSS(lasso)",
-                      "NIG$_{\\text{f}+\\text{d}}^-+$DSS(25)",
-                      "NIG$_{\\text{f}+\\text{d}}^-+$DSS(100)")
+                      "NIG$_{\\text{f}+\\text{d}}+$DSS(100)")
 tab5.2 <- t(tab5.2)
+tab5.2 <- tab5.2[c(2, 1, 3, 5, 4, 6), ]
 
 mpsel <- rbind(colMeans(psel1), colMeans(psel2), colMeans(psel3), 
                colMeans(psel4))
@@ -1247,21 +1242,21 @@ psels1 <- round(mpsel[, c(4, 6, 10)], 0)
 	\end{itemize}
 <<analysis_gdsc_fit1>>=
 kableExtra::kable_styling(knitr::kable(
-  tab1, align="r", digits=2,
+  tab1, align="r", digits=3,
   caption="$\\bm{\\alpha}$ estimates from analysis 1. Empty cells correspond to fixed zero parameters.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
 @
 <<analysis_gdsc_fit2>>=
 kableExtra::kable_styling(knitr::kable(
-  tab2, align="r", digits=2,
+  tab2, align="r", digits=3,
   caption="$\\bm{\\alpha}$ estimates from analysis 2. Empty cells correspond to fixed zero parameters.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
 @
 <<analysis_gdsc_fit3>>=
 kableExtra::kable_styling(knitr::kable(
-  tab3, align="r", digits=2,
+  tab3, align="r", digits=3,
   caption="$\\bm{\\alpha}$ estimates from analysis 3. Empty cells correspond to fixed zero parameters.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
@@ -1270,7 +1265,7 @@ kableExtra::kable_styling(knitr::kable(
     \begin{minipage}{1\textwidth}
 <<analysis_gdsc_fit4.1>>=
 kableExtra::kable_styling(knitr::kable(
-  tab4.1, align="r", digits=2,
+  tab4.1, align="r", digits=3,
   caption="$\\bm{\\alpha}$ estimates from analysis 4. Empty cells correspond to fixed zero parameters.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
@@ -1279,7 +1274,7 @@ kableExtra::kable_styling(knitr::kable(
     \begin{minipage}{1\textwidth}
 <<analysis_gdsc_fit4.2>>=
 kableExtra::kable_styling(knitr::kable(
-  tab4.2, align="r", digits=2,
+  tab4.2, align="r", digits=3,
   caption="$\\bm{\\alpha}$ estimates from analysis 4. Empty cells correspond to fixed zero parameters \\textit{(continued)}.",
   format="latex", booktabs=TRUE, escape=FALSE),
   latex_options=c("HOLD_position"))
@@ -1319,17 +1314,19 @@ kableExtra::kable_styling(knitr::kable(
   may be achieved through the decoupling shrinkage and selection approach (DSS)
   introduced in \cite{hahn_decoupling_2015}. We have applied DSS in our 
   analyses, where we select either (approximately) the same number of features 
-  as lasso, 25, or 50 features. Table 
+  as lasso (about 50 in all analyses), 25, or 100 features. Table 
   \ref{tab:analysis_gdsc_pmse2} compares the resulting mean PMSE values. The
   Table shows that NIG$_{\text{f}+\text{d}}$ plus DSS outperforms lasso,
-  with the same number of features.
+  for all three numbers of selected features, in all analyses.
   
 <<analysis_gdsc_pmse2>>=  
-kableExtra::kable_styling(knitr::kable(
+kableExtra::add_footnote(kableExtra::kable_styling(knitr::kable(
   tab5.2, align="r",
-  caption="Mean (standard deviation) of cross-validated PMSE for GDSC data. Best performing model (per analysis) in bold.",
+  caption="Mean (standard deviation) of cross-validated PMSE for selection methods (number of selected features between parentheses) on GDSC data. Best performing model (per analysis) in bold.",
   format="latex", booktabs=TRUE, escape=FALSE), 
-  latex_options=c("HOLD_position"))
+  latex_options=c("HOLD_position")), 
+  label="cross validated lasso selects, on average, 42-56 features in all analyses (indicated with $\\sim$50).",
+  notation="symbol", threeparttable=TRUE, escape=FALSE)
 @
   
   To assess model fit, Section \ref{sm-sec:gdsc} in the SM displays the 

@@ -116,7 +116,6 @@ write.table(est, file="results/analysis_gdsc_fit1.txt")
 lcpo.nig1 <- logcpo(x, y, n, fit.nig1)
 lcpo.nig2 <- logcpo(x, y, n, fit.nig2)
 save(lcpo.nig1, lcpo.nig2, y, file="results/analysis_gdsc_cpo1.Rdata")
-load(file="results/analysis_gdsc_cpo1.Rdata")
 
 ### predictions and mse
 # settings
@@ -309,7 +308,7 @@ write.table(est, file="results/analysis_gdsc_fit2.txt")
 # log cpo values
 lcpo.nig1 <- logcpo(x, y, n, fit.nig1)
 lcpo.nig2 <- logcpo(x, y, n, fit.nig2)
-save(lcpo.nig1, lcpo.nig2, file="results/analysis_gdsc_cpo2.Rdata")
+save(lcpo.nig1, lcpo.nig2, y, file="results/analysis_gdsc_cpo2.Rdata")
 
 # predictions and mse
 ### predictions and mse
@@ -520,7 +519,7 @@ write.table(est, file="results/analysis_gdsc_fit3.txt")
 # log cpo values
 lcpo.nig1 <- logcpo(x, y, n, fit.nig1)
 lcpo.nig2 <- logcpo(x, y, n, fit.nig2)
-save(lcpo.nig1, lcpo.nig2, file="results/analysis_gdsc_cpo3.Rdata")
+save(lcpo.nig1, lcpo.nig2, y, file="results/analysis_gdsc_cpo3.Rdata")
 
 ### predictions and mse
 # settings
@@ -717,7 +716,7 @@ write.table(est, file="results/analysis_gdsc_fit4.txt")
 # log cpo values
 lcpo.nig1 <- logcpo(x, y, n, fit.nig1)
 lcpo.nig2 <- logcpo(x, y, n, fit.nig2)
-save(lcpo.nig1, lcpo.nig2, file="results/analysis_gdsc_cpo4.Rdata")
+save(lcpo.nig1, lcpo.nig2, y, file="results/analysis_gdsc_cpo4.Rdata")
 
 # predictions and mse
 ### predictions and mse

@@ -130,12 +130,16 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	
 	\section{Content overview}
 	This document contains the Supplementary Material (SM) to the document 
-	`Drug sensitivity prediction with the normal inverse Gaussian prior 
+	`Drug sensitivity prediction with normal inverse Gaussian shrinkage 
 	informed by external data'. In the 
 	following, this document is referred to as Main Document (MD). 
 	
 	Section \ref{sec:prior} describes the moments of the normal
-	inverse Gaussian (NIG) prior, Section \ref{sec:vbderivations} gives
+	inverse Gaussian (NIG) prior. Section \ref{sec:hyperparameters} describes
+	the hyperparameter settings to generate Figure \ref{md-fig:dens_kappa} in the
+	MD and Section \ref{sec:jeffreysprior} outlines the derivation to arrive at
+	the Jeffreys prior for the error variance in equation (\ref{md-eq:sigmaprior})
+	of the MD. Section \ref{sec:vbderivations} gives
 	the variational Bayes (BV) derivations that lead to the estimating equations 
 	in the MD, Section \ref{sec:elbo} gives the evidence lower bound (ELBO) that 
 	is maximised during the VB iterations. In Section \ref{sec:computation} 
@@ -143,8 +147,11 @@ Wiel$^{1,3}$, Sylvia Richardson$^{3}$, \\ and Gwena{\"e}l G. R. Leday$^{3}$}
 	\ref{sec:ratiosmodifiedbessels} outlines a computationally stable method
 	to calculate ratios of modified Bessel functions. Section \ref{sec:eb} shows
 	that the empirical Bayes (EB) scale estimates $\bm{\lambda}$ are non-negative.
-	The last Section \ref{sec:gibbssampler} introduces a Gibbs sampling scheme
-	to sample from the posterior corresponding to the NIG model.
+	Section \ref{sec:gibbssampler} introduces a Gibbs sampling scheme
+	to sample from the posterior corresponding to the full Bayesian version of the
+	NIG model. Finally, Sections \ref{sec:simulations} and \ref{sec:gdsc} contain
+	additional results to the simulations and GDSC data analyses in Sections
+	\ref{md-sec:simulations} and \ref{md-sec:gdsc} in the MD, respectively.
 	
 	\section{Normal inverse Gaussian prior moments}\label{sec:prior}
 	Let $\beta \sim \mathcal{N}(0,\sigma^2 \tau^2 \gamma^2)$, where 
@@ -677,15 +684,46 @@ kableExtra::kable_styling(knitr::kable(
 @
 
   \section{GDSC data}\label{sec:gdsc}
-  the CPO for cell line $i$ and drug $d$ is calculated as 
-  $$
+<<analysis_gdsc>>=
+sigma <- 0.83
+cutoff <- 0.01
+prop <- round(pnorm( - sigma*sqrt(-log(2) - log(pi) - 2*log(sigma) - 
+                                    2*log(cutoff)), 0, sigma), 4)
+
+load("results/analysis_gdsc_cpo1.Rdata")
+prop1 <- round(mean(unlist(lcpo.nig2) < log(cutoff)), 4)
+load("results/analysis_gdsc_cpo2.Rdata")
+prop2 <- round(mean(unlist(lcpo.nig2) < log(cutoff)), 4)
+load("results/analysis_gdsc_cpo3.Rdata")
+prop3 <- round(mean(unlist(lcpo.nig2) < log(cutoff)), 4)
+load("results/analysis_gdsc_cpo4.Rdata")
+prop4 <- round(mean(unlist(lcpo.nig2) < log(cutoff)), 4)
+@
+  the CPO for cell line $i$ and drug $d$ is
+  \begin{align}\label{eq:cpo}
   \text{CPO}_{id} = p(y_{id} | \bm{y}_{-id}) = 
   \[\int_{\bm{\beta}_d} \int_{\sigma_d^2} \mathcal{L}(\y_{id} | 
   \bm{\beta}_d, \sigma_d^2)^{-1} q(\bm{\beta}_d | \bm{y}_d) 
   q(\sigma^2_d | \bm{y}_d) d\bm{\beta}_d \sigma_d^2\]^{-1}
-  $$ 
+  \end{align}
   and is the Bayesian version of the leave-one-out cross-validated likelihood.
-  \cite{congdon_bayesian_2005} suggests as outlier cut-off 0.01
+  \cite{congdon_bayesian_2005} suggests as outlier cut-off 0.01.
+  Figure \ref{fig:analysis_gdsc_cpo} displays these CPOs (calculated by 
+  numerical integration of (\ref{eq:cpo})) for the four Analyses.
+  For $y_{id} | y_{-id}$ following a Gaussian distribution with standard 
+  deviation 0.83 
+  (the average posterior mean of $\sigma^2_d$ from our analyses) this implies 
+  an expected proportion of outliers of about \Sexpr{prop}. In our analyses we 
+  find \Sexpr{prop1}, \Sexpr{prop2}, \Sexpr{prop3}, and \Sexpr{prop4}, for the
+  four analyses respectively. So about double the amount of expected outliers
+  under a Gaussian posterior predictive distribition. However, in reality,
+  due to posterior uncertainty of $\bm{\beta}_d$ and $\sigma^2_d$, the
+  predictive distribution is more heavy-tailed than the Gaussian and the 
+  corresponding expected proportion of outliers higher than \Sexpr{prop}. 
+  Unfortunately, calculation of this true expected proportion is infeasible 
+  due to intractibility of the posterior predictive distribution.
+<<analysis_gdsc_cpo, fig.cap="distribution of the CPO values for Analysis (a) 1, (b) 2, (c) 3, and (d) 4 in Section \\ref{md-sec:gdsc} of the MD, with outlier cutoff value 0.01 (red line).", out.width="100%">>= 
+@
   
   \bibliographystyle{author_short3}  
 	\bibliography{refs}

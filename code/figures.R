@@ -48,7 +48,7 @@ par(opar)
 
 # ---- simulations_gdsc_est1 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res1.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res1.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -80,7 +80,7 @@ par(opar)
 
 # ---- simulations_gdsc_est2 ----
 suppressWarnings(suppressMessages(library(sp)))
-res2 <- read.table("results/simulations_gdsc_res2.2.txt", row.names=NULL)
+res <- read.table("results/simulations_gdsc_res2.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
 rownames(res) <- temp
@@ -237,24 +237,30 @@ par(opar)
 
 # ---- simulations_gdsc_est4 ----
 suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
+res1 <- read.table("results/simulations_gdsc_res4.1.txt", row.names=NULL)
+temp <- res1[, 1]
+res1 <- as.matrix(res1[, -1])
+rownames(res1) <- temp
+
+res2 <- read.table("results/simulations_gdsc_res4.2.txt", row.names=NULL)
+temp <- res2[, 1]
+res2 <- as.matrix(res2[, -1])
+rownames(res2) <- temp
+
+res <- rbind(res1, res2)
 
 fracs <- c(1/10, 1/5, 1/3, 1/2, 2/3, 4/5, 1)
-phi <- lapply(fracs, function(q) {
+phi <- lapply(format(round(fracs, 2)), function(q) {
   cq <- paste0("frac", q, ".alphaf")
   apply(1/(sapply(0:3, function(s) {
     res[rownames(res)==paste0(cq, s), 2]}) %*% 
       t(cbind(1, rbind(0, diag(3))))), 2, mean)})
-chi <- lapply(fracs, function(q) {
+chi <- lapply(format(round(fracs, 2)), function(q) {
   cq <- paste0("frac", q, ".alphad")
   apply(1/(sapply(0:3, function(s) {
     res[rownames(res)==paste0(cq, s), 2]}) %*% 
       t(cbind(1, rbind(0, diag(3))))), 2, mean)})
 
-suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
@@ -302,6 +308,7 @@ par(opar)
 ################################## supplement ##################################
 ################################################################################
 # ---- simulations_gdsc_pmse4 ----
+suppressWarnings(suppressMessages(library(sp)))
 res <- read.table("results/simulations_gdsc_res3.txt", row.names=NULL)
 temp <- res[, 1]
 res <- as.matrix(res[, -1])
@@ -323,14 +330,20 @@ tabsd <- sapply(c("emse.", "emseh", "emsel", "pmse."), function(s) {
 plotsd <- data.frame(measure=c("emse", "emseh", "emsel", "pmse"),
                      frac=0, t(tabsd))
 
-suppressWarnings(suppressMessages(library(sp)))
-res <- read.table("results/simulations_gdsc_res4.txt", row.names=NULL)
-temp <- res[, 1]
-res <- as.matrix(res[, -1])
-rownames(res) <- temp
+res1 <- read.table("results/simulations_gdsc_res4.1.txt", row.names=NULL)
+temp <- res1[, 1]
+res1 <- as.matrix(res1[, -1])
+rownames(res1) <- temp
 
-combns <- apply(expand.grid(paste0("frac", fracs), paste0(measures, ".")), 1, 
-                paste0, collapse=".")
+res2 <- read.table("results/simulations_gdsc_res4.2.txt", row.names=NULL)
+temp <- res2[, 1]
+res2 <- as.matrix(res2[, -1])
+rownames(res2) <- temp
+
+res <- rbind(res1, res2)
+
+combns <- apply(expand.grid(paste0("frac", format(round(fracs, 2))), 
+                            paste0(measures, ".")), 1, paste0, collapse=".")
 
 plotm <- rbind(plotm, data.frame(
   measure=rep(measures, each=length(fracs)),
@@ -345,9 +358,9 @@ plotsd <- rbind(plotsd, data.frame(
     apply(aggregate(res[substr(rownames(res), 1, nchar(s))==s, ], 
                     list(rep(1:nreps, each=D)), mean)[, -1], 2, sd)}))))
 
-col <- bpy.colors(6, cutoff.tail=0.3)
+col <- bpy.colors(4, cutoff.tail=0.3)
 labels1 <- c("NIG$_{\\text{f+d}}^-$", 
-             "NIG$_{\\text{f+d}}$", "ridge", "lasso", "mxtune")
+             "NIG$_{\\text{f+d}}$", "ridge", "lasso")
 
 ylim1 <- range(plotm[plotm$measure=="emse", -c(1, 2)])
 ylim2 <- range(plotm[plotm$measure=="emsel", -c(1, 2)])
@@ -357,7 +370,7 @@ ylim4 <- range(plotm[plotm$measure=="pmse", -c(1, 2)])
 opar <- par(no.readonly=TRUE)
 par(mar=opar$mar*c(1, 1.3, 1, 1))
 layout(matrix(1:4, nrow=2, byrow=TRUE))
-plot(plotm$frac[plotm$measure=="emse"], plotm$NIG.[plotm$measure=="emse"], 
+plot(plotm$frac[plotm$measure=="emse"], plotm[plotm$measure=="emse", 3], 
      ylim=ylim1, ylab="EMSE", xlab="Proportion of permuted rows", type="l",
      cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(a)")
 for(m in 2:(ncol(plotm) - 2)) {
@@ -365,7 +378,7 @@ for(m in 2:(ncol(plotm) - 2)) {
         plotm[plotm$measure=="emse", colnames(plotm)[m + 2]], 
         ylim=ylim1, lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[m])
 }
-plot(plotm$frac[plotm$measure=="emsel"], plotm$NIG.[plotm$measure=="emsel"], 
+plot(plotm$frac[plotm$measure=="emsel"], plotm[plotm$measure=="emsel", 3], 
      ylim=ylim2, ylab=expression(EMSE[bottom]), 
      xlab="Proportion of permuted rows", type="l",
      cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(b)")
@@ -374,7 +387,7 @@ for(m in 2:(ncol(plotm) - 2)) {
         plotm[plotm$measure=="emsel", colnames(plotm)[m + 2]], 
         lwd=1.5, cex=1.5, col=col[m])
 }
-plot(plotm$frac[plotm$measure=="emseh"], plotm$NIG.[plotm$measure=="emseh"], 
+plot(plotm$frac[plotm$measure=="emseh"], plotm[plotm$measure=="emseh", 3], 
      ylim=ylim3, ylab=expression(EMSE[top]), xlab="Proportion of permuted rows", 
      type="l", cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, 
      main="(c)")
@@ -383,7 +396,7 @@ for(m in 2:(ncol(plotm) - 2)) {
         plotm[plotm$measure=="emseh", colnames(plotm)[m + 2]], 
         lwd=1.5, cex=1.5, col=col[m])
 }
-plot(plotm$frac[plotm$measure=="pmse"], plotm$NIG.[plotm$measure=="pmse"], 
+plot(plotm$frac[plotm$measure=="pmse"], plotm[plotm$measure=="pmse", 3], 
      ylim=ylim4, ylab="PMSE", xlab="Proportion of permuted rows", type="l",
      cex=1.5, cex.lab=1.5, cex.axis=1.5, col=col[1], lwd=1.5, main="(d)")
 for(m in 2:(ncol(plotm) - 2)) {
@@ -475,10 +488,31 @@ abline(v=chi[4], col=2)
 par(opar)
 
 # ---- analysis_gdsc_cpo ----
-load(file="data/data_gdsc_dat1.Rdata")
 load("results/analysis_gdsc_cpo1.Rdata")
-hist(exp(unlist(lcpo.nig2)), freq=FALSE, breaks=100)
-abline(v=0.01)
+data1 <- data.frame(x=unlist(y), y=exp(unlist(lcpo.nig2)))
+load("results/analysis_gdsc_cpo2.Rdata")
+data2 <- data.frame(x=unlist(y), y=exp(unlist(lcpo.nig2)))
+load("results/analysis_gdsc_cpo3.Rdata")
+data3 <- data.frame(x=unlist(y), y=exp(unlist(lcpo.nig2)))
+load("results/analysis_gdsc_cpo4.Rdata")
+data4 <- data.frame(x=unlist(y), y=exp(unlist(lcpo.nig2)))
+
+opar <- par(no.readonly=TRUE)
+par(mar=opar$mar*c(1, 1.3, 1, 1))
+layout(matrix(c(1:4), nrow=2, ncol=2, byrow=TRUE))
+hist(data1$y, main="(a)", xlab="CPO", freq=FALSE, breaks=50,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=0.01, col=2)
+hist(data2$y, main="(b)", xlab="CPO", freq=FALSE, breaks=50,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=0.01, col=2)
+hist(data3$y, main="(c)", xlab="CPO", freq=FALSE, breaks=50,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=0.01, col=2)
+hist(data4$y, main="(d)", xlab="CPO", freq=FALSE, breaks=50,
+     lwd=1.5, cex=1.5, cex.lab=1.5, cex.axis=1.4)
+abline(v=0.01, col=2)
+par(opar)
 
 ################################################################################
 ################################# presentation #################################
