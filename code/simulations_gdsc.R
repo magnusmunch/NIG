@@ -637,23 +637,17 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
                       iter=control.stan$iter, warmup=control.stan$warmup, 
                       chains=control.stan$chains,
                       verbose=control.stan$verbose, 
-                      show_messages=control.stan$show_messages,
-                      sample_file="results/simulations_gdsc_fit5_mcmc2.txt")
+                      show_messages=control.stan$show_messages)
 time.mcmc2 <- proc.time()[3] - ct
 save(fit.nig1, fit.mcmc1, fit.mcmc2, 
      file="results/simulations_gdsc_fit5.Rdata")
 post.nig1 <- list(mu=fit.nig1$vb$mu, Sigma=fit.nig1$vb$Sigma)
 save(post.nig1, file="results/simulations_gdsc_fit5_nig1.Rdata")
-
-post.nig1 <- list(mu=fit.nig1$vb$mu, 
-                     Sigma=fit.nig1$vb$Sigma)
 post.mcmc1 <- lapply(fit.mcmc1[
   sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})], 
   extract, pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
 post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
                                         "lambdaf", "lambdad"))
-# post.mcmc2$beta[, (which(!duplicated(colSums(t(Z)*c(0:(H - 1))) + 1)) - 1)*p + 1]
-# p*sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]}) 
 post.mcmc2 <- list(beta=lapply(split(
   as.data.frame(t(post.mcmc2$beta)), rep(1:D, each=p))[
     sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})],
