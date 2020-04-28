@@ -8,6 +8,7 @@ required R packages, available from CRAN:
 * gdata
 * sp
 * GeneralizedHyperbolic
+
 available from bioconductor:
 * biomaRt
 
