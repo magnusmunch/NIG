@@ -622,10 +622,7 @@ fit.mcmc1 <- lapply(1:D, function(d) {
            iter=control.stan$iter, warmup=control.stan$warmup, 
            chains=control.stan$chains,
            verbose=control.stan$verbose, 
-           show_messages=control.stan$show_messages,
-           sample_file=paste0(
-             "results/simulations_gdsc_fit5_mcmc1/simulations_gdsc_fit5_mcmc1_drug", 
-             d, ".txt"))})
+           show_messages=control.stan$show_messages)})
 time.mcmc1 <- proc.time()[3] - ct
 ct <- proc.time()[3]
 fit.mcmc2 <- sampling(stanmodels$nig_full,
@@ -643,18 +640,17 @@ save(fit.nig1, fit.mcmc1, fit.mcmc2,
      file="results/simulations_gdsc_fit5.Rdata")
 post.nig1 <- list(mu=fit.nig1$vb$mu, Sigma=fit.nig1$vb$Sigma)
 save(post.nig1, file="results/simulations_gdsc_fit5_nig1.Rdata")
-post.mcmc1 <- lapply(fit.mcmc1[
-  sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})], 
-  extract, pars=paste0("beta[", p/G*(c(1:G) - 1) + 1, "]"))
+hid <- sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})
+gid <- p/G*(c(1:G) - 1) + 1
+post.mcmc1 <- lapply(fit.mcmc1[hid], extract, pars=paste0("beta[", gid, "]"))
 post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
                                         "lambdaf", "lambdad"))
 post.mcmc2 <- list(beta=lapply(split(
-  as.data.frame(t(post.mcmc2$beta)), rep(1:D, each=p))[
-    sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})],
-  function(s) {
-    unname(as.matrix(s)[p/G*(c(1:G) - 1) + 1, ])}),
+  as.data.frame(t(post.mcmc2$beta)), rep(1:D, each=p))[hid],
+  function(s) {unname(as.matrix(s)[gid, ])}),
   alphaf=t(post.mcmc2$alphaf), alphad=t(post.mcmc2$alphad),
   lambdaf=t(post.mcmc2$lambdaf), lambdad=t(post.mcmc2$lambdad))
+summary.mcmc2 <- summary(fit.mcmc2)
 save(time.nig1, time.nig1.post, time.mcmc1, time.mcmc2, post.mcmc1, post.mcmc2, 
-     post.nig1, file="results/simulations_gdsc_res5.Rdata")
+     post.nig1, summary.mcmc2, file="results/simulations_gdsc_res5.Rdata")
 
