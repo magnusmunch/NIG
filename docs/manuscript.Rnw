@@ -943,7 +943,7 @@ true.kurtb3 <- 3*mean(as.numeric(outer(
   $\mathcal{K}(\beta_{jd})$, \Sexpr{true.kurtb3}, at \Sexpr{kurtb3}.
   Lastly, the results from Scenario 3 in SM Section \ref{sm-sec:simulations} 
   show that the VB approximation is quite good as compared to standard MCMC.
-<<simulations_gdsc_kurt, fig.cap="Simulation results for Scenario 3: mean estimated prior variances $\\V(\\beta_{jd})$ versus true values, with line of identity (dotted).", out.width="50%", fig.asp=1>>= 
+<<simulations_gdsc_kurt, fig.cap="Simulation results for Scenario 3: mean estimated prior Kurtoses $\\mathcal{K}(\\beta_{jd})$ versus true values, with line of identity (dotted).", out.width="50%", fig.asp=1>>= 
 @
 	
 	\section{GDSC data}\label{sec:gdsc}

@@ -18,6 +18,7 @@ ncores <- min(100, nfolds)
 load(file="data/data_gdsc_dat1.Rdata")
 
 ### functions
+# a function to perform the decoupling shrinkage and selection approach
 coef.dss <- function(object, psel) {
   best <- matrix(nrow=object$glmnet.fit$dim[1] + 1, ncol=length(psel))
   for(p in 1:length(psel)) {
@@ -159,7 +160,7 @@ res <- foreach(r=1:nfolds, .packages=packages, .errorhandling="pass") %dopar% {
   
   # create co-data
   C <- lapply(1:D, function(d) {
-    s <- cbind(1, log(pvalues[[d]])); colnames(s) <- c("intercept", "pvalue"); s})
+    s <- cbind(1, pvalues[[d]]); colnames(s) <- c("intercept", "pvalue"); s})
   
   # nig models
   cv.nig1 <- nig(x=xtrain, y=ytrain, 
