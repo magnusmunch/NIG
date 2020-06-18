@@ -419,8 +419,8 @@ layout(matrix(c(1:(G*H)), nrow=H, ncol=G, byrow=TRUE))
 for(h in 1:H) {
   for(g in 1:G) {
     hi <- hist(post.mcmc1[[h]][[g]], breaks=40, plot=FALSE)
-    m <- post.nig1$mu[[c(1, 64, 127, 190)[h]]][c(1, 26, 51, 76)[g]]
-    s <- sqrt(diag(post.nig1$Sigma[[c(1, 64, 127, 190)[h]]])[c(1, 26, 51, 76)[g]])
+    m <- post.nig1$mu[[h]][c(1, 26, 51, 76)[g]]
+    s <- sqrt(diag(post.nig1$Sigma[[h]])[c(1, 26, 51, 76)[g]])
     ylim <- range(c(hi$density, dnorm(m, m, s)))
     plot(hi, freq=FALSE, ylim=ylim, xlab=expression(beta), 
          ylab=expression(paste("p(", beta, "|", bold(y), ")")), 

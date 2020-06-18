@@ -1,17 +1,11 @@
 #!/usr/bin/env Rscript
 
-# number of cores to use
-ncores <- 100
-
 ### libraries
 packages <- c("foreach", "doParallel", "NIG", "statmod", "glmnet", "rstan")
 sapply(packages, library, character.only=TRUE)
 
 ### load and preprocess data
 load(file="data/data_gdsc_dat1.Rdata")
-
-# number of reps
-nreps <- 100
 
 ################################################################################
 ################################# simulation 1 #################################
@@ -37,8 +31,12 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5,
 
 
 # setup cluster
-cl <- makeCluster(ncores)
-if(ncores > 1) {
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(min(ncores, nreps), type="PSOCK")
+} else {
+  cl <- makeCluster(min(ncores, nreps), type="FORK")
+}
+if(min(ncores, nreps) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -165,8 +163,12 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5,
                 maxit.post=100, maxit.block=0)
 
 # setup cluster
-cl <- makeCluster(ncores)
-if(ncores > 1) {
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(min(ncores, nreps), type="PSOCK")
+} else {
+  cl <- makeCluster(min(ncores, nreps), type="FORK")
+}
+if(min(ncores, nreps) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -295,8 +297,12 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5,
                 maxit.post=100, maxit.block=0)
 
 # setup cluster
-cl <- makeCluster(ncores)
-if(ncores > 1) {
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(min(ncores, nreps), type="PSOCK")
+} else {
+  cl <- makeCluster(min(ncores, nreps), type="FORK")
+}
+if(min(ncores, nreps) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -432,8 +438,12 @@ control <- list(conv.post=TRUE, trace=FALSE, epsilon.eb=1e-5,
                 maxit.post=100, maxit.block=0)
 
 # setup cluster
-cl <- makeCluster(ncores)
-if(ncores > 1) {
+if(Sys.info()["sysname"]=="Windows") {
+  cl <- makeCluster(min(ncores, nreps), type="PSOCK")
+} else {
+  cl <- makeCluster(min(ncores, nreps), type="FORK")
+}
+if(min(ncores, nreps) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -638,10 +648,10 @@ fit.mcmc2 <- sampling(stanmodels$nig_full,
 time.mcmc2 <- proc.time()[3] - ct
 save(fit.nig1, fit.mcmc1, fit.mcmc2, 
      file="results/simulations_gdsc_fit5.Rdata")
-post.nig1 <- list(mu=fit.nig1$vb$mu, Sigma=fit.nig1$vb$Sigma)
-save(post.nig1, file="results/simulations_gdsc_fit5_nig1.Rdata")
 hid <- sapply(1:H, function(h) {which((Z[, -1] %*% c(1:(H - 1)) + 1)==h)[1]})
 gid <- p/G*(c(1:G) - 1) + 1
+post.nig1 <- list(mu=fit.nig1$vb$mu[hid], Sigma=fit.nig1$vb$Sigma[hid])
+save(post.nig1, file="results/simulations_gdsc_fit5_nig1.Rdata")
 post.mcmc1 <- lapply(fit.mcmc1[hid], extract, pars=paste0("beta[", gid, "]"))
 post.mcmc2 <- extract(fit.mcmc2, pars=c("beta", "alphaf", "alphad", 
                                         "lambdaf", "lambdad"))

@@ -928,8 +928,9 @@ true.kurtb3 <- 3*mean(as.numeric(outer(
   estimation in Scenario 3 results in overestimated $\phi_{jd}$ and 
   underestimated $\chi_{d}$ by NIG$_{\text{f}+\text{d}}$
   (Figure \ref{fig:simulations_gdsc_est3}). We conjecture that this interplay
-  of drug and feature variance components is due to near-unidentifiability.e
-  r, the resultconsequences are limited, since theiances on the $\beta_{jd}$ level are unbiasleft ed 
+  of drug and feature variance components is due to near-unidentifiability. 
+  In any case, the consequences are limited, since the variances on the 
+  $\beta_{jd}$ level are left unbiased
   (Figure \ref{fig:simulations_gdsc_var}). If separately estimated, scale 
   parameters $\lambda_{\text{feat}}$ and $\lambda_{\text{drug}}$ are 
   overestimated by NIG$_{\text{f}}$ and NIG$_{\text{d}}$, respectively.
@@ -1074,7 +1075,7 @@ rownames(fit1) <- temp
 tab1 <- t(fit1)[c(1, 2), c(1:3)]
 rownames(tab1) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
                     "NIG$_{\\text{f}+\\text{d}}$")
-colnames(tab1) <- c("feature intercept", "$\\log p$-value", "drug intercept")
+colnames(tab1) <- c("feature intercept", "$p$-value", "drug intercept")
 
 fit2 <- read.table("results/analysis_gdsc_fit2.txt", row.names=NULL)
 temp <- fit2[, 1]
@@ -1094,7 +1095,7 @@ rownames(fit3) <- temp
 tab3 <- t(fit3)[c(1, 2), c(1:3)]
 rownames(tab3) <- c("NIG$_{\\text{f}+\\text{d}}^-$", 
                     "NIG$_{\\text{f}+\\text{d}}$")
-colnames(tab3) <- c("feature intercept", "$\\log p$-value", "drug intercept")
+colnames(tab3) <- c("feature intercept", "$p$-value", "drug intercept")
 
 fit4 <- read.table("results/analysis_gdsc_fit4.txt", row.names=NULL)
 temp <- fit4[, 1]
@@ -1183,7 +1184,8 @@ tab5.2 <- t(sapply(1:nrow(tab5.2), function(r) {
   out[id] <- paste0("\\textbf{", out[id], "}")
   out}))
 rownames(tab5.2) <- paste0("analysis ", 1:nrow(tab5.2))
-colnames(tab5.2) <- c("lasso($\\sim$50)$^*$", "lasso(25)", "lasso(100)", 
+colnames(tab5.2) <- c("lasso$_{\\lambda^{\\text{CV}}}$($\\sim$50)$^*$", 
+                      "lasso(25)", "lasso(100)", 
                       "NIG$_{\\text{f}+\\text{d}}+$DSS($\\sim$50)$^*$",
                       "NIG$_{\\text{f}+\\text{d}}+$DSS(25)",
                       "NIG$_{\\text{f}+\\text{d}}+$DSS(100)")
@@ -1208,23 +1210,18 @@ psels1 <- round(mpsel[, c(4, 6, 10)], 0)
   external covariates. 
   \begin{itemize}
 	  \item{Analysis 1 results in a positive additive effect of the mutation 
-	    $log p$-values on the prior $\bm{\beta}_d$ precisions
-	    (Table \ref{tab:analysis_gdsc_fit1}). More precisely, with doubling
-	    $p$-value, the prior $\bm{\beta}_d$ precision increases by 
-	    $\log(2)*\Sexpr{round(tab1[2, 2], 3)}$=\Sexpr{
-	    round(log(2)*tab1[2, 2], 3)}.
-	    This translates to more $\bm{\beta}_d$ shrinkage with increasing 
-	    $p$-value, as expected.}
+	    $p$-values on the prior $\bm{\beta}_d$ precisions
+	    (Table \ref{tab:analysis_gdsc_fit1}). 
+	    This translates to more $\bm{\beta}_d$ shrinkage towards zero with 
+	    increasing $p$-value, as expected.}
 	  \item{Analysis 2 shows that gene mutations are more predictive 
 	    than gene expressions, as observed from the negative effect of mutation
 	    dummy on prior precisions (Table \ref{tab:analysis_gdsc_fit2}): 
 	    mutations are shrunken less than
 	    expressions.}
-	  \item{Analysis 3 indicates that CCLE $\log p$-values are positively related
-	    to prior precision (Table \ref{tab:analysis_gdsc_fit3}). In particular
-	    if the $p$-value doubles, the prior $\bm{\beta}_d$ precision increases by 
-	    $\log(2)*\Sexpr{round(tab3[2, 2], 3)}$=\Sexpr{
-	    round(log(2)*tab1[2, 2], 3)}, i.e., higher CCLE $p$-values results in 
+	  \item{Analysis 3 indicates that CCLE $p$-values are positively related
+	    to prior precision (Table \ref{tab:analysis_gdsc_fit3}), i.e., higher 
+	    CCLE $p$-values results in 
 	    more shrinkage of $\bm{\beta}_d$, as expected.}
 	  \item{Analysis 4 gives a negative effect for the pathway dummy (Table 
 	    \ref{tab:analysis_gdsc_fit4.1}), indicating less shrinkage for genes
@@ -1287,7 +1284,7 @@ kableExtra::kable_styling(knitr::kable(
   Note that due to standardisation, an empty reference model has a PMSE of one.
   In terms of PMSE, ridge outperforms the other models in all Analyses 1, 3, and
   4, while NIG$_{\text{f}+\text{d}}$ $\bm{\alpha}$ performs best in Analysis 2. 
-  In general however, all models perform very similar. The ranges of mean PMSE 
+  In general however, all models perform very similarly. The ranges of mean PMSE 
   over all methods are
   \Sexpr{ranges1[1:3]}, and \Sexpr{ranges1[4]}, for Analyses 1-4, respectively,
   indicating that the differences in predictive performance are very small.
@@ -1325,7 +1322,7 @@ kableExtra::add_footnote(kableExtra::kable_styling(knitr::kable(
   caption="Mean (standard deviation) of cross-validated PMSE for selection methods (number of selected features between parentheses) on GDSC data. Best performing model (per analysis) in bold.",
   format="latex", booktabs=TRUE, escape=FALSE), 
   latex_options=c("HOLD_position")), 
-  label="cross validated lasso selects, on average, 42-56 features in all analyses (indicated with $\\sim$50).",
+  label="lasso with cross validated $\\lambda$ selects, on average, 42-56 features in all analyses (indicated with $\\sim$50).",
   notation="symbol", threeparttable=TRUE, escape=FALSE)
 @
   
@@ -1420,12 +1417,12 @@ times <- round(read.table("results/analysis_gdsc_time1.txt")[, 1]/60, 0)
   Other methods that consider an external covariate model for the variance
   components of the regression coefficients are bSEM
   \cite[]{leday_gene_2017,kpogbezan_empirical_2017} and \texttt{xtune}
-  \cite[]{zeng_incorporating_2020}. bSEM is designed to include
+  \cite[]{zeng_incorporating_2020}. Here, bSEM is designed to include
   only dichotomous external covariates, so is not applicable in most of the
-  applications and simulations that we have considered here. \texttt{xtune}
-  allows for the inclusion of multiple external feature covariates, but not on
-  the drug level, so also has limited applicability in our simulations and
-  applications.
+  applications and simulations that we have considered here. Inclusion of
+  multiple external features is allowed by \texttt{xtune}, but not on
+  the drug level, so \texttt{xtune} has limited applicability in our simulations 
+  and applications.
   
   A possible criticism of the NIG model is the treatment of $\bm{\alpha}$ as 
   fixed hyperparameters instead of random. A Bayesian could argue that endowment
@@ -1442,7 +1439,7 @@ times <- round(read.table("results/analysis_gdsc_time1.txt")[, 1]/60, 0)
 	in which gene expressions are regressed on SNPs. Several interesting external
 	covariates are available, both on the genes as well as the SNPs. An example of
 	such an external
-	covariate for the genes is genelength, where we suspect that longer genes are
+	covariate for the genes is gene length, where we suspect that longer genes are
 	harder to predict. The distance of the SNP to the gene is an example of an
 	external SNP covariate, where the expectation is that SNPs further from the 
 	gene are less predictive of that gene's expression.

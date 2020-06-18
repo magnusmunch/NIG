@@ -601,6 +601,7 @@ colnames(tab3) <- c("$\\text{EMSE}_{\\text{total}}$",
 rownames(tab3) <- c("NIG$_{\\text{f+d}}^-$", 
                     "NIG$_{\\text{f+d}}$", "ridge", "lasso")
 
+load(file="results/simulations_gdsc_res5.Rdata")
 n_eff.mean <- round(mean(summary.mcmc2$summary[, "n_eff"]), 0)
 n_eff.min <- round(min(summary.mcmc2$summary[, "n_eff"]), 0)
 time.mean <- round((time.mcmc2*1000/n_eff.mean)/3600, 0)
@@ -697,7 +698,7 @@ kableExtra::kable_styling(knitr::kable(
   size of 10 000. Moreover, to achieve a minimum effective sample size of 10 000 
   for all parameters, the sampler has to be run for about \Sexpr{time.min}
   weeks.
-<<simulations_gdsc_res5, fig.cap="Simulation results for Scenario 3: Samples from full Bayesian NIG posteriors (see Section \\ref{sec:gibbssampler}) with true value superimposed (red line) for (top row) group 1, (second row) group 2, (third row) group 3, and (bottom row) group 4 for both features and drugs, and (left column) $\\bm{\\phi}$ and (second column) $\\bm{\\chi}$.", out.width="100%">>= 
+<<simulations_gdsc_res5, fig.cap="Simulation results for Scenario 3: Samples from full Bayesian NIG posteriors (see Section \\ref{sec:gibbssampler}) with true value superimposed (red line) for (top row) group 1, (second row) group 2, (third row) group 3, and (bottom row) group 4 for both features and drugs, and (left column) $\\bm{\\phi}$ and (second column) $\\bm{\\chi}$. Note that the red line is not present in most of the Figures, indicating that the posterior is far of from the true value", out.width="100%">>= 
 @
 
   \section{GDSC data}\label{sec:gdsc}

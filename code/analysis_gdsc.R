@@ -8,12 +8,6 @@
 packages <- c("foreach", "doParallel", "glmnet", "NIG")
 sapply(packages, library, character.only=TRUE)
 
-# number of CV folds
-nfolds <- 10
-
-# number of cores to use
-ncores <- min(100, nfolds)
-
 ### load data
 load(file="data/data_gdsc_dat1.Rdata")
 
@@ -131,11 +125,11 @@ foldid <- lapply(1:D, function(d) {
 
 # setup cluster
 if(Sys.info()["sysname"]=="Windows") {
-  cl <- makeCluster(ncores, type="PSOCK")
+  cl <- makeCluster(min(ncores, nfolds), type="PSOCK")
 } else {
-  cl <- makeCluster(ncores, type="FORK")
+  cl <- makeCluster(min(ncores, nfolds), type="FORK")
 }
-if(ncores > 1) {
+if(min(ncores, nfolds) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -325,11 +319,11 @@ foldid <- lapply(1:D, function(d) {
 
 # setup cluster
 if(Sys.info()["sysname"]=="Windows") {
-  cl <- makeCluster(ncores, type="PSOCK")
+  cl <- makeCluster(min(ncores, nfolds), type="PSOCK")
 } else {
-  cl <- makeCluster(ncores, type="FORK")
+  cl <- makeCluster(min(ncores, nfolds), type="FORK")
 }
-if(ncores > 1) {
+if(min(ncores, nfolds) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -536,11 +530,11 @@ foldid <- lapply(1:D, function(d) {
 
 # setup cluster
 if(Sys.info()["sysname"]=="Windows") {
-  cl <- makeCluster(ncores, type="PSOCK")
+  cl <- makeCluster(min(ncores, nfolds), type="PSOCK")
 } else {
-  cl <- makeCluster(ncores, type="FORK")
+  cl <- makeCluster(min(ncores, nfolds), type="FORK")
 }
-if(ncores > 1) {
+if(min(ncores, nfolds) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
@@ -734,11 +728,11 @@ foldid <- lapply(1:D, function(d) {
 
 # setup cluster
 if(Sys.info()["sysname"]=="Windows") {
-  cl <- makeCluster(ncores, type="PSOCK")
+  cl <- makeCluster(min(ncores, nfolds), type="PSOCK")
 } else {
-  cl <- makeCluster(ncores, type="FORK")
+  cl <- makeCluster(min(ncores, nfolds), type="FORK")
 }
-if(ncores > 1) {
+if(min(ncores, nfolds) > 1) {
   registerDoParallel(cl)
 } else {
   registerDoSEQ()
